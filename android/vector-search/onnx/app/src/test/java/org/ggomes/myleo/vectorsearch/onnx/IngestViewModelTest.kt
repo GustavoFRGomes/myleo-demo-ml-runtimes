@@ -10,9 +10,12 @@ import kotlinx.coroutines.test.setMain
 import org.ggomes.myleo.vectorsearch.onnx.data.ChunkEmbedding
 import org.ggomes.myleo.vectorsearch.onnx.data.CorpusStats
 import org.ggomes.myleo.vectorsearch.onnx.data.DocumentRepository
+import org.ggomes.myleo.vectorsearch.onnx.data.DocumentStat
 import org.ggomes.myleo.vectorsearch.onnx.data.EmbeddingRepository
 import org.ggomes.myleo.vectorsearch.onnx.data.ScoredChunk
 import org.ggomes.myleo.vectorsearch.onnx.domain.CalculateEmbeddingUseCase
+import org.ggomes.myleo.vectorsearch.onnx.domain.DeviceSnapshot
+import org.ggomes.myleo.vectorsearch.onnx.domain.SystemStatsProvider
 import org.ggomes.myleo.vectorsearch.onnx.ui.ingest.IngestViewModel
 import org.junit.After
 import org.junit.Before
@@ -141,6 +144,33 @@ class IngestViewModelTest {
         assertThat(state.corpus).isEqualTo(CorpusStats())
     }
 
+    @Test
+    fun onIngest_recordsBatteryAndDocuments() = runTest {
+        val viewModel = IngestViewModel(
+            CalculateEmbeddingUseCase(FakeEmbeddingRepository()),
+            FakeDocumentRepository(),
+            modelName = "embedding.tflite",
+            systemStats = FakeSystemStats(80),
+            ioDispatcher = testDispatcher,
+        )
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.modelName).isEqualTo("embedding.tflite")
+
+        viewModel.onCorpusChange("first\n\nsecond")
+        viewModel.onIngest()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.lastRun?.batteryStartPct).isEqualTo(80)
+        assertThat(state.lastRun?.batteryEndPct).isEqualTo(80)
+        assertThat(state.documents).containsExactly(DocumentStat("Document 1", 2))
+    }
+
+    private class FakeSystemStats(private val percent: Int?) : SystemStatsProvider {
+        override fun snapshot() =
+            DeviceSnapshot("TestMan", "TestModel", onBattery = true, batteryPercent = percent)
+    }
+
     private class FakeEmbeddingRepository : EmbeddingRepository {
         var failOn: String? = null
 
@@ -166,6 +196,12 @@ class IngestViewModelTest {
 
         override fun stats(): Result<CorpusStats> =
             Result.success(CorpusStats(ingested.size, ingested.values.sumOf { it.size }))
+
+        override fun documentStats(): Result<List<DocumentStat>> =
+            Result.success(
+                ingested.map { (label, chunks) -> DocumentStat(label, chunks.size) }
+                    .sortedBy { it.label },
+            )
 
         override fun search(vector: List<Float>, topK: Int): Result<List<ScoredChunk>> =
             Result.success(emptyList())

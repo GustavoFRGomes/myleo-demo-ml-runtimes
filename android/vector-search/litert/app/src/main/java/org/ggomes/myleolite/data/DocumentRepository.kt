@@ -22,6 +22,12 @@ data class CorpusStats(
     val chunks: Int = 0,
 )
 
+/** Per-document chunk counts for the performance report. */
+data class DocumentStat(
+    val label: String,
+    val chunks: Int,
+)
+
 /** Persistence + ANN-search boundary. The ViewModel layer talks to this only. */
 interface DocumentRepository {
     /** Appends [chunks] under [document] (re-ingesting the same text duplicates it). */
@@ -32,6 +38,9 @@ interface DocumentRepository {
 
     /** Live totals: distinct documents + stored chunks. */
     fun stats(): Result<CorpusStats>
+
+    /** Chunk counts per document label, sorted by label. */
+    fun documentStats(): Result<List<DocumentStat>>
 
     /** Top-[topK] chunks by cosine similarity to [vector]. Empty when the index is empty. */
     fun search(vector: List<Float>, topK: Int = DEFAULT_TOP_K): Result<List<ScoredChunk>>
@@ -63,6 +72,14 @@ class ObjectBoxDocumentRepository(private val store: BoxStore) : DocumentReposit
             query.find().map { it.document }.distinct().size
         }
         CorpusStats(documents = documents, chunks = box.count().toInt())
+    }
+
+    override fun documentStats(): Result<List<DocumentStat>> = runCatching {
+        store.boxFor(DocumentChunk::class.java).query().build().use { query ->
+            query.find().groupBy { it.document }
+                .map { (label, chunks) -> DocumentStat(label, chunks.size) }
+                .sortedBy { it.label }
+        }
     }
 
     override fun search(vector: List<Float>, topK: Int): Result<List<ScoredChunk>> = runCatching {

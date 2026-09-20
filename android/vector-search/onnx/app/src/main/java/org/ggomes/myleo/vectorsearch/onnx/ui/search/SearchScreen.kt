@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +42,7 @@ import org.ggomes.myleo.vectorsearch.onnx.ui.theme.MyLeoVsOnnxTheme
 fun SearchScreen(
     viewModel: SearchViewModel,
     onOpenIngest: () -> Unit,
+    onShowStats: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -55,6 +58,11 @@ fun SearchScreen(
                     }
                 },
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onShowStats) {
+                Icon(Icons.Filled.Info, contentDescription = "Statistics")
+            }
         },
     ) { innerPadding ->
         SearchContent(

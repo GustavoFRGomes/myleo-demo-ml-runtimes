@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.setMain
 import org.ggomes.myleo.vectorsearch.onnx.data.ChunkEmbedding
 import org.ggomes.myleo.vectorsearch.onnx.data.CorpusStats
 import org.ggomes.myleo.vectorsearch.onnx.data.DocumentRepository
+import org.ggomes.myleo.vectorsearch.onnx.data.DocumentStat
 import org.ggomes.myleo.vectorsearch.onnx.data.ScoredChunk
 import org.ggomes.myleo.vectorsearch.onnx.domain.CalculateEmbeddingUseCase
 import org.ggomes.myleo.vectorsearch.onnx.ui.search.SearchViewModel
@@ -152,6 +153,8 @@ class SearchViewModelTest {
         override fun clear(): Result<Unit> = Result.success(Unit)
 
         override fun stats(): Result<CorpusStats> = Result.success(CorpusStats())
+
+        override fun documentStats(): Result<List<DocumentStat>> = Result.success(emptyList())
 
         override fun search(vector: List<Float>, topK: Int): Result<List<ScoredChunk>> {
             lastQuery = vector

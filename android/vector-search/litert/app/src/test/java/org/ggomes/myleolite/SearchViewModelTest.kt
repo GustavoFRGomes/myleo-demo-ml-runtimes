@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.setMain
 import org.ggomes.myleolite.data.ChunkEmbedding
 import org.ggomes.myleolite.data.CorpusStats
 import org.ggomes.myleolite.data.DocumentRepository
+import org.ggomes.myleolite.data.DocumentStat
 import org.ggomes.myleolite.data.ScoredChunk
 import org.ggomes.myleolite.domain.CalculateEmbeddingUseCase
 import org.ggomes.myleolite.ui.search.SearchViewModel
@@ -152,6 +153,8 @@ class SearchViewModelTest {
         override fun clear(): Result<Unit> = Result.success(Unit)
 
         override fun stats(): Result<CorpusStats> = Result.success(CorpusStats())
+
+        override fun documentStats(): Result<List<DocumentStat>> = Result.success(emptyList())
 
         override fun search(vector: List<Float>, topK: Int): Result<List<ScoredChunk>> {
             lastQuery = vector

@@ -2,6 +2,7 @@ package org.ggomes.myleo.vectorsearch.onnx
 
 import org.ggomes.myleo.vectorsearch.onnx.data.ChunkEmbedding
 import org.ggomes.myleo.vectorsearch.onnx.data.CorpusStats
+import org.ggomes.myleo.vectorsearch.onnx.data.DocumentStat
 import org.ggomes.myleo.vectorsearch.onnx.data.ObjectBoxDocumentRepository
 import org.ggomes.myleo.vectorsearch.onnx.data.db.EMBEDDING_DIMENSIONS
 import org.ggomes.myleo.vectorsearch.onnx.data.db.MyObjectBox
@@ -59,6 +60,17 @@ class ObjectBoxDocumentRepositoryTest {
         repository.ingest("Document 2", listOf(ChunkEmbedding("c", hot(2)))).getOrThrow()
 
         assertThat(repository.stats().getOrThrow()).isEqualTo(CorpusStats(documents = 2, chunks = 3))
+    }
+
+    @Test
+    fun documentStats_perDocumentCounts() {
+        repository.ingest("Document 1", listOf(ChunkEmbedding("a", hot(0)), ChunkEmbedding("b", hot(1)))).getOrThrow()
+        repository.ingest("Document 2", listOf(ChunkEmbedding("c", hot(2)))).getOrThrow()
+
+        assertThat(repository.documentStats().getOrThrow()).containsExactly(
+            DocumentStat("Document 1", 2),
+            DocumentStat("Document 2", 1),
+        )
     }
 
     @Test

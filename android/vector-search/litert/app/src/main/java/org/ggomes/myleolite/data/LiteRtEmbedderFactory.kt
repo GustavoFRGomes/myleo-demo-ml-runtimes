@@ -18,10 +18,13 @@ import java.nio.channels.FileChannel
  */
 object LiteRtEmbedderFactory {
 
+    const val DEFAULT_MODEL_ASSET_PATH = "models/embedding.tflite"
+    const val DEFAULT_VOCAB_ASSET_PATH = "models/vocab.txt"
+
     fun create(
         context: Context,
-        modelAssetPath: String = "models/embedding.tflite",
-        vocabAssetPath: String = "models/vocab.txt",
+        modelAssetPath: String = DEFAULT_MODEL_ASSET_PATH,
+        vocabAssetPath: String = DEFAULT_VOCAB_ASSET_PATH,
         maxSeqLen: Int = LiteRtEmbedder.DEFAULT_MAX_SEQ_LEN,
         numThreads: Int? = null,
     ): LiteRtEmbedder {
