@@ -11,7 +11,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import org.ggomes.myleo.vectorsearch.onnx.data.DefaultEmbeddingRepository
+import org.ggomes.myleo.vectorsearch.onnx.data.DocumentRepository
 import org.ggomes.myleo.vectorsearch.onnx.data.MissingModelEmbedder
+import org.ggomes.myleo.vectorsearch.onnx.data.ObjectBoxDocumentRepository
+import org.ggomes.myleo.vectorsearch.onnx.data.db.ObjectBoxStores
 import org.ggomes.myleo.vectorsearch.onnx.domain.CalculateEmbeddingUseCase
 import org.ggomes.myleo.vectorsearch.onnx.ui.AppScreen
 import org.ggomes.myleo.vectorsearch.onnx.ui.ingest.IngestScreen
@@ -30,14 +33,18 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private val documentRepository: DocumentRepository by lazy {
+        ObjectBoxDocumentRepository(ObjectBoxStores.get(applicationContext))
+    }
+
     private val vmFactory: ViewModelProvider.Factory by lazy {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
                 modelClass.isAssignableFrom(SearchViewModel::class.java) ->
-                    SearchViewModel(useCase)
+                    SearchViewModel(useCase, documentRepository)
                 modelClass.isAssignableFrom(IngestViewModel::class.java) ->
-                    IngestViewModel(useCase)
+                    IngestViewModel(useCase, documentRepository)
                 else -> throw IllegalArgumentException("unknown ${modelClass.simpleName}")
             } as T
         }

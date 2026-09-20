@@ -16,3 +16,5 @@ local.properties
 # Bundled model binaries + large assets are never committed (see README for
 # download links). The app runs without them via the missing-model error state.
 app/src/main/assets/
+*.dylib
+app/objectbox-models/*.bak

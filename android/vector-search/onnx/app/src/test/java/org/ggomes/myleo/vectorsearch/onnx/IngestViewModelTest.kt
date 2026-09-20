@@ -7,7 +7,11 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.ggomes.myleo.vectorsearch.onnx.data.ChunkEmbedding
+import org.ggomes.myleo.vectorsearch.onnx.data.CorpusStats
+import org.ggomes.myleo.vectorsearch.onnx.data.DocumentRepository
 import org.ggomes.myleo.vectorsearch.onnx.data.EmbeddingRepository
+import org.ggomes.myleo.vectorsearch.onnx.data.ScoredChunk
 import org.ggomes.myleo.vectorsearch.onnx.domain.CalculateEmbeddingUseCase
 import org.ggomes.myleo.vectorsearch.onnx.ui.ingest.IngestViewModel
 import org.junit.After
@@ -31,11 +35,9 @@ class IngestViewModelTest {
     }
 
     @Test
-    fun onIngest_twoParagraphs_publishesTwoChunks() = runTest {
-        val viewModel = IngestViewModel(
-            CalculateEmbeddingUseCase(FakeEmbeddingRepository()),
-            testDispatcher,
-        )
+    fun onIngest_twoParagraphs_persistsChunksAndReportsTimings() = runTest {
+        val documents = FakeDocumentRepository()
+        val viewModel = IngestViewModel(CalculateEmbeddingUseCase(FakeEmbeddingRepository()), documents, testDispatcher)
 
         viewModel.onCorpusChange("first\n\nsecond")
         viewModel.onIngest()
@@ -45,15 +47,39 @@ class IngestViewModelTest {
         assertThat(state.isIngesting).isFalse()
         assertThat(state.error).isNull()
         assertThat(state.chunks.map { it.text }).containsExactly("first", "second")
-        assertThat(state.chunks.map { it.dimensions }).containsExactly(2, 2)
+        assertThat(state.stored).isTrue()
+        assertThat(documents.ingested.keys).containsExactly("Document 1")
+        assertThat(documents.ingested.values.flatten().map { it.text }).containsExactly("first", "second")
+        val run = state.lastRun
+        assertThat(run).isNotNull()
+        assertThat(run!!.document).isEqualTo("Document 1")
+        assertThat(run.chunks).isEqualTo(2)
+        assertThat(run.embedMs).isGreaterThanOrEqualTo(0)
+        assertThat(run.storeMs).isGreaterThanOrEqualTo(0)
+        assertThat(run.totalMs).isGreaterThanOrEqualTo(run.embedMs + run.storeMs)
+        assertThat(state.corpus).isEqualTo(CorpusStats(documents = 1, chunks = 2))
+    }
+
+    @Test
+    fun onIngest_secondRun_labelsNextDocument() = runTest {
+        val documents = FakeDocumentRepository()
+        val viewModel = IngestViewModel(CalculateEmbeddingUseCase(FakeEmbeddingRepository()), documents, testDispatcher)
+
+        viewModel.onCorpusChange("one")
+        viewModel.onIngest()
+        advanceUntilIdle()
+        viewModel.onCorpusChange("two")
+        viewModel.onIngest()
+        advanceUntilIdle()
+
+        assertThat(viewModel.uiState.value.lastRun?.document).isEqualTo("Document 2")
+        assertThat(viewModel.uiState.value.corpus).isEqualTo(CorpusStats(documents = 2, chunks = 2))
     }
 
     @Test
     fun onIngest_blankCorpus_doesNothing() = runTest {
-        val viewModel = IngestViewModel(
-            CalculateEmbeddingUseCase(FakeEmbeddingRepository()),
-            testDispatcher,
-        )
+        val documents = FakeDocumentRepository()
+        val viewModel = IngestViewModel(CalculateEmbeddingUseCase(FakeEmbeddingRepository()), documents, testDispatcher)
 
         viewModel.onIngest()
         advanceUntilIdle()
@@ -61,12 +87,15 @@ class IngestViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.isIngesting).isFalse()
         assertThat(state.chunks).isEmpty()
+        assertThat(state.stored).isFalse()
+        assertThat(state.lastRun).isNull()
+        assertThat(documents.ingested).isEmpty()
     }
 
     @Test
     fun onIngest_chunkFailure_keepsSuccessesAndShowsError() = runTest {
         val repository = FakeEmbeddingRepository().apply { failOn = "bad" }
-        val viewModel = IngestViewModel(CalculateEmbeddingUseCase(repository), testDispatcher)
+        val viewModel = IngestViewModel(CalculateEmbeddingUseCase(repository), FakeDocumentRepository(), testDispatcher)
 
         viewModel.onCorpusChange("good\n\nbad")
         viewModel.onIngest()
@@ -76,6 +105,40 @@ class IngestViewModelTest {
         assertThat(state.isIngesting).isFalse()
         assertThat(state.chunks.map { it.text }).containsExactly("good")
         assertThat(state.error).isEqualTo("nope")
+        assertThat(state.stored).isFalse()
+    }
+
+    @Test
+    fun onIngest_persistFailure_showsError() = runTest {
+        val documents = FakeDocumentRepository().apply { error = RuntimeException("disk full") }
+        val viewModel = IngestViewModel(CalculateEmbeddingUseCase(FakeEmbeddingRepository()), documents, testDispatcher)
+
+        viewModel.onCorpusChange("first")
+        viewModel.onIngest()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.isIngesting).isFalse()
+        assertThat(state.error).isEqualTo("disk full")
+        assertThat(state.stored).isFalse()
+    }
+
+    @Test
+    fun onClearIndex_clearsStateAndStats() = runTest {
+        val documents = FakeDocumentRepository()
+        val viewModel = IngestViewModel(CalculateEmbeddingUseCase(FakeEmbeddingRepository()), documents, testDispatcher)
+        viewModel.onCorpusChange("first")
+        viewModel.onIngest()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.corpus.chunks).isEqualTo(1)
+
+        viewModel.onClearIndex()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.chunks).isEmpty()
+        assertThat(state.stored).isFalse()
+        assertThat(state.corpus).isEqualTo(CorpusStats())
     }
 
     private class FakeEmbeddingRepository : EmbeddingRepository {
@@ -84,5 +147,27 @@ class IngestViewModelTest {
         override fun embedText(text: String): Result<List<Float>> =
             if (text == failOn) Result.failure(RuntimeException("nope"))
             else Result.success(listOf(0.6f, 0.8f))
+    }
+
+    private class FakeDocumentRepository : DocumentRepository {
+        val ingested = mutableMapOf<String, List<ChunkEmbedding>>()
+        var error: Throwable? = null
+
+        override fun ingest(document: String, chunks: List<ChunkEmbedding>): Result<Unit> {
+            error?.let { return Result.failure(it) }
+            ingested[document] = chunks
+            return Result.success(Unit)
+        }
+
+        override fun clear(): Result<Unit> {
+            ingested.clear()
+            return Result.success(Unit)
+        }
+
+        override fun stats(): Result<CorpusStats> =
+            Result.success(CorpusStats(ingested.size, ingested.values.sumOf { it.size }))
+
+        override fun search(vector: List<Float>, topK: Int): Result<List<ScoredChunk>> =
+            Result.success(emptyList())
     }
 }

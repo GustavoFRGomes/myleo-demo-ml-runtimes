@@ -3,6 +3,7 @@ package org.ggomes.myleolite.ui.ingest
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import org.ggomes.myleolite.data.CorpusStats
 import org.ggomes.myleolite.ui.theme.MyLeoLiteTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +60,7 @@ fun IngestScreen(
             state = state,
             onCorpusChange = viewModel::onCorpusChange,
             onIngest = viewModel::onIngest,
+            onClearIndex = viewModel::onClearIndex,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -67,6 +71,7 @@ fun IngestContent(
     state: IngestUiState,
     onCorpusChange: (String) -> Unit,
     onIngest: () -> Unit,
+    onClearIndex: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -74,6 +79,17 @@ fun IngestContent(
             .fillMaxSize()
             .padding(16.dp),
     ) {
+        state.modelLoadMs?.let { ms ->
+            Text(
+                "Embedding model loaded in $ms ms",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Text(
+            "Index: ${state.corpus.documents} documents · ${state.corpus.chunks} chunks",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = state.corpusText,
             onValueChange = onCorpusChange,
@@ -82,11 +98,19 @@ fun IngestContent(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = onIngest,
-            enabled = state.corpusText.isNotBlank() && !state.isIngesting,
-        ) {
-            Text("Calculate embeddings")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = onIngest,
+                enabled = state.corpusText.isNotBlank() && !state.isIngesting,
+            ) {
+                Text("Calculate embeddings")
+            }
+            TextButton(
+                onClick = onClearIndex,
+                enabled = state.corpus.chunks > 0 && !state.isIngesting,
+            ) {
+                Text("Clear index")
+            }
         }
         Spacer(Modifier.height(8.dp))
         when {
@@ -94,6 +118,16 @@ fun IngestContent(
             state.error != null -> Text(
                 text = state.error,
                 color = MaterialTheme.colorScheme.error,
+            )
+            state.lastRun != null -> Text(
+                "${state.lastRun.document}: ${state.lastRun.chunks} chunks in " +
+                    "${state.lastRun.totalMs} ms " +
+                    "(embed ${state.lastRun.embedMs} ms, store ${state.lastRun.storeMs} ms)",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            state.stored -> Text(
+                "Saved ${state.chunks.size} chunks to the on-device index.",
+                style = MaterialTheme.typography.bodySmall,
             )
             state.chunks.isEmpty() -> Text(
                 "No chunks yet — paste text and tap Calculate.",
@@ -129,9 +163,14 @@ fun IngestContentPreview() {
             state = IngestUiState(
                 corpusText = "first paragraph\n\nsecond paragraph",
                 chunks = listOf(IngestedChunk("first paragraph", 512, 9)),
+                stored = true,
+                lastRun = IngestRunStats("Document 1", 1, 9, 2, 11),
+                corpus = CorpusStats(1, 1),
+                modelLoadMs = 812,
             ),
             onCorpusChange = {},
             onIngest = {},
+            onClearIndex = {},
         )
     }
 }

@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlin.math.roundToInt
 import org.ggomes.myleolite.ui.theme.MyLeoLiteTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,19 +101,25 @@ fun SearchContent(
                 text = state.error,
                 color = MaterialTheme.colorScheme.error,
             )
+            state.hits.isEmpty() -> Text(
+                "Index is empty — tap the gear to ingest text first.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        state.queryMs?.let { ms ->
+            Text(
+                "Ranked ${state.hits.size} hits in $ms ms",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
         Spacer(Modifier.height(8.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(state.hits) { hit ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
-                        Text(hit.text, style = MaterialTheme.typography.titleSmall)
+                        Text(hit.text, style = MaterialTheme.typography.titleSmall, maxLines = 3)
                         Text(
-                            "${hit.dimensions} dims · ${hit.embedMs} ms",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        Text(
-                            hit.preview.joinToString(prefix = "[", postfix = ", …]"),
+                            "${(hit.similarity * 100).roundToInt()}% match",
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -129,7 +136,8 @@ fun SearchContentPreview() {
         SearchContent(
             state = SearchUiState(
                 query = "hello",
-                hits = listOf(EmbeddingHit("hello", 512, 12, listOf(0.1f, -0.2f))),
+                hits = listOf(SearchHit("hello world", 0.87)),
+                queryMs = 14,
             ),
             onQueryChange = {},
             onSearch = {},

@@ -36,6 +36,11 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        // Unit tests run on the JVM where android.* stubs throw; return defaults
+        // instead (e.g. android.util.Log calls become no-ops in tests).
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {

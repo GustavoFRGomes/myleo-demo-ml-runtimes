@@ -7,7 +7,10 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.ggomes.myleolite.data.EmbeddingRepository
+import org.ggomes.myleolite.data.ChunkEmbedding
+import org.ggomes.myleolite.data.CorpusStats
+import org.ggomes.myleolite.data.DocumentRepository
+import org.ggomes.myleolite.data.ScoredChunk
 import org.ggomes.myleolite.domain.CalculateEmbeddingUseCase
 import org.ggomes.myleolite.ui.search.SearchViewModel
 import org.junit.After
@@ -31,9 +34,11 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun onSearch_validQuery_publishesEmbeddingHit() = runTest {
-        val repository = FakeEmbeddingRepository().apply { vector = listOf(0.6f, 0.8f) }
-        val viewModel = SearchViewModel(CalculateEmbeddingUseCase(repository), testDispatcher)
+    fun onSearch_validQuery_publishesRankedHits() = runTest {
+        val documents = FakeDocumentRepository().apply {
+            hits = listOf(ScoredChunk("doc one", 0.9), ScoredChunk("doc two", 0.7))
+        }
+        val viewModel = viewModel(documents)
 
         viewModel.onQueryChange("hi")
         viewModel.onSearch()
@@ -42,20 +47,15 @@ class SearchViewModelTest {
         val state = viewModel.uiState.value
         assertThat(state.isSearching).isFalse()
         assertThat(state.error).isNull()
-        assertThat(state.hits).hasSize(1)
-        val hit = state.hits.first()
-        assertThat(hit.text).isEqualTo("hi")
-        assertThat(hit.dimensions).isEqualTo(2)
-        assertThat(hit.embedMs).isGreaterThanOrEqualTo(0)
-        assertThat(hit.preview).containsExactly(0.6f, 0.8f)
+        assertThat(state.hits.map { it.text }).containsExactly("doc one", "doc two")
+        assertThat(state.hits.map { it.similarity }).containsExactly(0.9, 0.7)
+        assertThat(state.queryMs).isNotNull()
+        assertThat(documents.lastQuery).containsExactly(0.6f, 0.8f)
     }
 
     @Test
     fun onSearch_blankQuery_doesNothing() = runTest {
-        val viewModel = SearchViewModel(
-            CalculateEmbeddingUseCase(FakeEmbeddingRepository()),
-            testDispatcher,
-        )
+        val viewModel = viewModel()
 
         viewModel.onSearch()
         advanceUntilIdle()
@@ -67,9 +67,9 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun onSearch_repositoryFailure_showsError() = runTest {
+    fun onSearch_embeddingFailure_showsError() = runTest {
         val repository = FakeEmbeddingRepository().apply { error = RuntimeException("no model") }
-        val viewModel = SearchViewModel(CalculateEmbeddingUseCase(repository), testDispatcher)
+        val viewModel = SearchViewModel(CalculateEmbeddingUseCase(repository), FakeDocumentRepository(), testDispatcher)
 
         viewModel.onQueryChange("hi")
         viewModel.onSearch()
@@ -82,9 +82,38 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun onSearch_searchFailure_showsError() = runTest {
+        val documents = FakeDocumentRepository().apply { error = RuntimeException("index broken") }
+        val viewModel = viewModel(documents)
+
+        viewModel.onQueryChange("hi")
+        viewModel.onSearch()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.isSearching).isFalse()
+        assertThat(state.hits).isEmpty()
+        assertThat(state.error).isEqualTo("index broken")
+    }
+
+    @Test
+    fun onSearch_emptyIndex_showsNoHitsNorError() = runTest {
+        val viewModel = viewModel(FakeDocumentRepository())
+
+        viewModel.onQueryChange("hi")
+        viewModel.onSearch()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertThat(state.isSearching).isFalse()
+        assertThat(state.hits).isEmpty()
+        assertThat(state.error).isNull()
+    }
+
+    @Test
     fun onQueryChange_updatesQueryAndClearsError() = runTest {
         val repository = FakeEmbeddingRepository().apply { error = RuntimeException("boom") }
-        val viewModel = SearchViewModel(CalculateEmbeddingUseCase(repository), testDispatcher)
+        val viewModel = SearchViewModel(CalculateEmbeddingUseCase(repository), FakeDocumentRepository(), testDispatcher)
         viewModel.onQueryChange("hi")
         viewModel.onSearch()
         advanceUntilIdle()
@@ -97,11 +126,36 @@ class SearchViewModelTest {
         assertThat(state.error).isNull()
     }
 
-    private class FakeEmbeddingRepository : EmbeddingRepository {
-        var vector: List<Float> = emptyList()
+    private fun viewModel(documents: FakeDocumentRepository = FakeDocumentRepository()) =
+        SearchViewModel(
+            CalculateEmbeddingUseCase(FakeEmbeddingRepository()),
+            documents,
+            testDispatcher,
+        )
+
+    private class FakeEmbeddingRepository : org.ggomes.myleolite.data.EmbeddingRepository {
+        var vector: List<Float> = listOf(0.6f, 0.8f)
         var error: Throwable? = null
 
         override fun embedText(text: String): Result<List<Float>> =
             error?.let { Result.failure(it) } ?: Result.success(vector)
+    }
+
+    private class FakeDocumentRepository : DocumentRepository {
+        var hits: List<ScoredChunk> = emptyList()
+        var error: Throwable? = null
+        var lastQuery: List<Float>? = null
+
+        override fun ingest(document: String, chunks: List<ChunkEmbedding>): Result<Unit> =
+            Result.success(Unit)
+
+        override fun clear(): Result<Unit> = Result.success(Unit)
+
+        override fun stats(): Result<CorpusStats> = Result.success(CorpusStats())
+
+        override fun search(vector: List<Float>, topK: Int): Result<List<ScoredChunk>> {
+            lastQuery = vector
+            return error?.let { Result.failure(it) } ?: Result.success(hits)
+        }
     }
 }
