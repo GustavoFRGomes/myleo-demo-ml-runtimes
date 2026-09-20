@@ -8,4 +8,4 @@
   - Report embed ms + search ms
   - Minimal SwiftUI demo: ingest docs, query, ranked hits
 - Model: TBD — link name + URL + license + size here; placement: app bundle `Models/`
-- Future build/run: open this folder's Xcode project / SPM package (not scaffolded yet)
+- Build/run: `xcodegen generate`, then `open MyLeoVSCoreML.xcodeproj` or `xcodebuild -scheme MyLeoVSCoreML -destination 'platform=iOS Simulator,name=iPhone 17' build`

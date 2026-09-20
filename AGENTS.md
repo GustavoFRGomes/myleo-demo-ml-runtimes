@@ -32,7 +32,7 @@ Naming is exact: `litert` = embedding/retrieval runtime, `litert-lm` = LLM gener
 
 ## Rules (must follow)
 
-1. **iOS is structure only for now — do not scaffold iOS projects.** Do not create `.xcodeproj`, `Package.swift`, `*.podspec`, `*.swift` source files, or CI workflows unless explicitly asked. iOS folders + markdown context only. **Android leafs are real projects** (see Android section) — cloning the template is expected when asked.
+1. **iOS projects are XcodeGen-generated — do not hand-edit `.xcodeproj`.** Each `ios/*/*/` leaf is a real project defined by `project.yml` (+ `Info.plist`, `Sources/`, `Tests/`). Regenerate with `xcodegen generate` after changing the spec; never commit `*.xcodeproj/` (gitignored). Do not create `Package.swift`, `*.podspec`, or CI workflows unless explicitly asked.
 2. **Keep variations independent.** Never add imports / dependencies between leaf folders. Never extract shared code across runtimes. Small duplication is preferred over coupling.
 3. **Follow existing markdown style.** Short headers, concrete file paths in backticks, no placeholders like `TODO` or `coming soon` without a one-line description of what goes there.
 4. **Lowercase hyphenated folder names only** (`onnx-genai`, not `onnx_genai` or `OnnxGenAI`). One concept per folder — do not nest deeper than `platform/area/runtime/` without asking.
@@ -44,6 +44,44 @@ Naming is exact: `litert` = embedding/retrieval runtime, `litert-lm` = LLM gener
 - **iOS = MVI, Android = MVVM. No exceptions without asking.** `ios/*` uses Model–View–Intent (unidirectional intent → state); `android/*` uses Model–View–ViewModel (ViewModel + unidirectional UI state via StateFlow).
 - **Prefer boring, standard patterns.** Use platform-idiomatic solutions first: Repository for data/inference access, DI via constructor injection, Strategy/Adapter for runtime delegates, Observer/Flow for streaming tokens. Do not invent custom architectures or introduce exotic frameworks (TCA, Redux variants, MVI on Android, MVVM on iOS) without asking.
 - Keep inference engines behind a narrow interface (e.g. `Embedder` / `ChatInference`) so the runtime swap stays inside one leaf folder. UI talks to ViewModel/Intent layer only, never to the SDK directly.
+
+## iOS (XcodeGen projects — applies now)
+
+Reference template: `ios/vector-search/litert/` (`MyLeoLite`) — minimal SwiftUI app
+generated from `project.yml` via XcodeGen (`brew install xcodegen`). All other
+iOS leafs are clones of it with identifiers renamed.
+
+- Each `ios/*/*/` leaf is a **standalone Xcode project**: its own `project.yml`,
+  `Info.plist`, `Sources/` (SwiftUI `@main` App + views), and `Tests/` (XCTest).
+  There is no `ios/` workspace. Open the leaf's generated `.xcodeproj` in Xcode.
+- Template settings (keep clones in sync unless asked): iOS deployment target
+  `17.0`, Swift `6.0`, SwiftUI lifecycle, one unit-test target per leaf.
+- Workflow per leaf: `xcodegen generate`, then `open *.xcodeproj` or
+  `xcodebuild -scheme <Target> -destination 'platform=iOS Simulator,name=iPhone 17' build`
+  (unit tests: same command with `test`; needs a matching simulator runtime).
+- Never hand-edit generated `*.xcodeproj/` — change `project.yml` and regenerate.
+- Package / naming convention:
+
+| Leaf | Project / target / scheme | Bundle ID | Display name |
+|---|---|---|---|
+| `ios/vector-search/litert/` (reference) | `MyLeoLite` | `org.ggomes.myleolite` | `MyLeo Lite` |
+| `ios/vector-search/onnx/` | `MyLeoVSOnnx` | `org.ggomes.myleo.vectorsearch.onnx` | `MyLeo VS ONNX` |
+| `ios/vector-search/coreml/` | `MyLeoVSCoreML` | `org.ggomes.myleo.vectorsearch.coreml` | `MyLeo VS Core ML` |
+| `ios/llm/litert-lm/` | `MyLeoLLMLiteRTLM` | `org.ggomes.myleo.llm.litertlm` | `MyLeo LLM LiteRT-LM` |
+| `ios/llm/onnx-genai/` | `MyLeoLLMOnnxGenAI` | `org.ggomes.myleo.llm.onnxgenai` | `MyLeo LLM ONNX-GenAI` |
+| `ios/llm/coreml/` | `MyLeoLLMCoreML` | `org.ggomes.myleo.llm.coreml` | `MyLeo LLM Core ML` |
+
+- When cloning the template to a new iOS variant: copy `project.yml`,
+  `Info.plist`, `Sources/`, `Tests/`. **Never copy** `*.xcodeproj/`, `build/`,
+  or `DerivedData`. Preserve the target's existing `README.md`. Then rename:
+  project/target/scheme + test target in `project.yml`, `PRODUCT_BUNDLE_IDENTIFIER`,
+  `CFBundleDisplayName` in `Info.plist`, the `@main` App struct + file name,
+  greeting text in `ContentView.swift`, and the test class + `@testable import`
+  in `Tests/`.
+- iOS MVI: `Store` (`ObservableObject`, `@Published` state, `send(Intent)`)
+  per screen; SwiftUI views render state and send intents only.
+- iOS tests: `XCTest` in each leaf's `Tests/` target. Every clone must keep its
+  package-correct example test compiling.
 
 ## Android (standalone Gradle projects — applies now)
 

@@ -8,4 +8,4 @@
   - Report TTFT + tokens/sec
   - Minimal SwiftUI chat: system prompt + thread + streaming
 - Model: system-hosted (no download); fallback TBD — link name + URL + license + size here
-- Future build/run: open this folder's Xcode project / SPM package (not scaffolded yet)
+- Build/run: `xcodegen generate`, then `open MyLeoLLMCoreML.xcodeproj` or `xcodebuild -scheme MyLeoLLMCoreML -destination 'platform=iOS Simulator,name=iPhone 17' build`

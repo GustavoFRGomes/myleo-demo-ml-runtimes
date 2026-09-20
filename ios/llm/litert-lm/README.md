@@ -8,4 +8,4 @@
   - Report TTFT + tokens/sec
   - Minimal SwiftUI chat: system prompt + thread + streaming
 - Model: TBD — link name + URL + license + size here; placement: app bundle `Models/`
-- Future build/run: open this folder's Xcode project / SPM package (not scaffolded yet)
+- Build/run: `xcodegen generate`, then `open MyLeoLLMLiteRTLM.xcodeproj` or `xcodebuild -scheme MyLeoLLMLiteRTLM -destination 'platform=iOS Simulator,name=iPhone 17' build`
