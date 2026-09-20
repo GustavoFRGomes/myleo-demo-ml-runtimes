@@ -48,6 +48,13 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.objectbox.kotlin)
+    // Raw LiteRT runtime. NOTE: litert + litert-api both declare manifest
+    // package "com.google.ai.edge.litert" (classes and natives are split
+    // across the two AARs with zero overlap, and liblitert_jni.so needs
+    // libLiteRt.so at runtime), so both must stay on the runtime classpath.
+    // android.uniquePackageNames=false (gradle.properties) relaxes AGP's
+    // duplicate-namespace check for this known packaging quirk.
+    implementation(libs.litert)
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)

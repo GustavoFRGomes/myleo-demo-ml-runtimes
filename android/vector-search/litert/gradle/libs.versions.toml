@@ -12,6 +12,7 @@ objectbox = "5.4.2"
 mockito = "5.23.0"
 mockitoKotlin = "6.3.0"
 assertj = "3.27.7"
+litert = "2.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -29,6 +30,7 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 objectbox-kotlin = { group = "io.objectbox", name = "objectbox-kotlin", version.ref = "objectbox" }
+litert = { group = "com.google.ai.edge.litert", name = "litert", version.ref = "litert" }
 mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
 mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockitoKotlin" }
 assertj-core = { group = "org.assertj", name = "assertj-core", version.ref = "assertj" }
