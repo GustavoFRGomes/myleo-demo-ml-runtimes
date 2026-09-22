@@ -14,5 +14,9 @@ local.properties
 # Xcode: generated projects are rebuilt from project.yml via XcodeGen
 *.xcodeproj/
 
+# CocoaPods: Podfile + Podfile.lock are tracked; the rest regenerates locally
+Pods/
+*.xcworkspace
+
 # macOS
 .DS_Store
