@@ -38,7 +38,7 @@ following are byte-identical apart from mechanical renames (module import,
 
 | Leaf | Runtime wiring |
 |---|---|
-| `litert/` | CocoaPods `TensorFlowLiteSwift` (`Podfile` + `Podfile.lock` committed); `Data/InterpreterRunner.swift` over the raw `Interpreter` API; `Data/LiteRTEmbedderFactory.swift` loads `embedding.tflite` + `vocab.txt` from the bundle (512-d) |
+| `litert/` | CocoaPods `TensorFlowLiteSwift` (`Podfile` + `Podfile.lock` committed); `Data/InterpreterRunner.swift` over the raw `Interpreter` API (inputs located by tensor name, sequence out + mean pooling); `Data/LiteRTEmbedderFactory.swift` loads `embedding.tflite` + `vocab.txt` from the bundle (384-d MiniLM, same weights as the other leafs) |
 | `onnx/` | CocoaPods `onnxruntime-objc` + bridging header; `Data/OnnxRunner.swift` over `ORTSession` (mean pooling); `Data/OnnxEmbedderFactory.swift` loads `embedding.onnx` + `vocab.txt` (384-d) |
 | `coreml/` | No pods — Apple `CoreML` framework; `Data/CoreMLRunner.swift` over `MLModel` (mean pooling, CPU); `Data/CoreMLEmbedderFactory.swift` loads `embedding.mlpackage` + `vocab.txt` (384-d) |
 
@@ -59,7 +59,7 @@ Device runs need signing overrides (never committed):
 Place these under each leaf's `Sources/Resources/` (gitignored — the app
 falls back to its missing-model error state without them):
 
-- `litert/`: `embedding.tflite` ← https://storage.googleapis.com/mediapipe-models/text_embedder/bert_embedder/float32/1/bert_embedder.tflite (MediaPipe `bert_embedder`/`MobileBertEmbedder`, Apache-2.0, ~26 MB, 512-d). `vocab.txt` ← extract the `vocab.txt` associated file from the model metadata.
+- `litert/`: `embedding.tflite` ← MiniLM converted from `sentence-transformers/all-MiniLM-L6-v2` (https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2, Apache-2.0, ~90 MB, 384-d) via `TFAutoModel` + `TFLiteConverter` (built-ins only). Same weights as the other leafs. `vocab.txt` ← https://huggingface.co/bert-base-uncased/resolve/main/vocab.txt.
 - `onnx/`: `embedding.onnx` ← https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx (`all-MiniLM-L6-v2`, Apache-2.0, ~90 MB, 384-d). `vocab.txt` ← https://huggingface.co/bert-base-uncased/resolve/main/vocab.txt (byte-identical to the BERT vocab).
 - `coreml/`: `embedding.mlpackage` ← convert `sentence-transformers/all-MiniLM-L6-v2` (https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2, Apache-2.0) with `coremltools` (explicit `position_ids` input, `compute_precision=FLOAT32`, iOS 17 target; ~86 MB, 384-d — see the leaf README for the recipe). `vocab.txt` ← same BERT vocab link as `onnx/`.
 - All leafs: `enron_sample.csv` ← 300-row extract of the default dataset (see Datasets in the root `README.md`; extraction command in the litert leaf README).
