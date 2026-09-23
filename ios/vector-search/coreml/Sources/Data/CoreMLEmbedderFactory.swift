@@ -19,7 +19,11 @@ enum CoreMLEmbedderFactory {
         vocabName: String = defaultVocabName,
         maxSeqLen: Int = LiteRTEmbedder.defaultMaxSeqLen
     ) throws -> LiteRTEmbedder {
-        guard let modelURL = bundle.url(forResource: modelName, withExtension: "mlpackage") else {
+        // Xcode compiles .mlpackage to .mlmodelc at build time and only ships
+        // the compiled model — load that first, fall back to the source package.
+        let modelURL = bundle.url(forResource: modelName, withExtension: "mlmodelc")
+            ?? bundle.url(forResource: modelName, withExtension: "mlpackage")
+        guard let modelURL else {
             throw CoreMLEmbedderError.missingModel("\(modelName).mlpackage")
         }
         let configuration = MLModelConfiguration()
