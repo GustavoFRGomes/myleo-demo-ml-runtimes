@@ -17,8 +17,10 @@ local.properties
 # On-device model binaries + vocabularies are never committed (see leaf READMEs)
 *.tflite
 *.onnx
+*.mlpackage
 ios/vector-search/litert/Sources/Resources/vocab.txt
 ios/vector-search/onnx/Sources/Resources/vocab.txt
+ios/vector-search/coreml/Sources/Resources/vocab.txt
 
 # Xcode: generated projects are rebuilt from project.yml via XcodeGen
 *.xcodeproj/

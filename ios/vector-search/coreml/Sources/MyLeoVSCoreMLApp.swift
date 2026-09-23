@@ -7,16 +7,27 @@ struct MyLeoVSCoreMLApp: App {
     private let systemStats: IOSSystemStatsProvider
 
     init() {
-        // No Core ML embedder yet: the missing-model placeholder keeps the app
-        // runnable and its error state demoable until one lands.
         let stats = IOSSystemStatsProvider()
-        let repository = DefaultEmbeddingRepository(embedder: MissingModelEmbedder())
+        let start = Date()
+        let embedder: Embedder
+        var loadMs: Int64?
+        var modelName: String?
+        do {
+            embedder = try CoreMLEmbedderFactory.create()
+            loadMs = Int64(Date().timeIntervalSince(start) * 1000)
+            modelName = CoreMLEmbedderFactory.defaultModelFileName
+        } catch {
+            embedder = MissingModelEmbedder(reason: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
+        }
+        let repository = DefaultEmbeddingRepository(embedder: embedder)
         let useCase = CalculateEmbeddingUseCase(repository: repository)
         let documents = InMemoryDocumentRepository()
         _searchStore = StateObject(wrappedValue: SearchStore(useCase: useCase, documents: documents))
         _ingestStore = StateObject(wrappedValue: IngestStore(
             useCase: useCase,
             documents: documents,
+            modelLoadMs: loadMs,
+            modelName: modelName,
             systemStats: stats,
             datasetLoader: BundleEnronDatasetLoader()
         ))
