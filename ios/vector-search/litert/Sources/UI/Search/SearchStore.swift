@@ -46,7 +46,7 @@ final class SearchStore: ObservableObject {
             let searchStart = Date()
             do {
                 let found = try documents.search(vector: vector)
-                hits = found.map { SearchHit(text: $0.text, similarity: $0.similarity) }
+                hits = found.map { SearchHit(text: $0.text, similarity: $0.similarity, source: $0.source) }
             } catch {
                 failure = error.localizedDescription
             }

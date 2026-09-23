@@ -97,6 +97,17 @@ final class IngestStoreTests: XCTestCase {
         XCTAssertEqual(store.state.corpus, CorpusStats(documents: 1, chunks: 3))
     }
 
+    func test_send_ingestEnronSource_tracksParentEmail() async {
+        let docs = FakeDocuments()
+        let loader = FakeDatasetLoader(emails: ["para one\n\npara two"])
+        let store = makeStore(docs: docs, loader: loader)
+        await store.send(.sourceChanged(.enronSample))
+        await store.send(.ingest)
+        await awaitState(store) { !$0.isIngesting && $0.chunks.count == 2 }
+
+        XCTAssertEqual(docs.lastIngested?.map(\.source), ["para one\n\npara two", "para one\n\npara two"])
+    }
+
     func test_send_ingestEnronWithoutLoader_showsError() async {
         let store = makeStore()
         await store.send(.sourceChanged(.enronSample))

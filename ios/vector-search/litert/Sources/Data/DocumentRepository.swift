@@ -1,15 +1,19 @@
 import Foundation
 
 /// Chunk text paired with its computed embedding, ready to persist.
+/// `source` is the full parent item the chunk came from (email raw string,
+/// or the whole free-text corpus) so hits can open their source.
 struct ChunkEmbedding: Equatable {
     let text: String
     let vector: [Float]
+    let source: String
 }
 
 /// A ranked search hit. `similarity` is cosine similarity in 0...1 (higher = closer).
 struct ScoredChunk: Equatable {
     let text: String
     let similarity: Double
+    let source: String
 }
 
 /// Live corpus totals for the performance report.
@@ -54,6 +58,7 @@ final class InMemoryDocumentRepository: DocumentRepository {
         let document: String
         let text: String
         let vector: [Float]
+        let source: String
     }
 
     private var entries: [Entry] = []
@@ -61,7 +66,7 @@ final class InMemoryDocumentRepository: DocumentRepository {
 
     func ingest(document: String, chunks: [ChunkEmbedding]) throws {
         lock.withLock {
-            entries += chunks.map { Entry(document: document, text: $0.text, vector: $0.vector) }
+            entries += chunks.map { Entry(document: document, text: $0.text, vector: $0.vector, source: $0.source) }
         }
     }
 
@@ -89,7 +94,7 @@ final class InMemoryDocumentRepository: DocumentRepository {
     func search(vector: [Float], topK: Int) throws -> [ScoredChunk] {
         lock.withLock {
             entries
-                .map { ScoredChunk(text: $0.text, similarity: cosineSimilarity(vector, $0.vector)) }
+                .map { ScoredChunk(text: $0.text, similarity: cosineSimilarity(vector, $0.vector), source: $0.source) }
                 .sorted { $0.similarity > $1.similarity }
                 .prefix(topK)
                 .map { $0 }

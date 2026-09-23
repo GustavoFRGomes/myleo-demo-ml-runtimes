@@ -11,7 +11,7 @@ final class PreviewDocumentRepository: DocumentRepository {
     func stats() throws -> CorpusStats { CorpusStats(documents: 1, chunks: 2) }
     func documentStats() throws -> [DocumentStat] { [DocumentStat(label: "Document 1", chunks: 2)] }
     func search(vector: [Float], topK: Int) throws -> [ScoredChunk] {
-        [ScoredChunk(text: "preview hit", similarity: 0.87)]
+        [ScoredChunk(text: "preview hit", similarity: 0.87, source: "preview source")]
     }
 }
 

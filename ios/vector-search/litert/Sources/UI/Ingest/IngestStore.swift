@@ -61,12 +61,12 @@ final class IngestStore: ObservableObject {
     }
 
     private func ingestFreeText() {
-        let chunks = chunkCorpus(state.corpusText)
-        guard !chunks.isEmpty else { return }
+        let corpus = state.corpusText
+        let pairs = chunkCorpus(corpus).map { ($0, corpus) }
+        guard !pairs.isEmpty else { return }
         beginRun()
-        let texts = chunks
         Task.detached { [weak self] in
-            await self?.runIngest(texts: texts)
+            await self?.runIngest(pairs: pairs)
         }
     }
 
@@ -89,8 +89,9 @@ final class IngestStore: ObservableObject {
                 }
                 return
             }
-            // Each email raw string goes through the same text chunker.
-            await self.runIngest(texts: emails.flatMap(chunkCorpus))
+            // Each email raw string goes through the same text chunker,
+            // keeping the parent email for the detail screen.
+            await self.runIngest(pairs: emails.flatMap { email in chunkCorpus(email).map { ($0, email) } })
         }
     }
 
@@ -118,24 +119,24 @@ final class IngestStore: ObservableObject {
         }
     }
 
-    private func runIngest(texts: [String]) async {
+    private func runIngest(pairs: [(text: String, source: String)]) async {
         let existing = (try? documents.stats()) ?? CorpusStats()
         let label = "Document \(existing.documents + 1)"
         let batteryStart = systemStats.snapshot().batteryPercent
-        var embedded: [(text: String, vector: [Float], ms: Int64)] = []
+        var embedded: [(text: String, vector: [Float], ms: Int64, source: String)] = []
         var embedTotalMs: Int64 = 0
         var storeMs: Int64 = 0
         var stored = false
         var firstError: String?
         let start = Date()
-        for (index, chunk) in texts.enumerated() {
+        for (index, pair) in pairs.enumerated() {
             do {
                 let chunkStart = Date()
-                let vector = try useCase(chunk)
+                let vector = try useCase(pair.text)
                 let ms = ms(since: chunkStart)
-                embedded.append((chunk, vector, ms))
+                embedded.append((pair.text, vector, ms, pair.source))
                 embedTotalMs += ms
-                log.debug("embed chunk \(index + 1)/\(texts.count) (\(chunk.count) chars) in \(ms)ms")
+                log.debug("embed chunk \(index + 1)/\(pairs.count) (\(pair.text.count) chars) in \(ms)ms")
             } catch {
                 firstError = firstError ?? error.localizedDescription
             }
@@ -145,7 +146,7 @@ final class IngestStore: ObservableObject {
             do {
                 try documents.ingest(
                     document: label,
-                    chunks: embedded.map { ChunkEmbedding(text: $0.text, vector: $0.vector) }
+                    chunks: embedded.map { ChunkEmbedding(text: $0.text, vector: $0.vector, source: $0.source) }
                 )
                 stored = true
             } catch {

@@ -1,9 +1,11 @@
 import Foundation
 
 /// One ranked row in the results list. `similarity` is cosine similarity in 0...1.
+/// `source` is the full parent item (email raw string) the chunk came from.
 struct SearchHit: Equatable {
     let text: String
     let similarity: Double
+    let source: String
 }
 
 /// Screen state (MVI). Rendered by the view, never mutated there.

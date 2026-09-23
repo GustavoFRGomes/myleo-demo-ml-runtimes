@@ -4,6 +4,7 @@ struct SearchScreen: View {
     @ObservedObject var store: SearchStore
     var onOpenIngest: () -> Void
     var onShowStats: () -> Void
+    var onOpenHit: (SearchHit) -> Void
 
     var body: some View {
         NavigationStack {
@@ -33,15 +34,18 @@ struct SearchScreen: View {
                         .foregroundStyle(.secondary)
                 }
                 List(Array(store.state.hits.enumerated()), id: \.offset) { _, hit in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(hit.text)
-                            .font(.headline)
-                            .lineLimit(3)
-                        Text("\(Int((hit.similarity * 100).rounded()))% match")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                    Button { onOpenHit(hit) } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(hit.text)
+                                .font(.headline)
+                                .lineLimit(3)
+                            Text("\(Int((hit.similarity * 100).rounded()))% match")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
+                    .buttonStyle(.plain)
                 }
                 .listStyle(.plain)
             }
@@ -71,6 +75,7 @@ struct SearchScreen: View {
             documents: PreviewRepositories.documents
         ),
         onOpenIngest: {},
-        onShowStats: {}
+        onShowStats: {},
+        onOpenHit: { _ in }
     )
 }
