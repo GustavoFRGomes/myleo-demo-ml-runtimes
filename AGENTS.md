@@ -60,13 +60,15 @@ iOS leafs are clones of it with identifiers renamed.
   `xcodebuild -scheme <Target> -destination 'platform=iOS Simulator,name=iPhone 17' build`
   (unit tests: same command with `test`; needs a matching simulator runtime).
 - Never hand-edit generated `*.xcodeproj/` — change `project.yml` and regenerate.
-- CocoaPods (LiteRT leafs only — no SPM exists for the runtime): `Podfile` +
+- CocoaPods (LiteRT + onnx leafs only — no SPM exists for either runtime): `Podfile` +
   `Podfile.lock` are committed; `Pods/` + `*.xcworkspace` are gitignored and
   regenerate via `pod install`. Always build the workspace, never the bare
   `.xcodeproj`. Order matters: `xcodegen generate` first, `pod install` last
   (regenerating wipes CocoaPods' project patches). The `post_install`
   deployment-target bump + `ENABLE_USER_SCRIPT_SANDBOXING=NO` in `project.yml`
-  are required (pod targets iOS 12; Xcode 26 script sandboxing). Never commit
+  are required (pods target old iOS; Xcode 26 script sandboxing). The onnx leaf
+  additionally needs a bridging header (`SWIFT_OBJC_BRIDGING_HEADER`) for the
+  ObjC runtime API. Never commit
   personal signing (`DEVELOPMENT_TEAM`, profiles) — pass as `xcodebuild`
   overrides for device runs only.
 - Package / naming convention:

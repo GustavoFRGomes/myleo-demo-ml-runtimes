@@ -1,11 +1,11 @@
 # iOS Vector Search — ONNX
 
-- Runtime: ONNX Runtime Mobile (Swift/Obj-C API)
-- Model format: `.onnx` embedding model + tokenizer (e.g. MiniLM, E5-small)
+- Runtime: `onnxruntime-objc` `~> 1.30.0` via CocoaPods (ObjC `ORTSession` API called from Swift, CPU; Core ML execution provider later)
+- Model format: `.onnx` MiniLM sentence model (Int64 `input_ids`/`attention_mask`/`token_type_ids` in, float `last_hidden_state` out, mean-pooled + L2-normalized in code) + WordPiece `vocab.txt` (same vocabulary text as BERT)
 - Scope contract:
   - Tokenize + embed text → normalized float vector
   - On-device index with top-k cosine search + scores
   - Report embed ms + search ms
   - Minimal SwiftUI demo: ingest docs, query, ranked hits
-- Model: TBD — link name + URL + license + size here; placement: app bundle `Models/`
-- Build/run: `xcodegen generate`, then `open MyLeoVSOnnx.xcodeproj` or `xcodebuild -scheme MyLeoVSOnnx -destination 'platform=iOS Simulator,name=iPhone 17' build`
+- Model: `all-MiniLM-L6-v2` (Apache-2.0, ~90 MB) — https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx → bundle as `embedding.onnx`; vocab from https://huggingface.co/bert-base-uncased/resolve/main/vocab.txt → bundle as `vocab.txt` (byte-identical to the BERT vocab). 384-d output. Binaries are never committed.
+- Build/run: `xcodegen generate`, then `pod install`, then `open MyLeoVSOnnx.xcworkspace` (always the workspace). Tests: `xcodebuild -workspace MyLeoVSOnnx.xcworkspace -scheme MyLeoVSOnnx -destination 'platform=iOS,id=<DEVICE_UDID>' test` (+ signing overrides for devices).
