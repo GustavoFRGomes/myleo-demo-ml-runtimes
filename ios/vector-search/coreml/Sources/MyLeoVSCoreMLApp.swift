@@ -15,7 +15,7 @@ struct MyLeoVSCoreMLApp: App {
         do {
             embedder = try CoreMLEmbedderFactory.create()
             loadMs = Int64(Date().timeIntervalSince(start) * 1000)
-            modelName = CoreMLEmbedderFactory.defaultModelFileName
+            modelName = Self.modelDisplayName
         } catch {
             embedder = MissingModelEmbedder(reason: (error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
         }
@@ -28,11 +28,15 @@ struct MyLeoVSCoreMLApp: App {
             documents: documents,
             modelLoadMs: loadMs,
             modelName: modelName,
+            modelUrl: modelName.map { _ in Self.modelUrl },
             systemStats: stats,
             datasetLoader: BundleEnronDatasetLoader()
         ))
         self.systemStats = stats
     }
+
+    private static let modelDisplayName = "all-MiniLM-L6-v2"
+    private static let modelUrl = "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"
 
     var body: some Scene {
         WindowGroup {

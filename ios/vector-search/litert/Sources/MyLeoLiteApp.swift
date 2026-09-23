@@ -15,7 +15,7 @@ struct MyLeoLiteApp: App {
         do {
             embedder = try LiteRTEmbedderFactory.create()
             loadMs = Int64(Date().timeIntervalSince(start) * 1000)
-            modelName = LiteRTEmbedderFactory.defaultModelFileName
+            modelName = Self.modelDisplayName
         } catch {
             embedder = MissingModelEmbedder()
         }
@@ -29,11 +29,15 @@ struct MyLeoLiteApp: App {
             documents: documents,
             modelLoadMs: loadMs,
             modelName: modelName,
+            modelUrl: modelName.map { _ in Self.modelUrl },
             systemStats: stats,
             datasetLoader: dataset
         ))
         self.systemStats = stats
     }
+
+    private static let modelDisplayName = "all-MiniLM-L6-v2"
+    private static let modelUrl = "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"
 
     var body: some Scene {
         WindowGroup {

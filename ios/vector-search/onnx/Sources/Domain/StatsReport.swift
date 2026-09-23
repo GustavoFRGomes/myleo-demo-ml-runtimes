@@ -11,6 +11,7 @@ struct QueryStats: Equatable {
 struct StatsReportData: Equatable {
     let device: DeviceSnapshot
     let modelName: String?
+    let modelUrl: String?
     let modelLoadMs: Int64?
     let corpus: CorpusStats
     let documents: [DocumentStat]
@@ -33,12 +34,14 @@ func buildStatsMarkdown(appLabel: String, data: StatsReportData, generatedAt: St
     lines.append("")
     lines.append("## Embedding model")
     lines.append("")
-    lines.append("- File: \(data.modelName ?? "not bundled")")
+    lines.append("- Model: \(data.modelName ?? "not bundled")")
+    lines.append("- URL: \(data.modelUrl ?? "n/a")")
     lines.append("- Loaded in: \(data.modelLoadMs.map { "\($0) ms" } ?? "n/a")")
     lines.append("")
     lines.append("## Device")
     lines.append("")
     lines.append("- \(data.device.manufacturer) \(data.device.model)")
+    lines.append("- \(specsLine(data.device))")
     lines.append("- Power: \(power)")
     lines.append("")
     lines.append("## Index")
@@ -74,8 +77,8 @@ func buildStatsJson(appLabel: String, data: StatsReportData, generatedAt: String
     out.append("{")
     out.append("  \"app\": \(json(appLabel)),")
     out.append("  \"generatedAt\": \(json(generatedAt)),")
-    out.append("  \"model\": {\"name\": \(jsonOrNull(data.modelName)), \"loadMs\": \(data.modelLoadMs.map(String.init) ?? "null")},")
-    out.append("  \"device\": {\"manufacturer\": \(json(device.manufacturer)), \"model\": \(json(device.model)), \"onBattery\": \(device.onBattery ? "true" : "false"), \"batteryPercent\": \(device.batteryPercent.map(String.init) ?? "null")},")
+    out.append("  \"model\": {\"name\": \(jsonOrNull(data.modelName)), \"url\": \(jsonOrNull(data.modelUrl)), \"loadMs\": \(data.modelLoadMs.map(String.init) ?? "null")},")
+    out.append("  \"device\": {\"manufacturer\": \(json(device.manufacturer)), \"model\": \(json(device.model)), \"ramGB\": \(device.ramGB.map { String(format: "%.1f", $0) } ?? "null"), \"cpuCores\": \(device.cpuCores.map(String.init) ?? "null"), \"gpuCores\": \(device.gpuCores.map(String.init) ?? "null"), \"aneCores\": \(device.aneCores.map(String.init) ?? "null"), \"onBattery\": \(device.onBattery ? "true" : "false"), \"batteryPercent\": \(device.batteryPercent.map(String.init) ?? "null")},")
     let perDoc = data.documents.map { "{\"label\": \(json($0.label)), \"chunks\": \($0.chunks)}" }.joined(separator: ", ")
     out.append("  \"index\": {\"documents\": \(data.corpus.documents), \"chunks\": \(data.corpus.chunks), \"perDocument\": [\(perDoc)]},")
     if let run = data.lastRun {
@@ -94,6 +97,16 @@ func buildStatsJson(appLabel: String, data: StatsReportData, generatedAt: String
 
 private func pct(_ value: Int?) -> String {
     value.map { "\($0)%" } ?? "n/a"
+}
+
+private func specsLine(_ device: DeviceSnapshot) -> String {
+    func text(_ value: CustomStringConvertible?) -> String {
+        value.map(String.init(describing:)) ?? "unknown"
+    }
+    let ram = device.ramGB.map {
+        String(format: "%.1f GB", locale: Locale(identifier: "en_US_POSIX"), $0)
+    } ?? "unknown RAM"
+    return "RAM: \(ram) · CPU: \(text(device.cpuCores)) · GPU: \(text(device.gpuCores)) · ANE: \(text(device.aneCores))"
 }
 
 private func json(_ value: String) -> String {

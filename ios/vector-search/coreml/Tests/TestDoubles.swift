@@ -38,6 +38,6 @@ final class FakeDocuments: DocumentRepository {
 struct FakeSystemStats: SystemStatsProvider {
     let percent: Int?
     func snapshot() -> DeviceSnapshot {
-        DeviceSnapshot(manufacturer: "TestMan", model: "TestModel", onBattery: true, batteryPercent: percent)
+        DeviceSnapshot(manufacturer: "TestMan", model: "TestModel", ramGB: 8.0, cpuCores: 8, gpuCores: nil, aneCores: nil, onBattery: true, batteryPercent: percent)
     }
 }

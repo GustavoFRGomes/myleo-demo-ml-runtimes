@@ -20,6 +20,7 @@ final class IngestStore: ObservableObject {
         documents: DocumentRepository,
         modelLoadMs: Int64? = nil,
         modelName: String? = nil,
+        modelUrl: String? = nil,
         systemStats: SystemStatsProvider = UnknownSystemStats(),
         datasetLoader: EmailDatasetLoader? = nil
     ) {
@@ -27,7 +28,7 @@ final class IngestStore: ObservableObject {
         self.documents = documents
         self.systemStats = systemStats
         self.datasetLoader = datasetLoader
-        self.state = IngestState(modelName: modelName, modelLoadMs: modelLoadMs)
+        self.state = IngestState(modelName: modelName, modelUrl: modelUrl, modelLoadMs: modelLoadMs)
         Task.detached { [weak self] in
             await self?.refreshIndexState()
         }

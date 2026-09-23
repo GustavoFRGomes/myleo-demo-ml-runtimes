@@ -3,11 +3,12 @@ import UIKit
 
 /// `SystemStatsProvider` reading `utsname` + `UIDevice` battery (no permissions needed).
 /// `batteryPercent` is nil on simulator / when monitoring is unavailable.
+/// RAM/CPU come from `ProcessInfo`; GPU/ANE cores from the known-device table.
 struct IOSSystemStatsProvider: SystemStatsProvider {
     func snapshot() -> DeviceSnapshot {
         var systemInfo = utsname()
         uname(&systemInfo)
-        let model = withUnsafePointer(to: &systemInfo.machine) {
+        let identifier = withUnsafePointer(to: &systemInfo.machine) {
             $0.withMemoryRebound(to: CChar.self, capacity: 1) {
                 String(validatingCString: $0) ?? UIDevice.current.model
             }
@@ -21,6 +22,16 @@ struct IOSSystemStatsProvider: SystemStatsProvider {
         case .unplugged, .unknown: onBattery = true
         @unknown default: onBattery = true
         }
-        return DeviceSnapshot(manufacturer: "Apple", model: model, onBattery: onBattery, batteryPercent: percent)
+        let specs = knownDevices[identifier]
+        return DeviceSnapshot(
+            manufacturer: "Apple",
+            model: marketingName(for: identifier),
+            ramGB: Double(ProcessInfo.processInfo.physicalMemory) / 1_000_000_000,
+            cpuCores: ProcessInfo.processInfo.activeProcessorCount,
+            gpuCores: specs?.gpuCores,
+            aneCores: specs?.aneCores,
+            onBattery: onBattery,
+            batteryPercent: percent
+        )
     }
 }

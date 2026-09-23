@@ -37,6 +37,7 @@ struct IngestState: Equatable {
     var corpus = CorpusStats()
     var documents: [DocumentStat] = []
     var modelName: String?
+    var modelUrl: String?
     var modelLoadMs: Int64?
     var error: String?
 }

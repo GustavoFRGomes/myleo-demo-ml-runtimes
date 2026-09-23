@@ -10,10 +10,12 @@ struct StatsSheetContent: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Statistics").font(.title2)
                 Group { section("Embedding model") }
-                line("File", data.modelName ?? "not bundled")
+                line("Model", data.modelName ?? "not bundled")
+                line("URL", data.modelUrl ?? "n/a")
                 line("Loaded in", data.modelLoadMs.map { "\($0) ms" } ?? "n/a")
                 section("Device")
                 line("Device", "\(data.device.manufacturer) \(data.device.model)")
+                line("Specs", specsText(data.device))
                 line("Power", powerText(data.device))
                 section("Index")
                 line("Totals", "\(data.corpus.documents) documents · \(data.corpus.chunks) chunks")
@@ -59,17 +61,28 @@ struct StatsSheetContent: View {
         return device.onBattery ? "on battery (\(pct)%)" : "charging (\(pct)%)"
     }
 
+    private func specsText(_ device: DeviceSnapshot) -> String {
+        func text(_ value: CustomStringConvertible?) -> String {
+            value.map(String.init(describing:)) ?? "unknown"
+        }
+        let ram = device.ramGB.map {
+            String(format: "%.1f GB", locale: Locale(identifier: "en_US_POSIX"), $0)
+        } ?? "unknown RAM"
+        return "RAM: \(ram) · CPU: \(text(device.cpuCores)) · GPU: \(text(device.gpuCores)) · ANE: \(text(device.aneCores))"
+    }
+
     private func pct(_ value: Int?) -> String {
         value.map { "\($0)%" } ?? "n/a"
     }
 }
 
 #Preview {
-    StatsSheetContent(
-        data: StatsReportData(
-            device: DeviceSnapshot(manufacturer: "Apple", model: "iPhone16,2", onBattery: true, batteryPercent: 62),
-            modelName: "embedding.tflite",
-            modelLoadMs: 812,
+        StatsSheetContent(
+            data: StatsReportData(
+                device: DeviceSnapshot(manufacturer: "Apple", model: "iPhone SE (3rd generation)", ramGB: 3.7, cpuCores: 6, gpuCores: 4, aneCores: 16, onBattery: true, batteryPercent: 62),
+                modelName: "all-MiniLM-L6-v2",
+                modelUrl: "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
+                modelLoadMs: 812,
             corpus: CorpusStats(documents: 2, chunks: 7),
             documents: [DocumentStat(label: "Document 1", chunks: 4), DocumentStat(label: "Document 2", chunks: 3)],
             lastRun: IngestRunStats(document: "Document 2", chunks: 3, embedMs: 285, storeMs: 13, totalMs: 301, batteryStartPct: 81, batteryEndPct: 79),

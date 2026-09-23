@@ -70,6 +70,7 @@ struct AppRootView: View {
         return StatsReportData(
             device: systemStats.snapshot(),
             modelName: ingest.modelName,
+            modelUrl: ingest.modelUrl,
             modelLoadMs: ingest.modelLoadMs,
             corpus: ingest.corpus,
             documents: ingest.documents,
