@@ -7,6 +7,8 @@ final class StatsReportTests: XCTestCase {
         modelName: "all-MiniLM-L6-v2",
         modelUrl: "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
         modelLoadMs: 812,
+        modelDimensions: 384,
+        chunkSize: 128,
         corpus: CorpusStats(documents: 2, chunks: 7),
         documents: [DocumentStat(label: "Document 1", chunks: 4), DocumentStat(label: "Document 2", chunks: 3)],
         lastRun: IngestRunStats(document: "Document 2", chunks: 3, embedMs: 285, storeMs: 13, totalMs: 301, batteryStartPct: 81, batteryEndPct: 79),
@@ -14,12 +16,14 @@ final class StatsReportTests: XCTestCase {
     )
 
     func test_buildStatsMarkdown_containsAllSections() {
-        let md = buildStatsMarkdown(appLabel: "MyLeo LiteRT", data: data, generatedAt: "2026-09-20T00:00:00Z")
+        let md = buildStatsMarkdown(appLabel: "MyLeo VS Core ML", data: data, generatedAt: "2026-09-20T00:00:00Z")
 
-        XCTAssertTrue(md.contains("# MyLeo LiteRT — Vector Search Statistics"))
+        XCTAssertTrue(md.contains("# MyLeo VS Core ML — Vector Search Statistics"))
         XCTAssertTrue(md.contains("all-MiniLM-L6-v2"))
         XCTAssertTrue(md.contains("https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2"))
         XCTAssertTrue(md.contains("812 ms"))
+        XCTAssertTrue(md.contains("Dimensions: 384"))
+        XCTAssertTrue(md.contains("Chunk size: 128 tokens"))
         XCTAssertTrue(md.contains("Apple iPhone SE (3rd generation)"))
         XCTAssertTrue(md.contains("RAM: 3.7 GB · CPU: 6 · GPU: 4 · ANE: 16"))
         XCTAssertTrue(md.contains("on battery (62%)"))
@@ -32,10 +36,10 @@ final class StatsReportTests: XCTestCase {
 
     func test_buildStatsMarkdown_emptyState_showsPlaceholders() {
         let md = buildStatsMarkdown(
-            appLabel: "MyLeo LiteRT",
+            appLabel: "MyLeo VS Core ML",
             data: StatsReportData(
                 device: DeviceSnapshot(manufacturer: "unknown", model: "unknown", ramGB: nil, cpuCores: nil, gpuCores: nil, aneCores: nil, onBattery: true, batteryPercent: nil),
-                modelName: nil, modelUrl: nil, modelLoadMs: nil, corpus: CorpusStats(),
+                modelName: nil, modelUrl: nil, modelLoadMs: nil, modelDimensions: nil, chunkSize: nil, corpus: CorpusStats(),
                 documents: [], lastRun: nil, lastQuery: nil
             ),
             generatedAt: "2026-09-20T00:00:00Z"
@@ -48,11 +52,13 @@ final class StatsReportTests: XCTestCase {
     }
 
     func test_buildStatsJson_containsKeysAndValues() {
-        let json = buildStatsJson(appLabel: "MyLeo LiteRT", data: data, generatedAt: "2026-09-20T00:00:00Z")
+        let json = buildStatsJson(appLabel: "MyLeo VS Core ML", data: data, generatedAt: "2026-09-20T00:00:00Z")
 
-        XCTAssertTrue(json.contains("\"app\": \"MyLeo LiteRT\""))
+        XCTAssertTrue(json.contains("\"app\": \"MyLeo VS Core ML\""))
         XCTAssertTrue(json.contains("\"name\": \"all-MiniLM-L6-v2\""))
         XCTAssertTrue(json.contains("\"url\": \"https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2\""))
+        XCTAssertTrue(json.contains("\"dimensions\": 384"))
+        XCTAssertTrue(json.contains("\"chunkSizeTokens\": 128"))
         XCTAssertTrue(json.contains("\"ramGB\": 3.7"))
         XCTAssertTrue(json.contains("\"cpuCores\": 6"))
         XCTAssertTrue(json.contains("\"gpuCores\": 4"))
@@ -68,11 +74,12 @@ final class StatsReportTests: XCTestCase {
         var data = self.data
         data = StatsReportData(
             device: data.device, modelName: data.modelName, modelUrl: data.modelUrl,
-            modelLoadMs: data.modelLoadMs,
+            modelLoadMs: data.modelLoadMs, modelDimensions: data.modelDimensions,
+            chunkSize: data.chunkSize,
             corpus: data.corpus, documents: data.documents, lastRun: data.lastRun,
             lastQuery: QueryStats(query: "say \"hi\"\nnow", hits: 1, ms: 2)
         )
-        let json = buildStatsJson(appLabel: "MyLeo LiteRT", data: data, generatedAt: "2026-09-20T00:00:00Z")
+        let json = buildStatsJson(appLabel: "MyLeo VS Core ML", data: data, generatedAt: "2026-09-20T00:00:00Z")
 
         XCTAssertTrue(json.contains("\"query\": \"say \\\"hi\\\"\\nnow\""))
     }

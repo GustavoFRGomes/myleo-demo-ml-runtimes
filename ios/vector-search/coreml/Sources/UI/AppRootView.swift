@@ -72,6 +72,8 @@ struct AppRootView: View {
             modelName: ingest.modelName,
             modelUrl: ingest.modelUrl,
             modelLoadMs: ingest.modelLoadMs,
+            modelDimensions: ingest.modelDimensions,
+            chunkSize: ingest.chunkSize,
             corpus: ingest.corpus,
             documents: ingest.documents,
             lastRun: ingest.lastRun,

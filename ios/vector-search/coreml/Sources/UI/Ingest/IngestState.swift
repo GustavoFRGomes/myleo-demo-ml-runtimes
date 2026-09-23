@@ -39,6 +39,8 @@ struct IngestState: Equatable {
     var modelName: String?
     var modelUrl: String?
     var modelLoadMs: Int64?
+    var modelDimensions: Int?
+    var chunkSize: Int?
     var error: String?
 }
 

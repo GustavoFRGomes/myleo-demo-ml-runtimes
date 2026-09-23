@@ -94,7 +94,12 @@ final class IngestStoreTests: XCTestCase {
         XCTAssertEqual(loader.lastCount, 10)
         XCTAssertEqual(store.state.chunks.map(\.text), ["para one", "para two", "single"])
         XCTAssertTrue(store.state.stored)
-        XCTAssertEqual(store.state.corpus, CorpusStats(documents: 1, chunks: 3))
+        XCTAssertEqual(store.state.corpus, CorpusStats(documents: 2, chunks: 3))
+        XCTAssertEqual(
+            store.state.documents,
+            [DocumentStat(label: "Email 1", chunks: 2), DocumentStat(label: "Email 2", chunks: 1)]
+        )
+        XCTAssertEqual(store.state.lastRun?.document, "Emails 1-2")
     }
 
     func test_send_ingestEnronSource_tracksParentEmail() async {

@@ -13,6 +13,8 @@ struct StatsReportData: Equatable {
     let modelName: String?
     let modelUrl: String?
     let modelLoadMs: Int64?
+    let modelDimensions: Int?
+    let chunkSize: Int?
     let corpus: CorpusStats
     let documents: [DocumentStat]
     let lastRun: IngestRunStats?
@@ -36,6 +38,8 @@ func buildStatsMarkdown(appLabel: String, data: StatsReportData, generatedAt: St
     lines.append("")
     lines.append("- Model: \(data.modelName ?? "not bundled")")
     lines.append("- URL: \(data.modelUrl ?? "n/a")")
+    lines.append("- Dimensions: \(data.modelDimensions.map(String.init) ?? "n/a")")
+    lines.append("- Chunk size: \(data.chunkSize.map { "\($0) tokens" } ?? "n/a")")
     lines.append("- Loaded in: \(data.modelLoadMs.map { "\($0) ms" } ?? "n/a")")
     lines.append("")
     lines.append("## Device")
@@ -77,7 +81,7 @@ func buildStatsJson(appLabel: String, data: StatsReportData, generatedAt: String
     out.append("{")
     out.append("  \"app\": \(json(appLabel)),")
     out.append("  \"generatedAt\": \(json(generatedAt)),")
-    out.append("  \"model\": {\"name\": \(jsonOrNull(data.modelName)), \"url\": \(jsonOrNull(data.modelUrl)), \"loadMs\": \(data.modelLoadMs.map(String.init) ?? "null")},")
+    out.append("  \"model\": {\"name\": \(jsonOrNull(data.modelName)), \"url\": \(jsonOrNull(data.modelUrl)), \"loadMs\": \(data.modelLoadMs.map(String.init) ?? "null"), \"dimensions\": \(data.modelDimensions.map(String.init) ?? "null"), \"chunkSizeTokens\": \(data.chunkSize.map(String.init) ?? "null")},")
     out.append("  \"device\": {\"manufacturer\": \(json(device.manufacturer)), \"model\": \(json(device.model)), \"ramGB\": \(device.ramGB.map { String(format: "%.1f", $0) } ?? "null"), \"cpuCores\": \(device.cpuCores.map(String.init) ?? "null"), \"gpuCores\": \(device.gpuCores.map(String.init) ?? "null"), \"aneCores\": \(device.aneCores.map(String.init) ?? "null"), \"onBattery\": \(device.onBattery ? "true" : "false"), \"batteryPercent\": \(device.batteryPercent.map(String.init) ?? "null")},")
     let perDoc = data.documents.map { "{\"label\": \(json($0.label)), \"chunks\": \($0.chunks)}" }.joined(separator: ", ")
     out.append("  \"index\": {\"documents\": \(data.corpus.documents), \"chunks\": \(data.corpus.chunks), \"perDocument\": [\(perDoc)]},")

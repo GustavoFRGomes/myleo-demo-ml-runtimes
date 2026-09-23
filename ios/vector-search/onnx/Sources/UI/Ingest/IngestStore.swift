@@ -21,6 +21,8 @@ final class IngestStore: ObservableObject {
         modelLoadMs: Int64? = nil,
         modelName: String? = nil,
         modelUrl: String? = nil,
+        modelDimensions: Int? = nil,
+        chunkSize: Int? = nil,
         systemStats: SystemStatsProvider = UnknownSystemStats(),
         datasetLoader: EmailDatasetLoader? = nil
     ) {
@@ -28,7 +30,7 @@ final class IngestStore: ObservableObject {
         self.documents = documents
         self.systemStats = systemStats
         self.datasetLoader = datasetLoader
-        self.state = IngestState(modelName: modelName, modelUrl: modelUrl, modelLoadMs: modelLoadMs)
+        self.state = IngestState(modelName: modelName, modelUrl: modelUrl, modelLoadMs: modelLoadMs, modelDimensions: modelDimensions, chunkSize: chunkSize)
         Task.detached { [weak self] in
             await self?.refreshIndexState()
         }
@@ -61,13 +63,19 @@ final class IngestStore: ObservableObject {
         }
     }
 
+    private struct IngestGroup {
+        let isEmail: Bool
+        let source: String
+        let chunks: [String]
+    }
+
     private func ingestFreeText() {
         let corpus = state.corpusText
-        let pairs = chunkCorpus(corpus).map { ($0, corpus) }
-        guard !pairs.isEmpty else { return }
+        let groups = [IngestGroup(isEmail: false, source: corpus, chunks: chunkCorpus(corpus))]
+        guard groups.contains(where: { !$0.chunks.isEmpty }) else { return }
         beginRun()
         Task.detached { [weak self] in
-            await self?.runIngest(pairs: pairs)
+            await self?.runIngest(groups: groups)
         }
     }
 
@@ -90,9 +98,12 @@ final class IngestStore: ObservableObject {
                 }
                 return
             }
-            // Each email raw string goes through the same text chunker,
-            // keeping the parent email for the detail screen.
-            await self.runIngest(pairs: emails.flatMap { email in chunkCorpus(email).map { ($0, email) } })
+            // Each email raw string goes through the same text chunker and
+            // becomes its own document, keeping the parent email for detail.
+            let groups = emails.map { email in
+                IngestGroup(isEmail: true, source: email, chunks: chunkCorpus(email))
+            }.filter { !$0.chunks.isEmpty }
+            await self.runIngest(groups: groups)
         }
     }
 
@@ -120,48 +131,69 @@ final class IngestStore: ObservableObject {
         }
     }
 
-    private func runIngest(pairs: [(text: String, source: String)]) async {
-        let existing = (try? documents.stats()) ?? CorpusStats()
-        let label = "Document \(existing.documents + 1)"
+    private func runIngest(groups: [IngestGroup]) async {
+        var number = (try? documents.stats())?.documents ?? 0
         let batteryStart = systemStats.snapshot().batteryPercent
-        var embedded: [(text: String, vector: [Float], ms: Int64, source: String)] = []
+        var embedded: [(label: String, text: String, vector: [Float], ms: Int64, source: String)] = []
         var embedTotalMs: Int64 = 0
         var storeMs: Int64 = 0
         var stored = false
         var firstError: String?
+        var labels: [String] = []
         let start = Date()
-        for (index, pair) in pairs.enumerated() {
-            do {
-                let chunkStart = Date()
-                let vector = try useCase(pair.text)
-                let ms = ms(since: chunkStart)
-                embedded.append((pair.text, vector, ms, pair.source))
-                embedTotalMs += ms
-                log.debug("embed chunk \(index + 1)/\(pairs.count) (\(pair.text.count) chars) in \(ms)ms")
-            } catch {
-                firstError = firstError ?? error.localizedDescription
+        var counter = 0
+        let total = groups.reduce(0) { $0 + $1.chunks.count }
+        for group in groups {
+            number += 1
+            let label = group.isEmail ? "Email \(number)" : "Document \(number)"
+            labels.append(label)
+            var groupEmbedded: [(text: String, vector: [Float], ms: Int64)] = []
+            for chunk in group.chunks {
+                do {
+                    let chunkStart = Date()
+                    let vector = try useCase(chunk)
+                    let ms = ms(since: chunkStart)
+                    groupEmbedded.append((chunk, vector, ms))
+                    embedTotalMs += ms
+                    counter += 1
+                    log.debug("embed chunk \(counter)/\(total) (\(chunk.count) chars) in \(ms)ms")
+                } catch {
+                    firstError = firstError ?? error.localizedDescription
+                }
             }
-        }
-        if !embedded.isEmpty, firstError == nil {
-            let storeStart = Date()
-            do {
-                try documents.ingest(
-                    document: label,
-                    chunks: embedded.map { ChunkEmbedding(text: $0.text, vector: $0.vector, source: $0.source) }
-                )
-                stored = true
-            } catch {
-                firstError = error.localizedDescription
+            if !groupEmbedded.isEmpty, firstError == nil {
+                let storeStart = Date()
+                do {
+                    try documents.ingest(
+                        document: label,
+                        chunks: groupEmbedded.map {
+                            ChunkEmbedding(text: $0.text, vector: $0.vector, source: group.source)
+                        }
+                    )
+                    stored = true
+                } catch {
+                    firstError = error.localizedDescription
+                }
+                storeMs += ms(since: storeStart)
             }
-            storeMs = ms(since: storeStart)
+            embedded += groupEmbedded.map { (label, $0.text, $0.vector, $0.ms, group.source) }
         }
         let totalMs = ms(since: start)
         let batteryEnd = systemStats.snapshot().batteryPercent
         let snapshot = embedded.map { IngestedChunk(text: $0.text, dimensions: $0.vector.count, embedMs: $0.ms) }
         let corpus = (try? documents.stats()) ?? CorpusStats()
         let perDocument = (try? documents.documentStats()) ?? []
+        let runLabel: String
+        switch labels.count {
+        case 0:
+            runLabel = "no documents"
+        case 1:
+            runLabel = labels[0]
+        default:
+            runLabel = "Emails \(number - labels.count + 1)-\(number)"
+        }
         let run = IngestRunStats(
-            document: label, chunks: snapshot.count,
+            document: runLabel, chunks: snapshot.count,
             embedMs: embedTotalMs, storeMs: storeMs, totalMs: totalMs,
             batteryStartPct: batteryStart, batteryEndPct: batteryEnd
         )
@@ -174,7 +206,7 @@ final class IngestStore: ObservableObject {
             state.documents = perDocument
             state.error = firstError
         }
-        log.debug("ingested \(label): \(snapshot.count) chunks in \(totalMs)ms (embed \(embedTotalMs)ms, store \(storeMs)ms), battery \(Self.pct(batteryStart)) → \(Self.pct(batteryEnd))")
+        log.debug("ingested \(runLabel): \(snapshot.count) chunks in \(totalMs)ms (embed \(embedTotalMs)ms, store \(storeMs)ms), battery \(Self.pct(batteryStart)) → \(Self.pct(batteryEnd))")
         log.debug("index holds \(corpus.documents) documents, \(corpus.chunks) chunks")
     }
 

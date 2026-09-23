@@ -30,6 +30,8 @@ struct MyLeoLiteApp: App {
             modelLoadMs: loadMs,
             modelName: modelName,
             modelUrl: modelName.map { _ in Self.modelUrl },
+            modelDimensions: 384,
+            chunkSize: LiteRTEmbedder.defaultMaxSeqLen,
             systemStats: stats,
             datasetLoader: dataset
         ))

@@ -12,6 +12,8 @@ struct StatsSheetContent: View {
                 Group { section("Embedding model") }
                 line("Model", data.modelName ?? "not bundled")
                 line("URL", data.modelUrl ?? "n/a")
+                line("Dimensions", data.modelDimensions.map(String.init) ?? "n/a")
+                line("Chunk size", data.chunkSize.map { "\($0) tokens" } ?? "n/a")
                 line("Loaded in", data.modelLoadMs.map { "\($0) ms" } ?? "n/a")
                 section("Device")
                 line("Device", "\(data.device.manufacturer) \(data.device.model)")
@@ -83,6 +85,8 @@ struct StatsSheetContent: View {
                 modelName: "all-MiniLM-L6-v2",
                 modelUrl: "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
                 modelLoadMs: 812,
+                modelDimensions: 384,
+                chunkSize: 128,
             corpus: CorpusStats(documents: 2, chunks: 7),
             documents: [DocumentStat(label: "Document 1", chunks: 4), DocumentStat(label: "Document 2", chunks: 3)],
             lastRun: IngestRunStats(document: "Document 2", chunks: 3, embedMs: 285, storeMs: 13, totalMs: 301, batteryStartPct: 81, batteryEndPct: 79),
