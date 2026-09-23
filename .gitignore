@@ -14,6 +14,10 @@ local.properties
 # Datasets are never committed (see leaf READMEs for provenance + extraction)
 *.csv
 
+# On-device model binaries + vocabularies are never committed (see leaf READMEs)
+*.tflite
+ios/vector-search/litert/Sources/Resources/vocab.txt
+
 # Xcode: generated projects are rebuilt from project.yml via XcodeGen
 *.xcodeproj/
 

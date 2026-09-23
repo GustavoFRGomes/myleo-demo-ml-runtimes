@@ -17,6 +17,8 @@ targets:
       - path: Sources
     info:
       path: Info.plist
+    resources:
+      - path: Sources/Resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.ggomes.myleolite

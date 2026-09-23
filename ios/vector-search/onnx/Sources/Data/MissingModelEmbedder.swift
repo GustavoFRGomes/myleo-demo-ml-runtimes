@@ -7,6 +7,15 @@ enum MissingModelError: Error {
     case unavailable(String)
 }
 
+extension MissingModelError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .unavailable(let reason):
+            "embedding unavailable: \(reason)"
+        }
+    }
+}
+
 struct MissingModelEmbedder: Embedder {
     let reason: String
 

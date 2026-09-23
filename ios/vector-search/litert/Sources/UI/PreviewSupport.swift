@@ -19,3 +19,10 @@ enum PreviewRepositories {
     static var embedding: EmbeddingRepository { PreviewEmbeddingRepository() }
     static var documents: DocumentRepository { PreviewDocumentRepository() }
 }
+
+struct PreviewDatasetLoader: EmailDatasetLoader {
+    func availableEmails() throws -> Int { 2 }
+    func loadEmails(count: Int) throws -> [String] {
+        Array(repeating: "preview email body", count: min(count, 2))
+    }
+}

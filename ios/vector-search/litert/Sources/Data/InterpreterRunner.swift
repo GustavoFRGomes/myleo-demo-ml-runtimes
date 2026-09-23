@@ -33,6 +33,23 @@ enum LiteRTEmbedderError: Error, Equatable {
     case missingVocab(String)
 }
 
+extension LiteRTEmbedderError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .insufficientInputs(let count):
+            "embedding model has \(count) inputs, expected at least 3 (ids, mask, segment_ids)"
+        case .missingModel(let name):
+            "embedding model missing: \(name) — \(reason)"
+        case .missingVocab(let name):
+            "vocab missing: \(name) — \(reason)"
+        }
+    }
+
+    private var reason: String {
+        "add the files to the app bundle (see README)"
+    }
+}
+
 private func data<T>(from array: [T]) -> Data {
     array.withUnsafeBufferPointer { Data(buffer: $0) }
 }

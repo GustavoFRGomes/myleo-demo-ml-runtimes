@@ -22,13 +22,15 @@ struct MyLeoLiteApp: App {
         let repository = DefaultEmbeddingRepository(embedder: embedder)
         let useCase = CalculateEmbeddingUseCase(repository: repository)
         let documents = InMemoryDocumentRepository()
+        let dataset = BundleEnronDatasetLoader()
         _searchStore = StateObject(wrappedValue: SearchStore(useCase: useCase, documents: documents))
         _ingestStore = StateObject(wrappedValue: IngestStore(
             useCase: useCase,
             documents: documents,
             modelLoadMs: loadMs,
             modelName: modelName,
-            systemStats: stats
+            systemStats: stats,
+            datasetLoader: dataset
         ))
         self.systemStats = stats
     }
