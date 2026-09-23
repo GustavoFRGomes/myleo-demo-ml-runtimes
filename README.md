@@ -69,6 +69,15 @@ Same contract, different runtime:
 
 Each runtime folder owns its model packaging (`.litertlm`, ONNX GenAI config + tokenizer, Core ML / Foundation Models wiring).
 
+## Datasets
+
+Default dataset for **all vector-search variants** (both platforms, every runtime):
+
+- **Enron fraud email dataset** — https://www.kaggle.com/datasets/advaithsrao/enron-fraud-email-dataset?resource=download
+- File: `enron_data_fraud_labeled.csv` (~752 MB, tens of thousands of labeled emails). Keep it at the repo root during development — it is **never committed** (`*.csv` is gitignored).
+- Each email becomes one raw string — `Folder-Name Date From To Subject Body Cc Bcc`, space-separated, whitespace collapsed — fed into the shared text chunker.
+- Apps never bundle the full file: each leaf bundles a small sample (a few hundred rows — see the leaf `README.md` for the extraction command) and exposes an item-count picker on its ingest screen.
+
 ## Getting started
 
 Each leaf module is self-contained. Open / build only the variation you want:
