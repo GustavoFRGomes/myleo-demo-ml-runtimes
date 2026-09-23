@@ -7,6 +7,10 @@ final class FakeDocuments: DocumentRepository {
     var ingested: [String: [ChunkEmbedding]] = [:]
     var lastQuery: [Float]?
 
+    var lastIngested: [ChunkEmbedding]? {
+        ingested.values.first
+    }
+
     func ingest(document: String, chunks: [ChunkEmbedding]) throws {
         if let error { throw error }
         ingested[document] = chunks

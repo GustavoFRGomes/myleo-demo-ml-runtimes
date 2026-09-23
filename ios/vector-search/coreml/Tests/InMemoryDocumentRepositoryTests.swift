@@ -5,12 +5,13 @@ import XCTest
 final class InMemoryDocumentRepositoryTests: XCTestCase {
     func test_search_afterIngest_returnsHitsOrderedBySimilarity() throws {
         let repo = InMemoryDocumentRepository()
-        try repo.ingest(document: "Document 1", chunks: [ChunkEmbedding(text: "cats", vector: hot(0))])
-        try repo.ingest(document: "Document 2", chunks: [ChunkEmbedding(text: "quantum", vector: hot(1))])
+        try repo.ingest(document: "Document 1", chunks: [ChunkEmbedding(text: "cats", vector: hot(0), source: "cats source")])
+        try repo.ingest(document: "Document 2", chunks: [ChunkEmbedding(text: "quantum", vector: hot(1), source: "quantum source")])
 
         let hits = try repo.search(vector: hot(0), topK: 5)
 
         XCTAssertEqual(hits.map(\.text), ["cats", "quantum"])
+        XCTAssertEqual(hits.map(\.source), ["cats source", "quantum source"])
         XCTAssertEqual(hits[0].similarity, 1.0, accuracy: 1e-6)
         XCTAssertLessThan(hits[1].similarity, hits[0].similarity)
     }
@@ -21,8 +22,8 @@ final class InMemoryDocumentRepositoryTests: XCTestCase {
 
     func test_stats_countsDocumentsAndChunks() throws {
         let repo = InMemoryDocumentRepository()
-        try repo.ingest(document: "Document 1", chunks: [ChunkEmbedding(text: "a", vector: hot(0)), ChunkEmbedding(text: "b", vector: hot(1))])
-        try repo.ingest(document: "Document 2", chunks: [ChunkEmbedding(text: "c", vector: hot(2))])
+        try repo.ingest(document: "Document 1", chunks: [ChunkEmbedding(text: "a", vector: hot(0), source: "a source"), ChunkEmbedding(text: "b", vector: hot(1), source: "b source")])
+        try repo.ingest(document: "Document 2", chunks: [ChunkEmbedding(text: "c", vector: hot(2), source: "c source")])
 
         XCTAssertEqual(try repo.stats(), CorpusStats(documents: 2, chunks: 3))
         XCTAssertEqual(
@@ -33,7 +34,7 @@ final class InMemoryDocumentRepositoryTests: XCTestCase {
 
     func test_clear_emptiesIndex() throws {
         let repo = InMemoryDocumentRepository()
-        try repo.ingest(document: "Document 1", chunks: [ChunkEmbedding(text: "a", vector: hot(0))])
+        try repo.ingest(document: "Document 1", chunks: [ChunkEmbedding(text: "a", vector: hot(0), source: "a source")])
 
         try repo.clear()
 

@@ -18,9 +18,18 @@ struct IngestRunStats: Equatable {
     var batteryEndPct: Int?
 }
 
+/// Corpus source: free text or the bundled Enron sample.
+enum IngestSource: String, CaseIterable, Equatable {
+    case freeText
+    case enronSample
+}
+
 /// Screen state (MVI). Rendered by the view, never mutated there.
 struct IngestState: Equatable {
     var corpusText: String = ""
+    var source: IngestSource = .freeText
+    var itemCount: Int = 50
+    var availableItems: Int?
     var isIngesting: Bool = false
     var chunks: [IngestedChunk] = []
     var stored: Bool = false
@@ -35,6 +44,8 @@ struct IngestState: Equatable {
 /// User intents (MVI). The view sends these, the store reduces them.
 enum IngestIntent {
     case corpusChanged(String)
+    case sourceChanged(IngestSource)
+    case itemCountChanged(Int)
     case ingest
     case clearIndex
 }

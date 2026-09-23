@@ -1,9 +1,10 @@
 import SwiftUI
 import UIKit
 
-enum AppScreen {
+enum AppScreen: Equatable {
     case search
     case ingest
+    case detail(SearchHit)
 }
 
 private struct ShareItem: Identifiable {
@@ -39,11 +40,18 @@ struct AppRootView: View {
                 SearchScreen(
                     store: searchStore,
                     onOpenIngest: { screen = .ingest },
-                    onShowStats: { showStats = true }
+                    onShowStats: { showStats = true },
+                    onOpenHit: { screen = .detail($0) }
                 )
             case .ingest:
                 IngestScreen(
                     store: ingestStore,
+                    onBack: { screen = .search }
+                )
+            case .detail(let hit):
+                ResultDetailScreen(
+                    hit: hit,
+                    query: searchStore.state.query,
                     onBack: { screen = .search }
                 )
             }

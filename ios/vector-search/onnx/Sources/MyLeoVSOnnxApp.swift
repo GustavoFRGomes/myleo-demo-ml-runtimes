@@ -17,7 +17,8 @@ struct MyLeoVSOnnxApp: App {
         _ingestStore = StateObject(wrappedValue: IngestStore(
             useCase: useCase,
             documents: documents,
-            systemStats: stats
+            systemStats: stats,
+            datasetLoader: BundleEnronDatasetLoader()
         ))
         self.systemStats = stats
     }

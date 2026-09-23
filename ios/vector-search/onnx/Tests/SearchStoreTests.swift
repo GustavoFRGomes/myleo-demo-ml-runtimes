@@ -8,7 +8,7 @@ final class SearchStoreTests: XCTestCase {
 
     func test_send_search_publishesRankedHits() async {
         let docs = FakeDocuments()
-        docs.hits = [ScoredChunk(text: "doc one", similarity: 0.9), ScoredChunk(text: "doc two", similarity: 0.7)]
+        docs.hits = [ScoredChunk(text: "doc one", similarity: 0.9, source: "doc one source"), ScoredChunk(text: "doc two", similarity: 0.7, source: "doc two source")]
         let repo = FakeEmbeddingRepository()
         repo.vector = [0.6, 0.8]
         let store = SearchStore(useCase: CalculateEmbeddingUseCase(repository: repo), documents: docs)
@@ -21,6 +21,7 @@ final class SearchStoreTests: XCTestCase {
 
         XCTAssertEqual(store.state.hits.map(\.text), ["doc one", "doc two"])
         XCTAssertEqual(store.state.hits.map(\.similarity), [0.9, 0.7])
+        XCTAssertEqual(store.state.hits.map(\.source), ["doc one source", "doc two source"])
         XCTAssertNotNil(store.state.queryMs)
         XCTAssertNil(store.state.error)
         XCTAssertEqual(docs.lastQuery, [0.6, 0.8])

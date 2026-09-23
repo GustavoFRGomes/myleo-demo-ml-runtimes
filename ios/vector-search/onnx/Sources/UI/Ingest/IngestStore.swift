@@ -12,6 +12,7 @@ final class IngestStore: ObservableObject {
     private let useCase: CalculateEmbeddingUseCase
     private let documents: DocumentRepository
     private let systemStats: SystemStatsProvider
+    private let datasetLoader: EmailDatasetLoader?
     private let log = Logger(subsystem: "org.ggomes.myleo.vectorsearch.onnx", category: "Ingest")
 
     init(
@@ -19,11 +20,13 @@ final class IngestStore: ObservableObject {
         documents: DocumentRepository,
         modelLoadMs: Int64? = nil,
         modelName: String? = nil,
-        systemStats: SystemStatsProvider = UnknownSystemStats()
+        systemStats: SystemStatsProvider = UnknownSystemStats(),
+        datasetLoader: EmailDatasetLoader? = nil
     ) {
         self.useCase = useCase
         self.documents = documents
         self.systemStats = systemStats
+        self.datasetLoader = datasetLoader
         self.state = IngestState(modelName: modelName, modelLoadMs: modelLoadMs)
         Task.detached { [weak self] in
             await self?.refreshIndexState()
@@ -35,16 +38,19 @@ final class IngestStore: ObservableObject {
         case .corpusChanged(let text):
             state.corpusText = text
             state.error = nil
-        case .ingest:
-            let chunks = chunkCorpus(state.corpusText)
-            guard !chunks.isEmpty, !state.isIngesting else { return }
-            state.isIngesting = true
+        case .sourceChanged(let source):
+            state.source = source
             state.error = nil
-            state.chunks = []
-            state.stored = false
-            state.lastRun = nil
-            Task.detached { [weak self] in
-                await self?.runIngest(chunks: chunks)
+        case .itemCountChanged(let count):
+            state.itemCount = max(1, count)
+            state.error = nil
+        case .ingest:
+            guard !state.isIngesting else { return }
+            switch state.source {
+            case .freeText:
+                ingestFreeText()
+            case .enronSample:
+                ingestEnronSample()
             }
         case .clearIndex:
             guard !state.isIngesting else { return }
@@ -52,6 +58,49 @@ final class IngestStore: ObservableObject {
                 await self?.runClear()
             }
         }
+    }
+
+    private func ingestFreeText() {
+        let corpus = state.corpusText
+        let pairs = chunkCorpus(corpus).map { ($0, corpus) }
+        guard !pairs.isEmpty else { return }
+        beginRun()
+        Task.detached { [weak self] in
+            await self?.runIngest(pairs: pairs)
+        }
+    }
+
+    private func ingestEnronSample() {
+        guard let datasetLoader else {
+            state.error = "no dataset loader wired"
+            return
+        }
+        let count = state.itemCount
+        beginRun()
+        Task.detached { [weak self] in
+            guard let self else { return }
+            let emails: [String]
+            do {
+                emails = try datasetLoader.loadEmails(count: count)
+            } catch {
+                await MainActor.run {
+                    self.state.isIngesting = false
+                    self.state.error = error.localizedDescription
+                }
+                return
+            }
+            // Each email raw string goes through the same text chunker,
+            // keeping the parent email for the detail screen.
+            await self.runIngest(pairs: emails.flatMap { email in chunkCorpus(email).map { ($0, email) } })
+        }
+    }
+
+    private func beginRun() {
+        state.isIngesting = true
+        state.error = nil
+        state.chunks = []
+        state.stored = false
+        state.lastRun = nil
     }
 
     private func runClear() async {
@@ -70,24 +119,24 @@ final class IngestStore: ObservableObject {
         }
     }
 
-    private func runIngest(chunks: [String]) async {
+    private func runIngest(pairs: [(text: String, source: String)]) async {
         let existing = (try? documents.stats()) ?? CorpusStats()
         let label = "Document \(existing.documents + 1)"
         let batteryStart = systemStats.snapshot().batteryPercent
-        var embedded: [(text: String, vector: [Float], ms: Int64)] = []
+        var embedded: [(text: String, vector: [Float], ms: Int64, source: String)] = []
         var embedTotalMs: Int64 = 0
         var storeMs: Int64 = 0
         var stored = false
         var firstError: String?
         let start = Date()
-        for (index, chunk) in chunks.enumerated() {
+        for (index, pair) in pairs.enumerated() {
             do {
                 let chunkStart = Date()
-                let vector = try useCase(chunk)
+                let vector = try useCase(pair.text)
                 let ms = ms(since: chunkStart)
-                embedded.append((chunk, vector, ms))
+                embedded.append((pair.text, vector, ms, pair.source))
                 embedTotalMs += ms
-                log.debug("embed chunk \(index + 1)/\(chunks.count) (\(chunk.count) chars) in \(ms)ms")
+                log.debug("embed chunk \(index + 1)/\(pairs.count) (\(pair.text.count) chars) in \(ms)ms")
             } catch {
                 firstError = firstError ?? error.localizedDescription
             }
@@ -97,7 +146,7 @@ final class IngestStore: ObservableObject {
             do {
                 try documents.ingest(
                     document: label,
-                    chunks: embedded.map { ChunkEmbedding(text: $0.text, vector: $0.vector) }
+                    chunks: embedded.map { ChunkEmbedding(text: $0.text, vector: $0.vector, source: $0.source) }
                 )
                 stored = true
             } catch {
@@ -137,9 +186,14 @@ final class IngestStore: ObservableObject {
             corpus = CorpusStats()
         }
         let perDocument = (try? documents.documentStats()) ?? []
+        let available = try? datasetLoader?.availableEmails()
         await MainActor.run {
             state.corpus = corpus
             state.documents = perDocument
+            if let available {
+                state.availableItems = available
+                state.itemCount = min(max(state.itemCount, 1), available)
+            }
         }
     }
 
