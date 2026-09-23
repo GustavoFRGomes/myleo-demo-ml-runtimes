@@ -26,6 +26,9 @@ targets:
       - path: Tests
     dependencies:
       - target: MyLeoVSCoreML
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
 schemes:
   MyLeoVSCoreML:
     build:
