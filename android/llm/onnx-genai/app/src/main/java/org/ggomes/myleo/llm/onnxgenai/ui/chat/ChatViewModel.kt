@@ -1,5 +1,6 @@
 package org.ggomes.myleo.llm.onnxgenai.ui.chat
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import java.io.File
@@ -56,6 +57,7 @@ class ChatViewModel(
                     _uiState.update { it.copy(status = ModelStatus.Ready(info), download = DownloadState.Finished) }
                 }
                 .onFailure { e ->
+                    Log.e(TAG, "model load failed", e)
                     _uiState.update { it.copy(status = ModelStatus.Failed(e.message ?: "failed to load model")) }
                 }
         }
@@ -169,6 +171,7 @@ class ChatViewModel(
                 finishGeneration(startedAt = startedAt, firstChunkAt = firstChunkAt, generatedTokens = 0)
                 throw e
             } catch (e: Exception) {
+                Log.e(TAG, "generation failed", e)
                 failGeneration(e)
             }
         }
@@ -212,5 +215,9 @@ class ChatViewModel(
                 messages = state.messages.map { if (it.isStreaming) it.copy(isStreaming = false) else it },
             )
         }
+    }
+
+    private companion object {
+        const val TAG = "MyLeo-ONNX"
     }
 }

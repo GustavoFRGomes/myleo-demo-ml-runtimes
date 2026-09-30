@@ -9,8 +9,8 @@
   - Cancel / regenerate / clear, plus error and empty states
   - Report TTFT + tokens/sec per generation
   - Compose chat: system prompt + params sheet, streaming thread, info sheet
-- Model: **MiniCPM5-1B** (Apache-2.0) — https://huggingface.co/litert-community/MiniCPM5-1B, preferred `minicpm_wi4b32_wi8_afp32_gpu_opt.litertlm` (~793 MB, W4). Same file as the iOS `litert-lm` leaf. Never committed.
+- Model: **Phi-4-mini-instruct** (MIT) — https://huggingface.co/litert-community/Phi-4-mini-instruct, `Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm` (~3.9 GB). Same base model as the ONNX leaf. Never committed.
 - Delivery: first launch downloads the file to `filesDir/models/` (`HttpModelDownloader`, byte progress + cancel). No manual step.
 - Architecture (MVVM): `ChatInference` seam over the SDK; `LiteRTLMEngine` (Engine/Conversation, `sendMessageAsync` → `Flow<Message>`, cancel via `cancelProcess()`, token count via `getTokenCount()`); `ChatViewModel` exposes `StateFlow<ChatUiState>`; thin `MainActivity` + Compose.
 - Build/run: `./gradlew installDebug`. Tests: `./gradlew :app:testDebugUnitTest` — unit tests mock `ChatInference`/`ModelDownloader`, so no model is required.
-- Device note: a 1B model needs ~1 GB RAM + GPU; run on a physical device for realistic TTFT / tokens-per-sec.
+- Device note: a 3.8B q8 model needs ~4 GB RAM; run on a physical device for realistic TTFT / tokens-per-sec.

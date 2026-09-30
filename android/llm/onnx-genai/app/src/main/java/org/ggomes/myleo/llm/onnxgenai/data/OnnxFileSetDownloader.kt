@@ -23,7 +23,7 @@ class OnnxFileSetDownloader(
         onProgress(completedBytes, totalBytes)
 
         for (file in files) {
-            val destination = File(destinationDir, file.name)
+            val destination = File(destinationDir, file.localName)
             if (!destination.exists() || destination.length() == 0L) {
                 streamDownload(OnnxGenAIModelLocator.url(file), destination) { received ->
                     onProgress(completedBytes + received, totalBytes)

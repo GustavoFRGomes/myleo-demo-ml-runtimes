@@ -16,14 +16,16 @@ import org.ggomes.myleo.llm.onnxgenai.domain.ChatMessage
 import org.ggomes.myleo.llm.onnxgenai.domain.ChatModelInfo
 import org.ggomes.myleo.llm.onnxgenai.domain.ChatRole
 import org.ggomes.myleo.llm.onnxgenai.domain.GenerationParams
-import org.json.JSONArray
-import org.json.JSONObject
 
 /**
  * [ChatInference] over ONNX Runtime GenAI's Java API (`ai.onnxruntime.genai`).
  *
- * Each `generate` call applies the model's chat template, encodes the prompt,
- * and streams decoded tokens via a `Generator` + `TokenizerStream`.
+ * Each `generate` call builds the Phi-4-mini prompt, encodes it, and streams
+ * decoded tokens via a `Generator` + `TokenizerStream`.
+ *
+ * The prompt is formatted by hand rather than with `Tokenizer.applyChatTemplate`:
+ * that native JNI path corrupts the heap on device (`Scudo ERROR: invalid chunk
+ * state when deallocating`) inside ONNX Runtime GenAI 0.17.0.
  */
 class OnnxGenAIEngine(
     private val modelDir: String,
@@ -36,13 +38,25 @@ class OnnxGenAIEngine(
     @Volatile private var lastTokenCount = 0
 
     override suspend fun loadModel(): ChatModelInfo = withContext(Dispatchers.Default) {
-        model?.let {
+        val existingModel = model
+        val existingTokenizer = tokenizer
+        if (existingModel != null && existingTokenizer != null) {
             return@withContext ChatModelInfo(File(modelDir).name, BACKEND, 0, sizeBytes, SOURCE)
         }
         val start = System.currentTimeMillis()
-        val created = Model(modelDir)
-        model = created
-        tokenizer = Tokenizer(created)
+        var created: Model? = null
+        try {
+            created = Model(modelDir)
+            val createdTokenizer = Tokenizer(created)
+            model = created
+            tokenizer = createdTokenizer
+        } catch (e: Exception) {
+            // Don't leave a half-initialized engine behind.
+            model = null
+            tokenizer = null
+            runCatching { created?.close() }
+            throw e
+        }
         ChatModelInfo(
             displayName = File(modelDir).name,
             backend = BACKEND,
@@ -64,12 +78,7 @@ class OnnxGenAIEngine(
         val turns = messages.filter { it.role != ChatRole.SYSTEM }
         require(turns.any { it.role == ChatRole.USER }) { "history must contain a user message" }
 
-        val prompt = tokenizer.applyChatTemplate(
-            null,
-            buildMessagesJson(systemPrompt, turns),
-            null,
-            true,
-        )
+        val prompt = Phi4MiniChatTemplate.format(systemPrompt, turns)
         val sequences = tokenizer.encode(prompt)
         val generatorParams = GeneratorParams(model).apply {
             setSearchOption("do_sample", true)
@@ -114,24 +123,8 @@ class OnnxGenAIEngine(
         tokenizer = null
     }
 
-    private fun buildMessagesJson(systemPrompt: String, turns: List<ChatMessage>): String {
-        val array = JSONArray()
-        val system = systemPrompt.trim()
-        if (system.isNotEmpty()) {
-            array.put(JSONObject().put("role", "system").put("content", system))
-        }
-        for (turn in turns) {
-            array.put(
-                JSONObject()
-                    .put("role", if (turn.role == ChatRole.USER) "user" else "assistant")
-                    .put("content", turn.text),
-            )
-        }
-        return array.toString()
-    }
-
     private companion object {
         const val BACKEND = "ONNX Runtime GenAI (CPU)"
-        const val SOURCE = "https://huggingface.co/anydaytv/minicpm5-1b-onnx-int4"
+        const val SOURCE = "https://huggingface.co/microsoft/Phi-4-mini-instruct-onnx"
     }
 }

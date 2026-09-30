@@ -166,7 +166,7 @@ private fun StatusBanner(
                         Text(download.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         Button(onClick = onDownload) { Text("Retry download") }
                     }
-                    else -> Button(onClick = onDownload) { Text("Download model (~793 MB)") }
+                    else -> Button(onClick = onDownload) { Text("Download model") }
                 }
             }
         }
