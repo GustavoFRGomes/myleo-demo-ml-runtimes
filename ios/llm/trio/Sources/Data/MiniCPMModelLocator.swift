@@ -25,18 +25,31 @@ enum MiniCPMModelLocator {
             .appendingPathComponent(folderName, isDirectory: true)
     }
 
-    /// The `.mlpackage` URL when all required files exist.
+    /// The `.mlpackage` URL when all required files exist **and** the manifest
+    /// is valid JSON. A failed download can leave an error-page body cached as
+    /// `Manifest.json`; that is treated as "not present" and the folder is
+    /// wiped so it refetches cleanly.
     static func locate(fileManager: FileManager = .default) -> URL? {
         let dir = packageDirectory(fileManager: fileManager)
         let required = ["\(packageName)/Manifest.json", "tokenizer.json", "tokenizer_config.json"]
         for path in required where !fileManager.fileExists(atPath: dir.appendingPathComponent(path).path) {
             return nil
         }
+        let manifest = dir.appendingPathComponent("\(packageName)/Manifest.json")
+        let validManifest = (try? Data(contentsOf: manifest)).flatMap {
+            try? JSONSerialization.jsonObject(with: $0)
+        } != nil
+        guard validManifest else {
+            try? fileManager.removeItem(at: dir)
+            return nil
+        }
         return dir
     }
 
-    static func sourceURL(for name: String) -> URL {
-        URL(string: "https://huggingface.co/\(repo)/resolve/main/\(name)")!
+    /// `path` is the repo-relative path (the .mlpackage files live inside
+    /// the package directory on Hugging Face).
+    static func sourceURL(for path: String) -> URL {
+        URL(string: "https://huggingface.co/\(repo)/resolve/main/\(path)")!
     }
 
     static func packageSize(fileManager: FileManager = .default) -> Int64 {
@@ -129,7 +142,7 @@ final class MiniCPMFileSetDownloader: NSObject, ModelDownloading, @unchecked Sen
             withIntermediateDirectories: true
         )
         lock.withLock { currentDestination = destination }
-        session.downloadTask(with: MiniCPMModelLocator.sourceURL(for: next.name)).resume()
+        session.downloadTask(with: MiniCPMModelLocator.sourceURL(for: next.path)).resume()
     }
 
     private func advance() {
@@ -178,6 +191,11 @@ extension MiniCPMFileSetDownloader: URLSessionDownloadDelegate {
         downloadTask: URLSessionDownloadTask,
         didFinishDownloadingTo location: URL
     ) {
+        // Never persist an HTTP error body (a 404 would otherwise be written as
+        // the target file); didCompleteWithError surfaces the failure.
+        if let http = downloadTask.response as? HTTPURLResponse, http.statusCode >= 400 {
+            return
+        }
         guard let destination = lock.withLock({ currentDestination }) else { return }
         do {
             if fileManager.fileExists(atPath: destination.path) {

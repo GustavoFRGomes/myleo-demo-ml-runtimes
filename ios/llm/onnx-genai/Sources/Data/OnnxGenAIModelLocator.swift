@@ -181,6 +181,11 @@ extension OnnxGenAIFileSetDownloader: URLSessionDownloadDelegate {
         downloadTask: URLSessionDownloadTask,
         didFinishDownloadingTo location: URL
     ) {
+        // Never persist an HTTP error body (a 404 would otherwise be written as
+        // the target file); didCompleteWithError surfaces the failure.
+        if let http = downloadTask.response as? HTTPURLResponse, http.statusCode >= 400 {
+            return
+        }
         guard let destination = lock.withLock({ currentDestination }) else { return }
         do {
             if fileManager.fileExists(atPath: destination.path) {
