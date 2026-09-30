@@ -21,6 +21,7 @@ local.properties
 ios/vector-search/litert/Sources/Resources/vocab.txt
 ios/vector-search/onnx/Sources/Resources/vocab.txt
 ios/vector-search/coreml/Sources/Resources/vocab.txt
+ios/vector-search/trio/Sources/Resources/vocab.txt
 
 # Xcode: generated projects are rebuilt from project.yml via XcodeGen
 *.xcodeproj/

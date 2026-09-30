@@ -17,7 +17,8 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 │   ├── vector-search/
 │   │   ├── litert/        # LiteRT embedding model + cosine/HNSW search (Swift)
 │   │   ├── onnx/          # ONNX Runtime Mobile embedding model + vector search (Swift)
-│   │   └── coreml/        # Core ML embedding model + Accelerate search (Swift)
+│   │   ├── coreml/        # Core ML embedding model + Accelerate search (Swift)
+│   │   └── trio/          # Runtime chooser: LiteRT, ONNX or Core ML, lazy init, shared index (Swift)
 │   └── llm/
 │       ├── litert-lm/     # LiteRT-LM (.litertlm) chat inference (Swift)
 │       ├── onnx-genai/    # ONNX Runtime GenAI (Phi / Llama / SmolLM) (Swift)
@@ -43,6 +44,7 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 | vector-search / LiteRT | `ios/vector-search/litert` — LiteRT embedding (e.g. Universal Sentence Encoder / MiniLM `.tflite`), brute-force cosine or HNSW | `android/vector-search/litert` — LiteRT Text Embedder, same model family |
 | vector-search / ONNX | `ios/vector-search/onnx` — ONNX Runtime Mobile + MiniLM/E5 `.onnx` | `android/vector-search/onnx` — ONNX Runtime (AAR) + same `.onnx` |
 | vector-search / Core ML | `ios/vector-search/coreml` — Core ML `.mlpackage` embedding + Accelerate/BNNS | — (no Android equivalent) |
+| vector-search / Trio | `ios/vector-search/trio` — picker for LiteRT, ONNX or Core ML at runtime, lazy init, shared index cleared on switch | — (Android `dual` covers LiteRT + ONNX only) |
 | vector-search / Dual | — (no iOS equivalent) | `android/vector-search/dual` — picker for LiteRT or ONNX at runtime, lazy init, shared index cleared on switch |
 | llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (e.g. Gemma), GPU delegate | `android/llm/litert-lm` — LiteRT-LM via MediaPipe `LlmInference` API (Gemma) |
 | llm / ONNX GenAI | `ios/llm/onnx-genai` — `onnxruntime-genai` (Obj-C/C++ bridge) running Phi/SmolLM/Llama `.onnx` | `android/llm/onnx-genai` — `onnxruntime-genai` AAR, same model family |

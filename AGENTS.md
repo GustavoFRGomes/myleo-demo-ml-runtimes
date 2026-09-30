@@ -78,6 +78,7 @@ iOS leafs are clones of it with identifiers renamed.
 | `ios/vector-search/litert/` (reference) | `MyLeoLite` | `org.ggomes.myleolite` | `MyLeo Lite` |
 | `ios/vector-search/onnx/` | `MyLeoVSOnnx` | `org.ggomes.myleo.vectorsearch.onnx` | `MyLeo VS ONNX` |
 | `ios/vector-search/coreml/` | `MyLeoVSCoreML` | `org.ggomes.myleo.vectorsearch.coreml` | `MyLeo VS Core ML` |
+| `ios/vector-search/trio/` | `MyLeoVSTrio` | `org.ggomes.myleo.vectorsearch.trio` | `MyLeo Trio` |
 | `ios/llm/litert-lm/` | `MyLeoLLMLiteRTLM` | `org.ggomes.myleo.llm.litertlm` | `MyLeo LLM LiteRT-LM` |
 | `ios/llm/onnx-genai/` | `MyLeoLLMOnnxGenAI` | `org.ggomes.myleo.llm.onnxgenai` | `MyLeo LLM ONNX-GenAI` |
 | `ios/llm/coreml/` | `MyLeoLLMCoreML` | `org.ggomes.myleo.llm.coreml` | `MyLeo LLM Core ML` |
