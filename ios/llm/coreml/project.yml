@@ -12,6 +12,8 @@ targets:
       - path: Sources
     info:
       path: Info.plist
+    dependencies:
+      - sdk: FoundationModels.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.ggomes.myleo.llm.coreml
@@ -26,6 +28,9 @@ targets:
       - path: Tests
     dependencies:
       - target: MyLeoLLMCoreML
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
 schemes:
   MyLeoLLMCoreML:
     build:
