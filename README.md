@@ -63,6 +63,8 @@ Same contract, different runtime:
 
 Each runtime folder owns its model format, tokenizer, and delegate/accelerator setup. Shared logic (e.g. cosine math) must not be force-shared across runtimes — duplication is acceptable if it keeps variations independent.
 
+Measured sizes, load/embed timings, and why runtimes differ: see [`docs/benchmarks.md`](docs/benchmarks.md).
+
 ### llm (`*/llm/*`)
 
 Same contract, different runtime:
@@ -120,5 +122,5 @@ Model files (`*.tflite`, `*.litertlm`, `*.onnx`, `*.mlpackage`) are **not** chec
 ## Roadmap
 
 - [ ] Fill in each leaf module with a runnable sample + `README.md` (runtime version, model link, benchmarks).
-- [ ] Add a shared `docs/` benchmark table (tokens/sec, TTFT, embedding ms, index size, device).
+- [x] Shared `docs/benchmarks.md` benchmark table (tokens/sec, TTFT, embedding ms, index size, device) — vector-search filled in, LLM pending.
 - [ ] Add RAG wiring examples combining `vector-search` + `llm` on the same runtime stack.
