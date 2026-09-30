@@ -22,7 +22,8 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 │   └── llm/
 │       ├── litert-lm/     # LiteRT-LM (.litertlm) chat inference (Swift)
 │       ├── onnx-genai/    # ONNX Runtime GenAI (Phi / Llama / SmolLM) (Swift)
-│       └── coreml/        # Core ML / Apple Foundation Models inference (Swift)
+│       ├── coreml/        # Core ML / Apple Foundation Models inference (Swift)
+│       └── trio/          # Runtime chooser: LiteRT-LM, ONNX GenAI or Core ML (Swift)
 └── android/
     ├── vector-search/
     │   ├── litert/        # LiteRT Text Embedder + vector search (Kotlin)
@@ -49,6 +50,7 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 | llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (e.g. Gemma), GPU delegate | `android/llm/litert-lm` — LiteRT-LM via MediaPipe `LlmInference` API (Gemma) |
 | llm / ONNX GenAI | `ios/llm/onnx-genai` — `onnxruntime-genai` (Obj-C/C++ bridge) running Phi/SmolLM/Llama `.onnx` | `android/llm/onnx-genai` — `onnxruntime-genai` AAR, same model family |
 | llm / Core ML | `ios/llm/coreml` — Apple Foundation Models (system-hosted, where available) with Core ML `.mlpackage` fallback | — (no Android equivalent) |
+| llm / Trio | `ios/llm/trio` — picker for LiteRT-LM, ONNX GenAI or Core ML, all MiniCPM5-1B | — (no Android equivalent) |
 
 ## What each variation implements
 
