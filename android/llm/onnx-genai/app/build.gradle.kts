@@ -72,6 +72,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // onnxruntime-genai dynamically loads libonnxruntime.so, which is NOT in
+    // the genai AAR — it comes from the ONNX Runtime Android AAR.
+    implementation(libs.onnxruntime.android)
     implementation(files(downloadGenAiAar.map { genaiAarFile.asFile }))
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
