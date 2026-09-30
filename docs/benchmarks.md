@@ -97,3 +97,19 @@ forces a **CPU fallback** on that leaf.
   Cosine similarity is only comparable within one weights file —
   `android/vector-search/litert` (BERT 512-d) vs everything else
   (MiniLM 384-d) will rank the same corpus differently by construction.
+
+## LLM leafs (`*/llm/*`) — model parity
+
+Same base checkpoint, different runtime, different precision — so outputs are
+comparable in intent but **not byte-identical**:
+
+| Leaf | Model + runtime | Precision / size |
+|---|---|---|
+| `ios/llm/litert-lm` | MiniCPM5-1B via LiteRT `.litertlm` (`litert-community/MiniCPM5-1B`) | W4 (`wi4b32`), block 32, int8 embeddings, fp32 activations, ~793 MB |
+| `ios/llm/onnx-genai` | MiniCPM5-1B int4 via ONNX Runtime GenAI (`anydaytv/minicpm5-1b-onnx-int4` + `onnx-community` config) | int4 MatMulNBits, block 32, fp32 activations, ~1.42 GB |
+| `ios/llm/coreml` | **Apple Foundation Model** (system-hosted) | not MiniCPM5-1B — a different, OS-provided model, no download |
+
+LiteRT and ONNX are a *close copy* of each other (same base weights, both
+~4-bit weights at block 32) but use different quantizers, so they are not
+exact equivalents. Core ML currently uses Apple's system model, not
+MiniCPM5-1B (a same-model Core ML path could use `Reza2kn/MiniCPM5-1B-CoreML-4bit`; not wired).
