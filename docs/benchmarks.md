@@ -39,20 +39,53 @@ Debug `.app` totals (measured): litert ~95 MB, onnx ~127 MB, coreml ~91 MB, trio
 | `onnx` | `onnxruntime-android:1.30.0` — AAR **51 MB** download (all ABIs; per-ABI slice installed) | MiniLM-L6-v2 `.onnx`, **86 MB**, 384-d | **417–439** | **~9–19** (350–2630-char emails; 50-mail ingest: ~530 embed of ~660 total) | `OrtSession` from asset bytes; inputs via `LongBuffer` (the generic tensor overload is gone in 1.30) |
 | `dual` | Both AARs above, ~63 MB download | MiniLM both formats, **86 + 86 MB**, 384-d shared index | **417** (ONNX path) | **~9–19** (ONNX path) | LiteRT path (MiniLM `.tflite`, named inputs + mean-pool) not yet timed on-device |
 
+## Accelerated runs — iOS ANE (separate from the CPU baselines above)
+
+Measured on the Trio app on the iPhone SE 3rd gen, 50 Enron email chunks,
+with ANE acceleration requested on all three runtimes. Same models, same
+dims — only the execution path changes:
+
+| Runtime (Trio) | Accelerator | How | Load ms | Ingest total ms | Embed ms (50 chunks) | Embed ms/chunk |
+|---|---|---|---|---|---|---|
+| LiteRT | ANE via `CoreMLDelegate` (`TensorFlowLiteSwift/CoreML`, `.neuralEngine`) | `Interpreter(…, delegates: [CoreMLDelegate()])` + warmup, CPU fallback | **895** | **2640** | **2614** | ~52 |
+| ONNX | ANE via Core ML EP (`MLComputeUnits=CPUAndNeuralEngine`, MLProgram, static shapes) | `appendCoreMLExecutionProvider(withOptionsV2:)`, CPU session fallback | **315** | **1342** | **1316** | ~26 |
+| Core ML | ANE via `MLModelConfiguration.computeUnits = .cpuAndNeuralEngine` | One-line change | **445** | **729** | **701** | ~14 |
+
+> **Placement is requested, not proven.** `computeUnits`/EP options only
+> *permit* ANE; Core ML decides per op and silently falls back to CPU for
+> anything it can't place. The only ground truth is Xcode's Core ML instrument
+> (Product → Profile → Core ML) while ingesting. Compare against the CPU
+> baselines above: embeds are essentially unchanged (LiteRT 2614 vs 2633,
+> ONNX 1316 vs 1377, Core ML 701 vs 710), which suggests ANE is **not**
+> meaningfully engaged — likely partial delegation with CPU fallback. LiteRT's
+> load jump (39 → 895 ms) is the CoreML delegate setup + warmup, independent
+> of whether inference landed on the ANE.
+
+How to see which path the code took: each factory logs at info level
+(`LiteRT`: "Core ML ANE delegate active…" / "falling back to CPU"; `ONNX`:
+"Core ML EP appended…"), visible in a live syslog stream (`idevicesyslog`) or
+the Xcode console. `Logger.debug` lines are memory-only and won't persist —
+the info lines will. Note the earlier LiteRT device log showed only **66/276
+nodes delegated** for this MiniLM `.tflite` (the 3D `Mean` op is unsupported),
+with the delegated graph failing at invoke — so the warmup probe most likely
+forces a **CPU fallback** on that leaf.
+
 ## Why one is faster than another
 
 - **Load time is init work, not inference.** LiteRT mmaps a file (fast:
-  39 ms iOS / TBD Android). ONNX Runtime parses the graph and builds a session
-  with optimizations (209 ms iOS / ~430 ms Android). Core ML additionally
-  compiles/optimizes an execution program for the target compute units at
-  `MLModel(contentsOf:)` time (452 ms iOS). Rank by load: LiteRT < ONNX <
-  Core ML, on both platforms.
+  39 ms iOS CPU / TBD Android). ONNX Runtime parses the graph and builds a
+  session with optimizations (209 ms iOS CPU / ~430 ms Android). Core ML
+  additionally compiles/optimizes an execution program for the target compute
+  units at `MLModel(contentsOf:)` time (452 ms iOS). With ANE requested the
+  order flips: LiteRT's Core ML delegate setup + warmup makes it the slowest
+  to load (895 ms), ahead of Core ML (445) and ONNX (315) — see the accelerated
+  section above.
 - **But load rank ≠ embed rank.** On the iPhone SE per-chunk embed runs
   Core ML (~14 ms) < ONNX (~28 ms) < LiteRT (~53 ms): once compiled, Core ML's
   optimized execution beats both pods' per-invoke overhead. Judge a runtime by
   embed ms for your workload, not by load ms.
-- **Embed time is per-token compute on CPU** (no delegates/EPs wired yet in
-  any leaf — all CPU). Drivers, in order: sequence length after tokenizing
+- **Embed time is per-token compute.** In the CPU tables above no
+  delegates/EPs are wired — all CPU. Drivers, in order: sequence length after tokenizing
   (long emails cost more; short queries cost ~10 ms), model width
   (384 vs 512), then runtime overhead (ORT session-run vs TFLite invoke vs
   Core ML prediction). Mean-pooling + L2-normalization in our code is

@@ -28,7 +28,9 @@ final class IngestStoreTests: XCTestCase {
         where predicate: @escaping (IngestState) -> Bool
     ) async {
         let exp = expectation(description: "state")
-        store.$state.dropFirst().sink { if predicate($0) { exp.fulfill() } }.store(in: &bag)
+        // first(where:) completes after the first match, so the expectation
+        // fulfills exactly once even when later publishes still match.
+        store.$state.dropFirst().first(where: predicate).sink { _ in exp.fulfill() }.store(in: &bag)
         await fulfillment(of: [exp], timeout: timeout)
     }
 

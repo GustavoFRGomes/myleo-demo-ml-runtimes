@@ -15,7 +15,7 @@ final class SearchStoreTests: XCTestCase {
 
         await store.send(.queryChanged("hi"))
         let exp = expectation(description: "hits published")
-        store.$state.dropFirst().sink { if !$0.isSearching, $0.hits.count == 2 { exp.fulfill() } }.store(in: &bag)
+        store.$state.dropFirst().first(where: { !$0.isSearching && $0.hits.count == 2 }).sink { _ in exp.fulfill() }.store(in: &bag)
         await store.send(.search)
         await fulfillment(of: [exp], timeout: 5)
 
@@ -48,7 +48,7 @@ final class SearchStoreTests: XCTestCase {
 
         await store.send(.queryChanged("hi"))
         let exp = expectation(description: "error published")
-        store.$state.dropFirst().sink { if !$0.isSearching, $0.error != nil { exp.fulfill() } }.store(in: &bag)
+        store.$state.dropFirst().first(where: { !$0.isSearching && $0.error != nil }).sink { _ in exp.fulfill() }.store(in: &bag)
         await store.send(.search)
         await fulfillment(of: [exp], timeout: 5)
 

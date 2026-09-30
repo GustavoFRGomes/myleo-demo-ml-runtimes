@@ -27,7 +27,9 @@ enum CoreMLEmbedderFactory {
             throw CoreMLEmbedderError.missingModel("\(modelName).mlpackage")
         }
         let configuration = MLModelConfiguration()
-        configuration.computeUnits = .cpuOnly
+        // ANE + CPU: embedding transformers run fastest on the Neural Engine;
+        // expect a slower first load (ANE program compile) for faster embeds.
+        configuration.computeUnits = .cpuAndNeuralEngine
         let model = try MLModel(contentsOf: modelURL, configuration: configuration)
         guard let vocabPath = bundle.path(forResource: vocabName, ofType: "txt"),
               let vocabText = try? String(contentsOfFile: vocabPath, encoding: .utf8)

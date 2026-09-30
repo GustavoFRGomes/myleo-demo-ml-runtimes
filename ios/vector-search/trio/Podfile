@@ -2,8 +2,8 @@ platform :ios, '17.0'
 use_frameworks!
 
 target 'MyLeoVSTrio' do
-  # Raw LiteRT runtime (Swift Interpreter API).
-  pod 'TensorFlowLiteSwift', '~> 2.17.0'
+  # Raw LiteRT runtime (Swift Interpreter API) + Core ML ANE delegate.
+  pod 'TensorFlowLiteSwift/CoreML', '~> 2.17.0'
   # ONNX Runtime (ObjC API, CPU + Core ML).
   pod 'onnxruntime-objc', '~> 1.30.0'
 

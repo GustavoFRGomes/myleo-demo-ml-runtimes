@@ -89,6 +89,7 @@ enum LiteRTEmbedderError: Error, Equatable {
     case shapeMismatch(String)
     case missingModel(String)
     case missingVocab(String)
+    case delegateUnavailable(String)
 }
 
 extension LiteRTEmbedderError: LocalizedError {
@@ -104,6 +105,8 @@ extension LiteRTEmbedderError: LocalizedError {
             "embedding model missing: \(name) — \(reason)"
         case .missingVocab(let name):
             "vocab missing: \(name) — \(reason)"
+        case .delegateUnavailable(let detail):
+            "accelerator unavailable: \(detail) — \(reason)"
         }
     }
 
@@ -112,7 +115,8 @@ extension LiteRTEmbedderError: LocalizedError {
     }
 }
 
-private func data<T>(from array: [T]) -> Data {
+/// Shared byte-packing helper (also used by the factory warmup).
+func data<T>(from array: [T]) -> Data {
     array.withUnsafeBufferPointer { Data(buffer: $0) }
 }
 
