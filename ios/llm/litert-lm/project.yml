@@ -3,6 +3,10 @@ options:
   bundleIdPrefix: org.ggomes
   deploymentTarget:
     iOS: "17.0"
+packages:
+  LiteRTLM:
+    url: https://github.com/google-ai-edge/LiteRT-LM
+    exactVersion: 0.17.1
 targets:
   MyLeoLLMLiteRTLM:
     type: application
@@ -12,6 +16,9 @@ targets:
       - path: Sources
     info:
       path: Info.plist
+    dependencies:
+      - package: LiteRTLM
+        product: LiteRTLM
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.ggomes.myleo.llm.litertlm
@@ -26,6 +33,9 @@ targets:
       - path: Tests
     dependencies:
       - target: MyLeoLLMLiteRTLM
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
 schemes:
   MyLeoLLMLiteRTLM:
     build:
