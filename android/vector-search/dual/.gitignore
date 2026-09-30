@@ -1,0 +1,20 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+# Bundled model binaries + large assets are never committed (see README for
+# download links). The app runs without them via the missing-model error state.
+app/src/main/assets/
+*.dylib
+app/objectbox-models/*.bak

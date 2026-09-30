@@ -25,7 +25,8 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 └── android/
     ├── vector-search/
     │   ├── litert/        # LiteRT Text Embedder + vector search (Kotlin)
-    │   └── onnx/          # ONNX Runtime Mobile embedding model + vector search (Kotlin)
+    │   ├── onnx/          # ONNX Runtime Mobile embedding model + vector search (Kotlin)
+    │   └── dual/          # Runtime chooser: LiteRT or ONNX, lazy init, shared index (Kotlin)
     └── llm/
         ├── litert-lm/     # LiteRT-LM / MediaPipe LLM Inference API (Kotlin)
         └── onnx-genai/    # ONNX Runtime GenAI (Kotlin)
@@ -42,6 +43,7 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 | vector-search / LiteRT | `ios/vector-search/litert` — LiteRT embedding (e.g. Universal Sentence Encoder / MiniLM `.tflite`), brute-force cosine or HNSW | `android/vector-search/litert` — LiteRT Text Embedder, same model family |
 | vector-search / ONNX | `ios/vector-search/onnx` — ONNX Runtime Mobile + MiniLM/E5 `.onnx` | `android/vector-search/onnx` — ONNX Runtime (AAR) + same `.onnx` |
 | vector-search / Core ML | `ios/vector-search/coreml` — Core ML `.mlpackage` embedding + Accelerate/BNNS | — (no Android equivalent) |
+| vector-search / Dual | — (no iOS equivalent) | `android/vector-search/dual` — picker for LiteRT or ONNX at runtime, lazy init, shared index cleared on switch |
 | llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (e.g. Gemma), GPU delegate | `android/llm/litert-lm` — LiteRT-LM via MediaPipe `LlmInference` API (Gemma) |
 | llm / ONNX GenAI | `ios/llm/onnx-genai` — `onnxruntime-genai` (Obj-C/C++ bridge) running Phi/SmolLM/Llama `.onnx` | `android/llm/onnx-genai` — `onnxruntime-genai` AAR, same model family |
 | llm / Core ML | `ios/llm/coreml` — Apple Foundation Models (system-hosted, where available) with Core ML `.mlpackage` fallback | — (no Android equivalent) |
