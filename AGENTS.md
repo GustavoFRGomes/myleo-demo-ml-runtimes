@@ -15,6 +15,7 @@ android/vector-search/litert/  # Android vector search with LiteRT
 android/vector-search/onnx/    # Android vector search with ONNX Runtime Mobile
 android/llm/litert-lm/         # Android chat inference with LiteRT-LM (MediaPipe LlmInference)
 android/llm/onnx-genai/        # Android chat inference with ONNX Runtime GenAI
+android/llm/dual/              # Android chat inference dual runtime (LiteRT-LM + ONNX GenAI)
 ```
 
 `coreml/` exists on iOS only. Never create `android/**/coreml/`. Android has no Core ML equivalent.
@@ -116,6 +117,7 @@ Reference template: `android/vector-search/litert/` — Android Studio **Activit
 | `android/vector-search/onnx/` | `org.ggomes.myleo.vectorsearch.onnx` | `MyLeo VS ONNX` | `MyLeoVsOnnxTheme` | `Theme.MyLeoVsOnnx` | `MyLeo VS ONNX` |
 | `android/llm/litert-lm/` | `org.ggomes.myleo.llm.litertlm` | `MyLeo LLM LiteRT-LM` | `MyLeoLlmLitertlmTheme` | `Theme.MyLeoLlmLitertlm` | `MyLeo LLM LiteRT-LM` |
 | `android/llm/onnx-genai/` | `org.ggomes.myleo.llm.onnxgenai` | `MyLeo LLM ONNX-GenAI` | `MyLeoLlmOnnxgenaiTheme` | `Theme.MyLeoLlmOnnxgenai` | `MyLeo LLM ONNX-GenAI` |
+| `android/llm/dual/` | `org.ggomes.myleo.llm.dual` | `MyLeo LLM Dual` | `MyLeoLlmDualTheme` | `Theme.MyLeoLlmDual` | `MyLeo LLM Dual` |
 | `android/vector-search/dual/` | `org.ggomes.myleo.vectorsearch.dual` | `MyLeo VS Dual` | `MyLeoVsDualTheme` | `Theme.MyLeoVsDual` | `MyLeo VS Dual` |
 
 - When cloning the template to a new Android variant: copy `.gitignore`, `app/`, `build.gradle.kts`, `gradle.properties`, `gradle/`, `gradlew`, `gradlew.bat`, `settings.gradle.kts`. **Never copy** `.gradle/`, `.idea/`, `build/`, or `local.properties`. Preserve the target's existing `README.md`. Then move the three `org/ggomes/myleolite` source roots (`app/src/main`, `app/src/androidTest`, `app/src/test`) to the new package path and replace: package + imports in all `*.kt`, `namespace` + `applicationId` in `app/build.gradle.kts`, `rootProject.name` in `settings.gradle.kts`, `app_name` in `res/values/strings.xml`, style in `res/values/themes.xml` + `AndroidManifest.xml` (both `application` and `activity` theme attrs), theme composable fn name, and the `assertEquals(<package>)` in `ExampleInstrumentedTest.kt`.

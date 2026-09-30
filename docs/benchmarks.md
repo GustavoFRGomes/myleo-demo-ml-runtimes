@@ -1,7 +1,8 @@
-# Benchmarks — Vector Search Runtimes
+# Benchmarks — Vector Search + LLM Runtimes
 
 Reference devices: **Samsung Galaxy S25 Ultra (`SM_S948B`)** for Android,
-**iPhone SE 3rd gen** for iOS (Trio leaf, same MiniLM weights in all three files).
+**iPhone SE 3rd gen** for iOS (vector-search Trio leaf, same MiniLM weights in all
+three files; LLM leaves differ per platform — see the LLM section).
 
 ## How to reproduce
 
@@ -15,6 +16,9 @@ Every app reports the same three numbers in its stats sheet / logs:
   chunk (`MyLeo-Ingest: embed chunk i/N (...) in Xms`) and averaged in the ingest summary.
 - **Index/search** — ObjectBox HNSW (Android) / brute-force cosine (iOS); reported
   per query but excluded below (index size, not runtime, dominates it).
+- **LLM: load ms / TTFT / tok/s** — the chat banner shows model load ms; each
+  assistant message reports TTFT + tokens/sec. Tokens/sec is over the **decode
+  window only** (`(total − ttft)`), so it excludes prompt processing.
 
 Method: fresh install → launch → ingest the bundled 300-row Enron sample →
 read the stats sheet. `TBD` means not measured yet — fill it in from your own
@@ -98,19 +102,44 @@ forces a **CPU fallback** on that leaf.
   `android/vector-search/litert` (BERT 512-d) vs everything else
   (MiniLM 384-d) will rank the same corpus differently by construction.
 
-## LLM leafs (`*/llm/*`) — model parity
+## LLM leafs (`*/llm/*`)
 
-Same base checkpoint, different runtime, different precision — so outputs are
-comparable in intent but **not byte-identical**:
+### Model parity
+
+Same area = same checkpoint within a platform, different runtime + precision — so
+outputs are comparable in intent but **not byte-identical**. Android LLM leaves run
+**Phi-4-mini-instruct**; iOS LLM leaves run **MiniCPM5-1B**:
 
 | Leaf | Model + runtime | Precision / size |
 |---|---|---|
+| `android/llm/litert-lm` | Phi-4-mini-instruct via LiteRT-LM `.litertlm` (`litert-community/Phi-4-mini-instruct`) | q8 weights, `ekv4096`, ~3.9 GB |
+| `android/llm/onnx-genai` | Phi-4-mini-instruct int4 via ONNX Runtime GenAI (`microsoft/Phi-4-mini-instruct-onnx`) | int4 rtn block-32 acc-level-4, ~4.9 GB |
+| `android/llm/dual` | Both of the above behind a runtime picker | ~3.9 GB + ~4.9 GB on disk; one engine resident at a time |
 | `ios/llm/litert-lm` | MiniCPM5-1B via LiteRT `.litertlm` (`litert-community/MiniCPM5-1B`) | W4 (`wi4b32`), block 32, int8 embeddings, fp32 activations, ~793 MB |
 | `ios/llm/onnx-genai` | MiniCPM5-1B int4 via ONNX Runtime GenAI (`anydaytv/minicpm5-1b-onnx-int4` + `onnx-community` config) | int4 MatMulNBits, block 32, fp32 activations, ~1.42 GB |
 | `ios/llm/coreml` | **default**: MiniCPM5-1B 4-bit via Core ML (`Reza2kn/MiniCPM5-1B-CoreML-4bit`); option: Apple Foundation Model (system) | Core ML int4 per-block 32, ~619 MB, **128-token context**; Apple FM = different OS model, no download |
 
-LiteRT and ONNX are a *close copy* of each other (same base weights, both
-~4-bit weights at block 32) but use different quantizers, so they are not
-exact equivalents. The Core ML leaf defaults to a same-base MiniCPM5-1B Core ML
-4-bit export (still not byte-identical, and context-limited to 128 tokens), with
-Apple's system Foundation Model as an alternative runtime.
+> Android LLM started on MiniCPM5-1B, but ORT GenAI rejects its regex pre-tokenizer
+> (`Invalid regex: \p{N}+`), and SmolLM2-135M has no ORT-GenAI-compatible ONNX export,
+> so both Android LLM leaves (and `dual`) use Phi-4-mini-instruct. iOS is unchanged.
+
+### Measured — Android (`SM_S948B`)
+
+Method: fresh install → launch → Download model → send a one-line prompt → read the
+banner (load ms) and the assistant message metrics. `TBD` = not measured yet — fill it
+in from your own run rather than guessing.
+
+| Leaf | Model + runtime | Load ms | TTFT ms | tok/s | Notes |
+|---|---|---|---|---|---|
+| `android/llm/onnx-genai` | Phi-4-mini int4 / ONNX GenAI (CPU) | **3910** | **722** | **48.0** | `cpu-int4-rtn-block-32-acc-level-4`, ~4.9 GB on disk |
+| `android/llm/litert-lm` | Phi-4-mini q8 / LiteRT-LM (CPU) | **7418** | **899** warm (5318 cold) | **10.3** | ~3.9 GB `.litertlm` (3.64 GiB); first run compiles the XNNPACK/MLDrift cache, later runs are faster |
+| `android/llm/dual` | Phi-4-mini / either runtime | per runtime | per runtime | per runtime | Same engines as the single-runtime leaves; picker selects one, not separately measured |
+
+Reading it: LiteRT-LM's cold first generation (TTFT 5318 ms) includes compiling the
+delegate cache (`*_xnnpack_cache`); steady state is ~10 tok/s. On this device ONNX
+GenAI is ~4.7× faster per token than LiteRT-LM (48.0 vs 10.3 tok/s) and loads the model
+in about half the time, at the cost of the larger int4 download (4.9 vs 3.9 GB).
+
+LiteRT-LM and ONNX GenAI share the Phi-4-mini checkpoint but use different precisions
+(q8 vs int4) and quantizers, so throughput is comparable in intent, not exact.
+

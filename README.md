@@ -31,7 +31,8 @@ Each `platform / area / runtime` combination is an independent, comparable varia
     │   └── dual/          # Runtime chooser: LiteRT or ONNX, lazy init, shared index (Kotlin)
     └── llm/
         ├── litert-lm/     # LiteRT-LM / MediaPipe LLM Inference API (Kotlin)
-        └── onnx-genai/    # ONNX Runtime GenAI (Kotlin)
+        ├── onnx-genai/    # ONNX Runtime GenAI (Kotlin)
+        └── dual/          # Runtime chooser: LiteRT-LM or ONNX GenAI (Kotlin)
 ```
 
 > Naming: `litert-lm` and `onnx-genai` are the LLM-specific runtime SDKs (chat/generation).
@@ -47,10 +48,11 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 | vector-search / Core ML | `ios/vector-search/coreml` — Core ML `.mlpackage` embedding + Accelerate/BNNS | — (no Android equivalent) |
 | vector-search / Trio | `ios/vector-search/trio` — picker for LiteRT, ONNX or Core ML at runtime, lazy init, shared index cleared on switch | — (Android `dual` covers LiteRT + ONNX only) |
 | vector-search / Dual | — (no iOS equivalent) | `android/vector-search/dual` — picker for LiteRT or ONNX at runtime, lazy init, shared index cleared on switch |
-| llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (e.g. Gemma), GPU delegate | `android/llm/litert-lm` — LiteRT-LM via MediaPipe `LlmInference` API (Gemma) |
+| llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (e.g. Gemma), GPU delegate | `android/llm/litert-lm` — LiteRT-LM via MediaPipe `LlmInference` API (Phi-4-mini) |
 | llm / ONNX GenAI | `ios/llm/onnx-genai` — `onnxruntime-genai` (Obj-C/C++ bridge) running Phi/SmolLM/Llama `.onnx` | `android/llm/onnx-genai` — `onnxruntime-genai` AAR, same model family |
 | llm / Core ML | `ios/llm/coreml` — Apple Foundation Models (system-hosted, where available) with Core ML `.mlpackage` fallback | — (no Android equivalent) |
 | llm / Trio | `ios/llm/trio` — picker for LiteRT-LM, ONNX GenAI or Core ML, all MiniCPM5-1B | — (no Android equivalent) |
+| llm / Dual | — (no iOS equivalent) | `android/llm/dual` — picker for LiteRT-LM or ONNX GenAI at runtime, both Phi-4-mini-instruct |
 
 ## What each variation implements
 
@@ -124,5 +126,5 @@ Model files (`*.tflite`, `*.litertlm`, `*.onnx`, `*.mlpackage`) are **not** chec
 ## Roadmap
 
 - [ ] Fill in each leaf module with a runnable sample + `README.md` (runtime version, model link, benchmarks).
-- [x] Shared `docs/benchmarks.md` benchmark table (tokens/sec, TTFT, embedding ms, index size, device) — vector-search filled in, LLM pending.
+- [x] Shared `docs/benchmarks.md` benchmark table (tokens/sec, TTFT, embedding ms, index size, device) — vector-search filled in, LLM partial (Android ONNX measured).
 - [ ] Add RAG wiring examples combining `vector-search` + `llm` on the same runtime stack.
