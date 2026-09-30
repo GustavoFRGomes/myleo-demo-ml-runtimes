@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -87,7 +89,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
             )
         },
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding).imePadding()) {
             StatusBanner(state = state, onDownload = viewModel::downloadModel, onCancelDownload = viewModel::cancelDownload)
             MessageList(messages = state.messages, modifier = Modifier.weight(1f))
             state.lastMetrics?.let { metrics ->
@@ -138,7 +140,7 @@ private fun StatusBanner(
         when (val status = state.status) {
             is ModelStatus.Idle -> Unit
             is ModelStatus.Loading -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CircularProgressIndicator(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator(modifier = Modifier.size(16.dp))
                 Text("Loading model…", style = MaterialTheme.typography.bodySmall)
             }
             is ModelStatus.Ready -> Text(
@@ -200,7 +202,7 @@ private fun MessageBubble(message: ChatMessage) {
                     fontWeight = FontWeight.Bold,
                 )
                 if (message.text.isEmpty() && message.isStreaming) {
-                    CircularProgressIndicator(modifier = Modifier.height(16.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp))
                 } else {
                     Text(message.text)
                 }
