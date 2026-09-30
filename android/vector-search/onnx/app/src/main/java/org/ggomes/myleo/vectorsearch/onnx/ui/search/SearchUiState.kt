@@ -4,6 +4,8 @@ package org.ggomes.myleo.vectorsearch.onnx.ui.search
 data class SearchHit(
     val text: String,
     val similarity: Double,
+    /** Full parent item (email raw string) the chunk came from. */
+    val source: String = text,
 )
 
 /** Unidirectional UI state for the search screen (MVVM). */

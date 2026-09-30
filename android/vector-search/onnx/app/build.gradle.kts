@@ -56,6 +56,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.objectbox.kotlin)
+    // ONNX Runtime Mobile (MiniLM embedding model, CPU; NNAPI/GPU EP later).
+    implementation(libs.onnxruntime.android)
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)

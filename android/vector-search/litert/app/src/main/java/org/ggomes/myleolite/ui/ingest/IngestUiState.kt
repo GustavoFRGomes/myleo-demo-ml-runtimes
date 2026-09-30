@@ -21,9 +21,18 @@ data class IngestRunStats(
     val batteryEndPct: Int? = null,
 )
 
+/** Corpus source: free text or the bundled Enron sample. */
+enum class IngestSource {
+    FREE_TEXT,
+    ENRON_SAMPLE,
+}
+
 /** Unidirectional UI state for the ingest screen (MVVM). */
 data class IngestUiState(
     val corpusText: String = "",
+    val source: IngestSource = IngestSource.FREE_TEXT,
+    val itemCount: Int = 50,
+    val availableItems: Int? = null,
     val isIngesting: Boolean = false,
     val chunks: List<IngestedChunk> = emptyList(),
     val stored: Boolean = false,

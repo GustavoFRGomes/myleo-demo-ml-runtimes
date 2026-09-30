@@ -28,7 +28,9 @@ import org.ggomes.myleolite.data.MissingModelEmbedder
 import org.ggomes.myleolite.data.ObjectBoxDocumentRepository
 import org.ggomes.myleolite.data.StatsExporter
 import org.ggomes.myleolite.data.db.ObjectBoxStores
+import org.ggomes.myleolite.domain.AssetEnronDatasetLoader
 import org.ggomes.myleolite.domain.CalculateEmbeddingUseCase
+import org.ggomes.myleolite.domain.EmailDatasetLoader
 import org.ggomes.myleolite.domain.Embedder
 import org.ggomes.myleolite.domain.QueryStats
 import org.ggomes.myleolite.domain.StatsReportData
@@ -36,8 +38,10 @@ import org.ggomes.myleolite.domain.SystemStatsProvider
 import org.ggomes.myleolite.domain.buildStatsJson
 import org.ggomes.myleolite.domain.buildStatsMarkdown
 import org.ggomes.myleolite.ui.AppScreen
+import org.ggomes.myleolite.ui.detail.ResultDetailScreen
 import org.ggomes.myleolite.ui.ingest.IngestScreen
 import org.ggomes.myleolite.ui.ingest.IngestViewModel
+import org.ggomes.myleolite.ui.search.SearchHit
 import org.ggomes.myleolite.ui.search.SearchScreen
 import org.ggomes.myleolite.ui.search.SearchViewModel
 import org.ggomes.myleolite.ui.stats.StatsFormat
@@ -82,6 +86,10 @@ class MainActivity : ComponentActivity() {
         ObjectBoxDocumentRepository(ObjectBoxStores.get(applicationContext))
     }
 
+    private val datasetLoader: EmailDatasetLoader by lazy {
+        AssetEnronDatasetLoader(applicationContext)
+    }
+
     private val vmFactory: ViewModelProvider.Factory by lazy {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -95,6 +103,7 @@ class MainActivity : ComponentActivity() {
                         modelLoadMs = modelLoadMs,
                         modelName = modelName,
                         systemStats = systemStats,
+                        datasetLoader = datasetLoader,
                     )
                 else -> throw IllegalArgumentException("unknown ${modelClass.simpleName}")
             } as T
@@ -116,16 +125,25 @@ class MainActivity : ComponentActivity() {
         setContent {
             var screen by rememberSaveable { mutableStateOf(AppScreen.Search) }
             var showStats by rememberSaveable { mutableStateOf(false) }
+            var selectedHit by androidx.compose.runtime.remember { mutableStateOf<SearchHit?>(null) }
             MyLeoLiteTheme {
                 when (screen) {
                     AppScreen.Search -> SearchScreen(
                         viewModel = searchViewModel,
                         onOpenIngest = { screen = AppScreen.Ingest },
                         onShowStats = { showStats = true },
+                        onOpenHit = { selectedHit = it },
                     )
                     AppScreen.Ingest -> IngestScreen(
                         viewModel = ingestViewModel,
                         onBack = { screen = AppScreen.Search },
+                    )
+                }
+                selectedHit?.let { hit ->
+                    ResultDetailScreen(
+                        hit = hit,
+                        query = searchViewModel.uiState.collectAsState().value.query,
+                        onBack = { selectedHit = null },
                     )
                 }
                 if (showStats) {

@@ -22,6 +22,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -33,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.ggomes.myleolite.data.CorpusStats
 import org.ggomes.myleolite.ui.theme.MyLeoLiteTheme
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +64,8 @@ fun IngestScreen(
         IngestContent(
             state = state,
             onCorpusChange = viewModel::onCorpusChange,
+            onSourceChange = viewModel::onSourceChange,
+            onItemCountChange = viewModel::onItemCountChange,
             onIngest = viewModel::onIngest,
             onClearIndex = viewModel::onClearIndex,
             modifier = Modifier.padding(innerPadding),
@@ -66,14 +73,21 @@ fun IngestScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IngestContent(
     state: IngestUiState,
     onCorpusChange: (String) -> Unit,
+    onSourceChange: (IngestSource) -> Unit,
+    onItemCountChange: (Int) -> Unit,
     onIngest: () -> Unit,
     onClearIndex: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val canIngest = when (state.source) {
+        IngestSource.FREE_TEXT -> state.corpusText.isNotBlank()
+        IngestSource.ENRON_SAMPLE -> (state.availableItems ?: 0) > 0
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -90,18 +104,45 @@ fun IngestContent(
             style = MaterialTheme.typography.bodySmall,
         )
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = state.corpusText,
-            onValueChange = onCorpusChange,
-            label = { Text("Corpus text (blank line = new chunk)") },
-            minLines = 5,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = state.source == IngestSource.FREE_TEXT,
+                onClick = { onSourceChange(IngestSource.FREE_TEXT) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            ) { Text("Free text") }
+            SegmentedButton(
+                selected = state.source == IngestSource.ENRON_SAMPLE,
+                onClick = { onSourceChange(IngestSource.ENRON_SAMPLE) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            ) { Text("Enron emails") }
+        }
+        Spacer(Modifier.height(8.dp))
+        if (state.source == IngestSource.FREE_TEXT) {
+            OutlinedTextField(
+                value = state.corpusText,
+                onValueChange = onCorpusChange,
+                label = { Text("Corpus text (blank line = new chunk)") },
+                minLines = 5,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            val max = (state.availableItems ?: 300).coerceAtLeast(1)
+            Text(
+                "Emails: ${state.itemCount}" + (state.availableItems?.let { " of $it" } ?: ""),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Slider(
+                value = state.itemCount.toFloat(),
+                onValueChange = { onItemCountChange(it.roundToInt().coerceIn(1, max)) },
+                valueRange = 1f..max.toFloat(),
+                steps = 0,
+            )
+        }
         Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
                 onClick = onIngest,
-                enabled = state.corpusText.isNotBlank() && !state.isIngesting,
+                enabled = canIngest && !state.isIngesting,
             ) {
                 Text("Calculate embeddings")
             }
@@ -169,6 +210,8 @@ fun IngestContentPreview() {
                 modelLoadMs = 812,
             ),
             onCorpusChange = {},
+            onSourceChange = {},
+            onItemCountChange = {},
             onIngest = {},
             onClearIndex = {},
         )

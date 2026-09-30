@@ -8,12 +8,16 @@ import org.ggomes.myleolite.data.db.DocumentChunk_
 data class ChunkEmbedding(
     val text: String,
     val vector: List<Float>,
+    /** Full parent item the chunk came from (email raw string or whole corpus). */
+    val source: String = text,
 )
 
 /** A ranked search hit. [similarity] is cosine similarity in 0..1 (higher = closer). */
 data class ScoredChunk(
     val text: String,
     val similarity: Double,
+    /** Full parent item the chunk came from, for the detail screen. */
+    val source: String = text,
 )
 
 /** Live corpus totals for the performance report. */
@@ -57,7 +61,7 @@ class ObjectBoxDocumentRepository(private val store: BoxStore) : DocumentReposit
         val box = store.boxFor(DocumentChunk::class.java)
         box.put(
             chunks.map {
-                DocumentChunk(document = document, text = it.text, embedding = it.vector.toFloatArray())
+                DocumentChunk(document = document, text = it.text, source = it.source, embedding = it.vector.toFloatArray())
             },
         )
     }
@@ -89,7 +93,8 @@ class ObjectBoxDocumentRepository(private val store: BoxStore) : DocumentReposit
             .use { query ->
                 // ObjectBox COSINE score is a distance (0 = identical); convert to similarity.
                 query.findWithScores().map {
-                    ScoredChunk(it.get().text, (1.0 - it.score).coerceIn(0.0, 1.0))
+                    val chunk = it.get()
+                    ScoredChunk(chunk.text, (1.0 - it.score).coerceIn(0.0, 1.0), chunk.source)
                 }
             }
     }

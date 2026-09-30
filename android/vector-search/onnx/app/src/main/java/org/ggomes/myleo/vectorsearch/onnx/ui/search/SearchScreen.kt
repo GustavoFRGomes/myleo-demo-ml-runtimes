@@ -43,6 +43,7 @@ fun SearchScreen(
     viewModel: SearchViewModel,
     onOpenIngest: () -> Unit,
     onShowStats: () -> Unit,
+    onOpenHit: (SearchHit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -69,6 +70,7 @@ fun SearchScreen(
             state = state,
             onQueryChange = viewModel::onQueryChange,
             onSearch = viewModel::onSearch,
+            onOpenHit = onOpenHit,
             modifier = Modifier.padding(innerPadding),
         )
     }
@@ -79,6 +81,7 @@ fun SearchContent(
     state: SearchUiState,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
+    onOpenHit: (SearchHit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -125,7 +128,7 @@ fun SearchContent(
         Spacer(Modifier.height(8.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(state.hits) { hit ->
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(onClick = { onOpenHit(hit) }, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
                         Text(hit.text, style = MaterialTheme.typography.titleSmall, maxLines = 3)
                         Text(
@@ -151,6 +154,7 @@ fun SearchContentPreview() {
             ),
             onQueryChange = {},
             onSearch = {},
+            onOpenHit = {},
         )
     }
 }

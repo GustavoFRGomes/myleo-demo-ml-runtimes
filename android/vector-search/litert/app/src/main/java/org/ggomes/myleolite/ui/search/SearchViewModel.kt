@@ -46,7 +46,7 @@ class SearchViewModel(
                         searchMs = measureTimeMillis {
                             documents.search(vector)
                                 .onSuccess { found ->
-                                    hits = found.map { SearchHit(it.text, it.similarity) }
+                                    hits = found.map { SearchHit(it.text, it.similarity, it.source) }
                                 }
                                 .onFailure { failure = it }
                         }
