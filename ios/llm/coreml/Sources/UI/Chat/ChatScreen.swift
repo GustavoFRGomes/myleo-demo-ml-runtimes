@@ -4,6 +4,8 @@ import SwiftUI
 /// message thread, and TTFT / tokens-per-sec reporting (F-LLM-4).
 struct ChatScreen: View {
     @ObservedObject var store: ChatStore
+    var runtime: ChatRuntime? = nil
+    var onSelectRuntime: ((ChatRuntime) -> Void)? = nil
     @State private var showSettings = false
     @State private var showInfo = false
 
@@ -23,6 +25,24 @@ struct ChatScreen: View {
             .navigationTitle("MyLeo LLM Core ML")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    if let runtime {
+                        Menu {
+                            ForEach(ChatRuntime.allCases) { option in
+                                Button {
+                                    onSelectRuntime?(option)
+                                } label: {
+                                    Label(option.label, systemImage: "cpu")
+                                }
+                            }
+                        } label: {
+                            Label(runtime.label, systemImage: "cpu")
+                                .labelStyle(.titleAndIcon)
+                        }
+                    } else {
+                        Text("MyLeo LLM Core ML")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showSettings = true } label: {
                         Label("Settings", systemImage: "slider.horizontal.3")

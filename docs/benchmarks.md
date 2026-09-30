@@ -107,9 +107,10 @@ comparable in intent but **not byte-identical**:
 |---|---|---|
 | `ios/llm/litert-lm` | MiniCPM5-1B via LiteRT `.litertlm` (`litert-community/MiniCPM5-1B`) | W4 (`wi4b32`), block 32, int8 embeddings, fp32 activations, ~793 MB |
 | `ios/llm/onnx-genai` | MiniCPM5-1B int4 via ONNX Runtime GenAI (`anydaytv/minicpm5-1b-onnx-int4` + `onnx-community` config) | int4 MatMulNBits, block 32, fp32 activations, ~1.42 GB |
-| `ios/llm/coreml` | **Apple Foundation Model** (system-hosted) | not MiniCPM5-1B — a different, OS-provided model, no download |
+| `ios/llm/coreml` | **default**: MiniCPM5-1B 4-bit via Core ML (`Reza2kn/MiniCPM5-1B-CoreML-4bit`); option: Apple Foundation Model (system) | Core ML int4 per-block 32, ~619 MB, **128-token context**; Apple FM = different OS model, no download |
 
 LiteRT and ONNX are a *close copy* of each other (same base weights, both
 ~4-bit weights at block 32) but use different quantizers, so they are not
-exact equivalents. Core ML currently uses Apple's system model, not
-MiniCPM5-1B (a same-model Core ML path could use `Reza2kn/MiniCPM5-1B-CoreML-4bit`; not wired).
+exact equivalents. The Core ML leaf defaults to a same-base MiniCPM5-1B Core ML
+4-bit export (still not byte-identical, and context-limited to 128 tokens), with
+Apple's system Foundation Model as an alternative runtime.
