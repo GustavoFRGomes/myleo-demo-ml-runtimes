@@ -50,14 +50,12 @@ class FakeModelDownloader : ModelDownloader {
     var downloadCount = 0
 
     override suspend fun download(
-        url: String,
-        destination: File,
         onProgress: (received: Long, total: Long) -> Unit,
     ): File {
         downloadCount++
         onProgress(50, 100)
         error?.let { throw it }
         onProgress(100, 100)
-        return destination
+        return File("/tmp/fake-model")
     }
 }

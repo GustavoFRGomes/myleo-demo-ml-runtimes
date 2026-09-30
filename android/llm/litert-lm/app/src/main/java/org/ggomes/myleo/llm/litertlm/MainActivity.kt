@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import org.ggomes.myleo.llm.litertlm.data.HttpModelDownloader
+import org.ggomes.myleo.llm.litertlm.data.HttpFileDownloader
 import org.ggomes.myleo.llm.litertlm.data.LiteRTLMEngine
 import org.ggomes.myleo.llm.litertlm.data.LiteRTLMModelLocator
 import org.ggomes.myleo.llm.litertlm.ui.chat.ChatScreen
@@ -31,9 +31,10 @@ class MainActivity : ComponentActivity() {
         override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(
             locate = { LiteRTLMModelLocator.locate(context) },
             makeInference = { file -> LiteRTLMEngine(file.absolutePath) },
-            downloader = HttpModelDownloader(),
-            remoteUrl = LiteRTLMModelLocator.remoteUrl(),
-            downloadTarget = { LiteRTLMModelLocator.modelFile(context) },
+            downloader = HttpFileDownloader(
+                url = LiteRTLMModelLocator.remoteUrl(),
+                destination = LiteRTLMModelLocator.modelFile(context),
+            ),
         ) as T
     }
 }

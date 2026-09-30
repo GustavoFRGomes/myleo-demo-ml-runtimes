@@ -41,6 +41,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import org.ggomes.myleo.llm.litertlm.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.ggomes.myleo.llm.litertlm.domain.ChatMessage
@@ -61,7 +63,7 @@ fun ChatScreen(viewModel: ChatViewModel) {
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("MyLeo LLM LiteRT-LM") },
+                title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
@@ -84,11 +86,6 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showInfo = true }) {
-                Icon(Icons.Filled.Info, contentDescription = "Info")
-            }
-        },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             StatusBanner(state = state, onDownload = viewModel::downloadModel, onCancelDownload = viewModel::cancelDownload)
@@ -104,6 +101,14 @@ fun ChatScreen(viewModel: ChatViewModel) {
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = viewModel::dismissError) { Text("Dismiss") }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                FloatingActionButton(onClick = { showInfo = true }) {
+                    Icon(Icons.Filled.Info, contentDescription = "Info")
                 }
             }
             InputBar(

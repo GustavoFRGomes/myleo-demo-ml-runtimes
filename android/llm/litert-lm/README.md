@@ -1,6 +1,7 @@
 # Android LLM — LiteRT-LM
 
-- Runtime: `com.google.ai.edge.litertlm:litertlm-android:0.17.1` (Google Maven), Kotlin `Engine`/`Conversation` API, GPU backend by default
+- Runtime: `com.google.ai.edge.litertlm:litertlm-android:0.17.1` (Google Maven), Kotlin `Engine`/`Conversation` API, **CPU backend by default**
+  - GPU backend requires an OpenCL driver and is not available on all devices (missing driver → `UNKNOWN: Can not find OpenCL library on this device` at generation). Pass `Backend.GPU()` to `LiteRTLMEngine` on an OpenCL-capable device.
 - Model format: `.litertlm` bundle (weights + tokenizer + chat template)
 - Scope contract (F-LLM-1…5):
   - Download the model in-app, then load; show model id + load state + errors

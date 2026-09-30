@@ -37,8 +37,6 @@ class ChatViewModelTest {
         locate = locate,
         makeInference = { inference },
         downloader = downloader,
-        remoteUrl = "https://example.test/model",
-        downloadTarget = { File("/tmp/target") },
         ioDispatcher = dispatcher,
     )
 

@@ -29,8 +29,6 @@ class ChatViewModel(
     private val locate: () -> File?,
     private val makeInference: (File) -> ChatInference,
     private val downloader: ModelDownloader,
-    private val remoteUrl: String,
-    private val downloadTarget: () -> File,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
@@ -68,7 +66,7 @@ class ChatViewModel(
         _uiState.update { it.copy(download = DownloadState.Downloading(0, 0), error = null) }
         downloadJob = viewModelScope.launch(ioDispatcher) {
             runCatching {
-                downloader.download(remoteUrl, downloadTarget()) { received, total ->
+                downloader.download { received, total ->
                     _uiState.update { it.copy(download = DownloadState.Downloading(received, total)) }
                 }
             }

@@ -22,6 +22,11 @@ import org.ggomes.myleo.llm.litertlm.domain.GenerationParams
 /**
  * [ChatInference] over LiteRT-LM's Kotlin `Engine`/`Conversation` API.
  *
+ * Defaults to the **CPU** backend: the GPU backend needs an OpenCL driver, which
+ * not all devices expose (a missing one surfaces as
+ * "UNKNOWN: Can not find OpenCL library on this device" at generation time).
+ * Pass [Backend.GPU] explicitly on an OpenCL-capable device.
+ *
  * Each `generate` call builds a fresh conversation from the full history and
  * streams the reply (`Conversation.sendMessageAsync` → `Flow<Message>`).
  * Rebuilding per turn keeps regenerate/clear trivial; a KV-cache-reusing
@@ -29,7 +34,7 @@ import org.ggomes.myleo.llm.litertlm.domain.GenerationParams
  */
 class LiteRTLMEngine(
     private val modelPath: String,
-    private val backend: Backend = Backend.GPU(),
+    private val backend: Backend = Backend.CPU(),
 ) : ChatInference, AutoCloseable {
 
     @Volatile private var engine: Engine? = null
