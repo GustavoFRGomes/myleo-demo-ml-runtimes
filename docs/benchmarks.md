@@ -107,21 +107,25 @@ forces a **CPU fallback** on that leaf.
 ### Model parity
 
 Same area = same checkpoint within a platform, different runtime + precision — so
-outputs are comparable in intent but **not byte-identical**. Android LLM leaves run
-**Phi-4-mini-instruct**; iOS LLM leaves run **MiniCPM5-1B**:
+outputs are comparable in intent but **not byte-identical**. All LLM leaves run
+**Phi-4-mini-instruct** except `ios/llm/coreml` (and the trio's Core ML runtime),
+which stay on MiniCPM5-1B + Apple FM — no Phi-4-mini Core ML export fits that
+leaf's hand-wired engine (see its README):
 
 | Leaf | Model + runtime | Precision / size |
 |---|---|---|
 | `android/llm/litert-lm` | Phi-4-mini-instruct via LiteRT-LM `.litertlm` (`litert-community/Phi-4-mini-instruct`) | q8 weights, `ekv4096`, ~3.9 GB |
 | `android/llm/onnx-genai` | Phi-4-mini-instruct int4 via ONNX Runtime GenAI (`microsoft/Phi-4-mini-instruct-onnx`) | int4 rtn block-32 acc-level-4, ~4.9 GB |
 | `android/llm/dual` | Both of the above behind a runtime picker | ~3.9 GB + ~4.9 GB on disk; one engine resident at a time |
-| `ios/llm/litert-lm` | MiniCPM5-1B via LiteRT `.litertlm` (`litert-community/MiniCPM5-1B`) | W4 (`wi4b32`), block 32, int8 embeddings, fp32 activations, ~793 MB |
-| `ios/llm/onnx-genai` | MiniCPM5-1B int4 via ONNX Runtime GenAI (`anydaytv/minicpm5-1b-onnx-int4` + `onnx-community` config) | int4 MatMulNBits, block 32, fp32 activations, ~1.42 GB |
+| `ios/llm/litert-lm` | Phi-4-mini-instruct via LiteRT-LM `.litertlm` (`litert-community/Phi-4-mini-instruct`) | q8 weights, `ekv4096`, ~3.9 GB |
+| `ios/llm/onnx-genai` | Phi-4-mini-instruct int4 via ONNX Runtime GenAI (`microsoft/Phi-4-mini-instruct-onnx`) | int4 rtn block-32 acc-level-4, ~4.9 GB |
+| `ios/llm/trio` | Phi-4-mini-instruct on LiteRT-LM + ONNX GenAI; MiniCPM5-1B on Core ML | ~3.9 GB + ~4.9 GB + ~619 MB |
 | `ios/llm/coreml` | **default**: MiniCPM5-1B 4-bit via Core ML (`Reza2kn/MiniCPM5-1B-CoreML-4bit`); option: Apple Foundation Model (system) | Core ML int4 per-block 32, ~619 MB, **128-token context**; Apple FM = different OS model, no download |
 
 > Android LLM started on MiniCPM5-1B, but ORT GenAI rejects its regex pre-tokenizer
 > (`Invalid regex: \p{N}+`), and SmolLM2-135M has no ORT-GenAI-compatible ONNX export,
-> so both Android LLM leaves (and `dual`) use Phi-4-mini-instruct. iOS is unchanged.
+> so every `litert-lm` / `onnx-genai` leaf (both platforms, plus the chooser apps) now
+> uses Phi-4-mini-instruct. Only the Core ML path keeps MiniCPM5-1B.
 
 ### Measured — Android (`SM_S948B`)
 

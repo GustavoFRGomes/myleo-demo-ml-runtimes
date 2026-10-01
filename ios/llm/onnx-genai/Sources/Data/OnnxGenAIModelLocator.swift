@@ -1,24 +1,32 @@
 import Foundation
 
-/// Location + Hugging Face delivery for the MiniCPM5-1B **int4** ONNX Runtime
-/// GenAI model (`anydaytv/minicpm5-1b-onnx-int4`, with the two config files the
-/// int4 repo omits supplied from `onnx-community/MiniCPM5-1B`).
+/// Location + Hugging Face delivery for the Phi-4-mini-instruct **int4** ONNX
+/// Runtime GenAI model (`microsoft/Phi-4-mini-instruct-onnx`,
+/// `cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4/`).
 enum OnnxGenAIModelLocator {
     /// Subdirectory under Documents/Models holding the whole GenAI package.
-    static let folderName = "minicpm5-1b-onnx-int4"
+    static let folderName = "phi-4-mini-instruct-onnx-int4"
+    static let repo = "microsoft/Phi-4-mini-instruct-onnx"
+    static let dir = "cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4"
     static let configFileName = "genai_config.json"
     static let weightsFileName = "model.onnx"
 
-    /// Files to fetch: name → Hugging Face repo. Two repos because the int4
-    /// export lacks `genai_config.json` / `chat_template.jinja`.
+    /// Files to fetch: repo-relative path → repo. The package is saved flat
+    /// (by basename) so the runtime finds `model.onnx` + `.data` side by side.
     static let files: [(name: String, repo: String)] = [
-        ("model.onnx", "anydaytv/minicpm5-1b-onnx-int4"),
-        ("model.onnx.data", "anydaytv/minicpm5-1b-onnx-int4"),
-        ("tokenizer.json", "anydaytv/minicpm5-1b-onnx-int4"),
-        ("tokenizer_config.json", "anydaytv/minicpm5-1b-onnx-int4"),
-        ("genai_config.json", "onnx-community/MiniCPM5-1B"),
-        ("chat_template.jinja", "onnx-community/MiniCPM5-1B"),
+        ("\(dir)/model.onnx", repo),
+        ("\(dir)/model.onnx.data", repo),
+        ("\(dir)/genai_config.json", repo),
+        ("\(dir)/tokenizer.json", repo),
+        ("\(dir)/tokenizer_config.json", repo),
+        ("\(dir)/vocab.json", repo),
+        ("\(dir)/merges.txt", repo),
     ]
+
+    /// Local filename for a repo-relative path.
+    static func localName(for path: String) -> String {
+        URL(fileURLWithPath: path).lastPathComponent
+    }
 
     static func modelsRootDirectory(fileManager: FileManager = .default) -> URL {
         fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -56,12 +64,12 @@ enum OnnxGenAIModelLocator {
     }
 
     static var hint: String {
-        "Download the MiniCPM5-1B int4 ONNX package (~1.4 GB) — 6 files from Hugging Face "
-            + "(anydaytv/minicpm5-1b-onnx-int4 + onnx-community/MiniCPM5-1B)."
+        "Download the Phi-4-mini-instruct int4 ONNX package (~4.9 GB) — 7 files from Hugging Face "
+            + "(microsoft/Phi-4-mini-instruct-onnx)."
     }
 
     static var primarySourceURL: String {
-        sourceURL(for: "model.onnx", repo: "anydaytv/minicpm5-1b-onnx-int4").absoluteString
+        sourceURL(for: "\(dir)/model.onnx", repo: repo).absoluteString
     }
 }
 
@@ -125,7 +133,8 @@ final class OnnxGenAIFileSetDownloader: NSObject, ModelDownloading, @unchecked S
             finish(.success(destinationDirectory))
             return
         }
-        let destination = destinationDirectory.appendingPathComponent(next.name)
+        let destination = destinationDirectory
+            .appendingPathComponent(OnnxGenAIModelLocator.localName(for: next.name))
         if fileManager.fileExists(atPath: destination.path) {
             lock.withLock { completedBytes += Self.fileSize(destination) }
             advance()

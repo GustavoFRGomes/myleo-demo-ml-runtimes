@@ -5,11 +5,11 @@ import Foundation
 struct PreviewChatInference: ChatInference {
     func loadModel() async throws -> ChatModelInfo {
         ChatModelInfo(
-            displayName: "MiniCPM5-1B (preview)",
-            backend: "GPU",
+            displayName: "Phi-4-mini-instruct int4 (preview)",
+            backend: "CPU",
             loadMs: 1200,
             maxContextTokens: 0,
-            sizeBytes: 831_000_000,
+            sizeBytes: 4_908_692_182,
             sourceURL: nil
         )
     }
@@ -36,7 +36,7 @@ struct PreviewModelDownloader: ModelDownloading {
     func downloadModel(
         progress: @escaping @Sendable (ModelDownloadProgress) -> Void
     ) async throws -> URL {
-        progress(ModelDownloadProgress(receivedBytes: 793, totalBytes: 793))
+        progress(ModelDownloadProgress(receivedBytes: 4_908_692_182, totalBytes: 4_908_692_182))
         return URL(fileURLWithPath: "/tmp/preview.litertlm")
     }
 

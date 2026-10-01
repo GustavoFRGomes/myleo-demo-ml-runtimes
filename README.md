@@ -48,10 +48,10 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 | vector-search / Core ML | `ios/vector-search/coreml` — Core ML `.mlpackage` embedding + Accelerate/BNNS | — (no Android equivalent) |
 | vector-search / Trio | `ios/vector-search/trio` — picker for LiteRT, ONNX or Core ML at runtime, lazy init, shared index cleared on switch | — (Android `dual` covers LiteRT + ONNX only) |
 | vector-search / Dual | — (no iOS equivalent) | `android/vector-search/dual` — picker for LiteRT or ONNX at runtime, lazy init, shared index cleared on switch |
-| llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (e.g. Gemma), GPU delegate | `android/llm/litert-lm` — LiteRT-LM via MediaPipe `LlmInference` API (Phi-4-mini) |
-| llm / ONNX GenAI | `ios/llm/onnx-genai` — `onnxruntime-genai` (Obj-C/C++ bridge) running Phi/SmolLM/Llama `.onnx` | `android/llm/onnx-genai` — `onnxruntime-genai` AAR, same model family |
+| llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (Phi-4-mini-instruct), GPU delegate | `android/llm/litert-lm` — LiteRT-LM via MediaPipe `LlmInference` API (Phi-4-mini) |
+| llm / ONNX GenAI | `ios/llm/onnx-genai` — `onnxruntime-genai` (Obj-C/C++ bridge) running Phi-4-mini-instruct int4 `.onnx` | `android/llm/onnx-genai` — `onnxruntime-genai` AAR, same model family |
 | llm / Core ML | `ios/llm/coreml` — Apple Foundation Models (system-hosted, where available) with Core ML `.mlpackage` fallback | — (no Android equivalent) |
-| llm / Trio | `ios/llm/trio` — picker for LiteRT-LM, ONNX GenAI or Core ML, all MiniCPM5-1B | — (no Android equivalent) |
+| llm / Trio | `ios/llm/trio` — picker for LiteRT-LM, ONNX GenAI or Core ML (Phi-4-mini-instruct on the first two, MiniCPM5-1B on Core ML) | — (no Android equivalent) |
 | llm / Dual | — (no iOS equivalent) | `android/llm/dual` — picker for LiteRT-LM or ONNX GenAI at runtime, both Phi-4-mini-instruct |
 
 ## What each variation implements

@@ -9,7 +9,7 @@ struct RuntimePickerScreen: View {
         NavigationStack {
             List {
                 Section {
-                    Text("Choose a runtime. Each uses the same base model (MiniCPM5-1B) in that runtime's format; models download on first use if missing.")
+                    Text("Choose a runtime. LiteRT-LM and ONNX GenAI share Phi-4-mini-instruct in that runtime's format; Core ML uses MiniCPM5-1B. Models download on first use if missing.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

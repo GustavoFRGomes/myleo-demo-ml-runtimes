@@ -4,11 +4,11 @@ import XCTest
 final class ChatTranscriptTests: XCTestCase {
     private func sampleData() -> TranscriptData {
         TranscriptData(
-            modelName: "minicpm_wi4b32_wi8_afp32_gpu_opt.litertlm",
+            modelName: "Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm",
             modelBackend: "GPU",
-            modelSizeBytes: 831_000_000,
+            modelSizeBytes: 3_910_090_752,
             modelLoadMs: 1450,
-            sourceURL: "https://huggingface.co/litert-community/MiniCPM5-1B/resolve/main/x.litertlm",
+            sourceURL: "https://huggingface.co/litert-community/Phi-4-mini-instruct/resolve/main/x.litertlm",
             systemPrompt: "You are terse.",
             params: GenerationParams(temperature: 0.8, topK: 40, topP: 0.95, maxTokens: 512),
             messages: [
@@ -47,7 +47,7 @@ final class ChatTranscriptTests: XCTestCase {
 
         XCTAssertTrue(md.contains("# MyLeo LLM Trio — Chat Transcript"))
         XCTAssertTrue(md.contains("## Model"))
-        XCTAssertTrue(md.contains("minicpm_wi4b32_wi8_afp32_gpu_opt.litertlm"))
+        XCTAssertTrue(md.contains("Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm"))
         XCTAssertTrue(md.contains("## Generation parameters"))
         XCTAssertTrue(md.contains("## Performance"))
         XCTAssertTrue(md.contains("Average speed: 10.0 tok/s"))

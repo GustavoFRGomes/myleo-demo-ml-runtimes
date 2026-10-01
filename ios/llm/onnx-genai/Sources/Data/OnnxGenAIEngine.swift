@@ -2,10 +2,10 @@ import Foundation
 
 /// `ChatInference` over the ONNX Runtime GenAI C API (`OgaGenerator`).
 ///
-/// Model: MiniCPM5-1B **int4** (`anydaytv/minicpm5-1b-onnx-int4` weights +
-/// `onnx-community/MiniCPM5-1B` config). One `OgaModel` + tokenizer live for
-/// the session; each turn builds a generator, applies the model's chat
-/// template, and streams decoded tokens.
+/// Model: Phi-4-mini-instruct **int4** (`microsoft/Phi-4-mini-instruct-onnx`,
+/// `cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4/`). One `OgaModel` +
+/// tokenizer live for the session; each turn builds a generator, applies the
+/// model's chat template, and streams decoded tokens.
 actor OnnxGenAIEngine: ChatInference {
     private let packageDirectory: URL
     private let sizeBytes: Int64
@@ -42,7 +42,7 @@ actor OnnxGenAIEngine: ChatInference {
         self.tokenizer = tokenizer
 
         let info = ChatModelInfo(
-            displayName: "MiniCPM5-1B int4 (ONNX GenAI)",
+            displayName: "Phi-4-mini-instruct int4 (ONNX GenAI)",
             backend: "CPU",
             loadMs: 0,
             maxContextTokens: 131072,

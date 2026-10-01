@@ -94,9 +94,9 @@ struct ChatScreen: View {
             Text(message).font(.caption).foregroundStyle(.red)
             Button("Retry download") { store.send(.downloadModel) }.font(.footnote)
         default:
-            Button("Download model (~793 MB)") { store.send(.downloadModel) }
+            Button("Download model") { store.send(.downloadModel) }
                 .font(.footnote)
-            Text("Fetches MiniCPM5-1B from Hugging Face (litert-community/MiniCPM5-1B).")
+            Text("Fetches the model from Hugging Face on first use.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }

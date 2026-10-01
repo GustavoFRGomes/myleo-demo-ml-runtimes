@@ -128,11 +128,11 @@ struct InfoSheet: View {
 #Preview {
     InfoSheet(state: ChatState(
         status: .ready(ChatModelInfo(
-            displayName: "minicpm_wi4b32_wi8_afp32_gpu_opt.litertlm",
+            displayName: "Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm",
             backend: "GPU",
             loadMs: 1450,
             maxContextTokens: 0,
-            sizeBytes: 831_000_000,
+            sizeBytes: 3_910_090_752,
             sourceURL: nil
         )),
         messages: [

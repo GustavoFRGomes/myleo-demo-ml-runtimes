@@ -8,9 +8,9 @@
   - Cancel / regenerate / clear; error + empty states
   - Report TTFT + tokens/sec; per-message timing
   - SwiftUI chat + settings + info FAB + Markdown/JSON transcript export
-- Model: **MiniCPM5-1B int4** (Apache-2.0) — weights from https://huggingface.co/anydaytv/minicpm5-1b-onnx-int4 (**int4** MatMulNBits, block 32, fp32 activations, ~1.42 GB), config from https://huggingface.co/onnx-community/MiniCPM5-1B (`genai_config.json` + `chat_template.jinja` — the int4 repo omits these).
-- **Model parity note:** this is a *close copy, not a perfect match*, of the model the `litert-lm` leaf uses. Both derive from the same base checkpoint (`openbmb/MiniCPM5-1B`) and are both ~4-bit weight quantized with block size 32, but the quantizers differ (LiteRT's W4 scheme vs ONNX MatMulNBits), so greedy outputs are **not byte-identical** and timings/sizes differ (ONNX int4 ~1.42 GB vs LiteRT W4 ~793 MB — ONNX keeps more tensors at higher precision). See also `docs/benchmarks.md`.
-- Delivery: first launch downloads 6 files from Hugging Face into `Documents/Models/minicpm5-1b-onnx-int4/` (`OnnxGenAIFileSetDownloader`, aggregate byte progress). No manual step required.
+- Model: **Phi-4-mini-instruct int4** (MIT) — https://huggingface.co/microsoft/Phi-4-mini-instruct-onnx, `cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4/` (~4.9 GB). Same base model as the other LLM leaves.
+- **Model parity note:** this is a *close copy, not a perfect match*, of the model the `litert-lm` leaf uses. Both derive from the same base checkpoint (Phi-4-mini-instruct) but use different precisions/quantizers (LiteRT q8 vs ONNX int4), so greedy outputs are **not byte-identical** and timings/sizes differ. See also `docs/benchmarks.md`.
+- Delivery: first launch downloads 7 files from Hugging Face into `Documents/Models/phi-4-mini-instruct-onnx-int4/` (`OnnxGenAIFileSetDownloader`, aggregate byte progress, saved flat by basename). No manual step required.
 - SDK note: onnxruntime-genai is **not on CocoaPods trunk** — it ships release pod-archives. This leaf uses `podspec/onnxruntime-genai-c.podspec` (source = the v0.17.0 release zip; the framework statically includes ONNX Runtime, so no separate ORT pod).
 - Build/run: `xcodegen generate`, then `pod install`, then `open MyLeoLLMOnnxGenAI.xcworkspace` (always the workspace). Tests: `xcodebuild -workspace MyLeoLLMOnnxGenAI.xcworkspace -scheme MyLeoLLMOnnxGenAI -destination 'platform=iOS Simulator,name=iPhone 17' test` — unit tests mock `ChatInference`, so no model is required.
-- Device note: a 1B model needs ~1.5 GB RAM; run on a physical device for realistic TTFT / tokens-per-sec.
+- Device note: a 3.8B int4 model needs ~4.5 GB RAM; run on a physical device for realistic TTFT / tokens-per-sec.
