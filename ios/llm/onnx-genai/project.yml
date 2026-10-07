@@ -1,0 +1,46 @@
+name: MyLeoLLMOnnxGenAI
+options:
+  bundleIdPrefix: org.ggomes
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    # CocoaPods resource scripts write under Pods/ and fail under Xcode 26's
+    # user-script sandboxing.
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+targets:
+  MyLeoLLMOnnxGenAI:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Sources
+      - path: Sources/OnnxGenAIBridgingHeader.h
+    info:
+      path: Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.ggomes.myleo.llm.onnxgenai
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/OnnxGenAIBridgingHeader.h
+  MyLeoLLMOnnxGenAITests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Tests
+    dependencies:
+      - target: MyLeoLLMOnnxGenAI
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+schemes:
+  MyLeoLLMOnnxGenAI:
+    build:
+      targets:
+        MyLeoLLMOnnxGenAI: all
+    test:
+      targets:
+        - MyLeoLLMOnnxGenAITests

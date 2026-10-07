@@ -1,0 +1,16 @@
+PODS:
+  - onnxruntime-genai-c (0.17.0)
+
+DEPENDENCIES:
+  - onnxruntime-genai-c (from `podspec/onnxruntime-genai-c.podspec`)
+
+EXTERNAL SOURCES:
+  onnxruntime-genai-c:
+    :podspec: podspec/onnxruntime-genai-c.podspec
+
+SPEC CHECKSUMS:
+  onnxruntime-genai-c: a839d917dd27916529686775588864b21156abf2
+
+PODFILE CHECKSUM: 2767f2f906befc0fdce8b6377094ab21df1b7503
+
+COCOAPODS: 1.16.2

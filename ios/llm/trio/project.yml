@@ -1,0 +1,58 @@
+name: MyLeoLLMTrio
+options:
+  bundleIdPrefix: org.ggomes
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    # CocoaPods resource scripts write under Pods/ and fail under Xcode 26's
+    # user-script sandboxing.
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+packages:
+  LiteRTLM:
+    url: https://github.com/google-ai-edge/LiteRT-LM
+    exactVersion: 0.17.1
+  swift-transformers:
+    url: https://github.com/huggingface/swift-transformers
+    exactVersion: 1.3.4
+targets:
+  MyLeoLLMTrio:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Sources
+      - path: Sources/OnnxGenAIBridgingHeader.h
+    info:
+      path: Info.plist
+    dependencies:
+      - package: LiteRTLM
+        product: LiteRTLM
+      - package: swift-transformers
+        product: Tokenizers
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.ggomes.myleo.llm.trio
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/OnnxGenAIBridgingHeader.h
+  MyLeoLLMTrioTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Tests
+    dependencies:
+      - target: MyLeoLLMTrio
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: "YES"
+schemes:
+  MyLeoLLMTrio:
+    build:
+      targets:
+        MyLeoLLMTrio: all
+    test:
+      targets:
+        - MyLeoLLMTrioTests
