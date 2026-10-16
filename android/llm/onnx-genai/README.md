@@ -40,3 +40,31 @@ Net: speeding this leaf up means shipping a model built for the accelerator — 
 AAR, and not flipping a delegate. Until then it stays the CPU reference for the ONNX runtime. (The
 `litert-lm` leaves run GPU in-box because LiteRT-LM bundles the backend itself.)
 
+## 16 KB page size
+
+Android 15+ flags native libraries whose `PT_LOAD` segments are not 16 KB-aligned (a 16 KB-page kernel
+cannot load them at all). Read out of this leaf's built `app-debug.apk`:
+
+- **Five of the six `arm64-v8a` libraries are compliant** (`p_align` `0x4000`): `libonnxruntime.so`
+  and `libonnxruntime4j_jni.so` (ORT `1.30.0`), `libonnxruntime-genai.so` and
+  `libonnxruntime-genai-jni.so` (GenAI `0.17.0`), `libandroidx.graphics.path.so`. (The `dual` leaf's
+  APK adds `liblitertlm_jni.so`, also `0x4000`, and has the same single offender.)
+- **Only `libmat.so` is `0x1000`.** The Android compatibility dialog lists the compliant ones as
+  "Unknown error" and reserves `LOAD segment not aligned` for this one, so the warning overstates it.
+- **`libmat.so` is Microsoft's 1DS telemetry SDK** (~28 MB), pulled into the GenAI release AAR by its
+  `ENABLE_TELEMETRY` sub-build (`cmake/telemetry.cmake`). It is a hard `DT_NEEDED` of
+  `libonnxruntime-genai.so`, so a Gradle `jniLibs` exclusion would break the load, and `PT_LOAD`
+  alignment cannot be changed without relinking. The 16 KB flag GenAI does set for Android evidently
+  does not reach that sub-project — the mismatch is measurable, not theoretical.
+- **Nothing in this repo can fix it.** [onnxruntime#26490](https://github.com/microsoft/onnxruntime/issues/26490)
+  is an open feature request about the ORT *source* build, where the flag is already applied — which is
+  why the ORT libraries measure `0x4000`. The gap is in the GenAI build, and no release closes it: it
+  arrives with telemetry in `0.15.0` and persists through `0.17.0`, the latest. Pinning the last
+  pre-telemetry AAR (`0.14.0`) would drop `libmat.so` but also gives up `#2111` (*Fix
+  AppendNextTokensToSequences heap overflow* — a `max_length`-boundary overflow write on the decode
+  path) plus `0.15.0`'s other bounds-checking and use-after-free fixes, so `0.17.0` stays. A clean
+  16 KB build would need GenAI built from source with `ENABLE_TELEMETRY=OFF`.
+
+Impact today is nil on our hardware: the Fold7 runs a 4 KB kernel (`uname -r` ends `-4k`,
+`getconf PAGE_SIZE` = `4096`) and the dialog only appears for debuggable builds. It turns real only on
+a 16 KB-page device, where `libonnxruntime-genai.so` would fail to load.
