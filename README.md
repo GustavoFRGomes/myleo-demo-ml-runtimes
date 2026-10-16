@@ -79,6 +79,10 @@ Same contract, different runtime:
 
 Each runtime folder owns its model packaging (`.litertlm`, ONNX GenAI config + tokenizer, Core ML / Foundation Models wiring).
 
+Which model each leaf uses, and whether one checkpoint can cover all three runtimes: see
+[`docs/llm-model-coverage.md`](docs/llm-model-coverage.md). Where models come from per runtime,
+how many actually load, and how to triage a candidate: [`docs/model_discovery.md`](docs/model_discovery.md).
+
 On Android, the LiteRT-LM leaves default to the **GPU** backend but skip it on a device already
 known to be unable to hold it — total RAM below `2 × model + 1.5 GiB`, or a GPU load that previously
 died mid-load — and fall back to CPU. GPU keeps a pinned, non-reclaimable weight copy (~6.1 GB for
