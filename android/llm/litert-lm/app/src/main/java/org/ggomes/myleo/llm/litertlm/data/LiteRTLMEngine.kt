@@ -1,5 +1,6 @@
 package org.ggomes.myleo.llm.litertlm.data
 
+import android.util.Log
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
@@ -22,10 +23,18 @@ import org.ggomes.myleo.llm.litertlm.domain.GenerationParams
 /**
  * [ChatInference] over LiteRT-LM's Kotlin `Engine`/`Conversation` API.
  *
- * Defaults to the **CPU** backend: the GPU backend needs an OpenCL driver, which
- * not all devices expose (a missing one surfaces as
- * "UNKNOWN: Can not find OpenCL library on this device" at generation time).
- * Pass [Backend.GPU] explicitly on an OpenCL-capable device.
+ * Tries the **GPU** backend first and falls back to **CPU** when the device has no
+ * usable OpenCL driver (a missing one surfaces as
+ * "UNKNOWN: Can not find OpenCL library on this device"). The backend that actually
+ * initialized is reported in [ChatModelInfo.backend] and shown in the info sheet.
+ * The NPU backend is intentionally not used: it needs Qualcomm QNN libraries bundled
+ * in the app plus a `.litertlm` built for the specific SoC (see README).
+ *
+ * GPU is skipped up front when the device is already known to be unable to hold it:
+ * [GpuPolicy] supplies total RAM and the remembered verdict and [GpuPreflight] decides
+ * (see [planBackends]). A GPU attempt that is killed for memory leaves
+ * [GpuVerdict.PENDING] behind, which the next run resolves to [GpuVerdict.BAD] — the
+ * only way to catch an OOM kill, since it is a `SIGKILL` no `try/catch` can observe.
  *
  * Each `generate` call builds a fresh conversation from the full history and
  * streams the reply (`Conversation.sendMessageAsync` → `Flow<Message>`).
@@ -34,23 +43,41 @@ import org.ggomes.myleo.llm.litertlm.domain.GenerationParams
  */
 class LiteRTLMEngine(
     private val modelPath: String,
-    private val backend: Backend = Backend.CPU(),
+    private val gpuPolicy: GpuPolicy = GpuPolicy.Allow,
 ) : ChatInference, AutoCloseable {
 
     @Volatile private var engine: Engine? = null
+    @Volatile private var activeBackend: Backend? = null
     @Volatile private var conversation: Conversation? = null
     @Volatile private var lastTokenCount = 0
 
     override suspend fun loadModel(): ChatModelInfo = withContext(Dispatchers.Default) {
         engine?.let { return@withContext infoFor(modelPath) }
         val start = System.currentTimeMillis()
-        val created = Engine(EngineConfig(modelPath = modelPath, backend = backend))
-        created.initialize()
+        val backends = planBackends(File(modelPath).length())
+        val (created, used) = firstWorkingBackend(backends, onFailure = ::logBackendFailure) { backend ->
+            val gpu = backend is Backend.GPU
+            // Persist *before* the native init: a memory kill here leaves PENDING behind,
+            // the only trace the in-process fallback below can never see.
+            if (gpu) gpuPolicy.record(GpuVerdict.PENDING)
+            val candidate = Engine(EngineConfig(modelPath = modelPath, backend = backend))
+            try {
+                candidate.initialize()
+                if (gpu) gpuPolicy.record(GpuVerdict.OK)
+                candidate
+            } catch (e: Exception) {
+                if (gpu) gpuPolicy.record(GpuVerdict.BAD)
+                // Don't leak a half-initialized engine before trying the next backend.
+                runCatching { candidate.close() }
+                throw e
+            }
+        }
         engine = created
+        activeBackend = used
         val ms = System.currentTimeMillis() - start
         ChatModelInfo(
             displayName = File(modelPath).name,
-            backend = backendName(backend),
+            backend = backendName(used),
             loadMs = ms,
             sizeBytes = File(modelPath).length(),
             sourceUrl = null,
@@ -112,16 +139,58 @@ class LiteRTLMEngine(
 
     private fun infoFor(path: String) = ChatModelInfo(
         displayName = File(path).name,
-        backend = backendName(backend),
+        backend = activeBackend?.let(::backendName) ?: "unknown",
         loadMs = 0,
         sizeBytes = File(path).length(),
         sourceUrl = null,
     )
+
+    /**
+     * Backends to try, in order. GPU first unless we already know it can't work here:
+     * a remembered bad verdict, or a device whose RAM can't hold the GPU weight copy.
+     */
+    private fun planBackends(modelBytes: Long): List<Backend> {
+        val verdict = resolveStoredVerdict()
+        val totalRam = gpuPolicy.totalRamBytes()
+        if (!GpuPreflight.canAttemptGpu(modelBytes, totalRam, verdict)) {
+            Log.i(TAG, gpuSkipReason(verdict, modelBytes, totalRam))
+            return listOf(Backend.CPU())
+        }
+        return listOf(Backend.GPU(), Backend.CPU())
+    }
+
+    /** Reads the remembered verdict, folding a leftover [GpuVerdict.PENDING] into BAD. */
+    private fun resolveStoredVerdict(): GpuVerdict {
+        val stored = gpuPolicy.verdict()
+        val verdict = stored.resolved()
+        if (verdict != stored) {
+            Log.w(TAG, "previous GPU attempt was killed mid-load; disabling GPU")
+            gpuPolicy.record(verdict)
+        }
+        return verdict
+    }
+
+    private fun gpuSkipReason(verdict: GpuVerdict, modelBytes: Long, totalRamBytes: Long): String =
+        if (verdict == GpuVerdict.BAD) {
+            "GPU disabled after a previous failed attempt; using CPU"
+        } else {
+            "GPU skipped: needs ~${GpuPreflight.requiredBytes(modelBytes) / MB} MB RAM, " +
+                "device has ${totalRamBytes / MB} MB"
+        }
+
+    private fun logBackendFailure(backend: Backend, error: Throwable) {
+        Log.w(TAG, "LiteRT-LM ${backendName(backend)} backend unavailable; falling back", error)
+    }
 
     private fun backendName(backend: Backend): String = when (backend) {
         is Backend.GPU -> "GPU"
         is Backend.CPU -> "CPU"
         is Backend.NPU -> "NPU"
         else -> backend.name
+    }
+
+    companion object {
+        private const val TAG = "MyLeo-LiteRTLM"
+        private const val MB = 1024L * 1024
     }
 }

@@ -127,6 +127,57 @@ leaf's hand-wired engine (see its README):
 > so every `litert-lm` / `onnx-genai` leaf (both platforms, plus the chooser apps) now
 > uses Phi-4-mini-instruct. Only the Core ML path keeps MiniCPM5-1B.
 
+### Backend / accelerator (Android)
+
+The Android LLM leaves pick their compute backend at model-load time; there is no UI toggle.
+
+- `android/llm/litert-lm` and the LiteRT-LM half of `android/llm/dual`: **GPU first, CPU fallback** — `Backend.GPU()` is attempted, and a device without an OpenCL driver falls back to `Backend.CPU()` (the info sheet shows which one loaded). **GPU is skipped up front** on a device already known to be unable to hold it: total RAM below `2 × model + 1.5 GiB`, or a GPU load that previously died mid-load. NPU (`Backend.NPU`) is not wired: it needs bundled Qualcomm QNN libraries plus an SoC-specific `.litertlm`.
+- `android/llm/onnx-genai` and the ONNX half of `android/llm/dual`: **CPU only**. Not because the API is
+  missing — GenAI exposes `Config.appendProvider` and would accept `qnn`/`webgpu` — but because there is
+  no accelerated Phi-4-mini artifact in GenAI format (QNN) or a validated one (WebGPU), and QNN context
+  binaries are SoC-arch-locked. Evidence: `android/llm/onnx-genai/README.md` → *Acceleration on Android*.
+
+Why the skip matters — the same `.litertlm` needs a very different amount *and kind* of memory per backend:
+
+| Backend | Resident weights | File-backed? | Reclaimable under pressure? |
+|---|---|---|---|
+| CPU (XNNPACK) | `mmap`ed model, ~2.9 GB RSS | yes | yes — kernel evicts, re-faults from disk |
+| GPU (ML Drift / OpenCL) | model **+** ~6.1 GB `GL mtrack` weight copy | **no** | **no** — pinned graphics memory |
+
+So the CPU path fits a 7.6 GB phone that the GPU path OOM-kills. The decision lives in
+`GpuPolicy` + `GpuPreflight` — see `android/llm/litert-lm/README.md` → *GPU feasibility gate*.
+
+### Measured — GPU vs CPU, same device (Android, `SM-F966B`)
+
+Galaxy Z Fold7, Snapdragon 8 Elite, 12 GB. One variable: the backend. Same model (Phi-4-mini q8,
+~3.9 GB `.litertlm`), same prompt (*"Explain in detail how a refrigerator works"*), fresh launch
+per run, 3 runs per backend. `tok/s` is the decode window only (`generatedTokens / (totalMs − ttftMs)`),
+so it compares backends; load and TTFT are single-run values in run order.
+
+| Leaf | Backend | Load ms | TTFT ms | tok/s | Generated tokens |
+|---|---|---|---|---|---|
+| `android/llm/dual` | **GPU** (ML Drift / OpenCL) | 11926 / 12187 / 13031 | 1181 / 1161 / 1248 | **10.7 / 10.6 / 10.2** | 477 |
+| `android/llm/dual` | **CPU** (XNNPACK) | 936 / 716 / 713 | 1972 / 780 / 778 | **5.8 / 5.8 / 5.7** | 464 |
+
+Reading it:
+
+- **GPU decodes ~1.8× faster** (10.5 vs 5.8 tok/s). This is the only axis where GPU wins.
+- **CPU loads ~17× faster** (0.7–0.9 s vs 12–13 s): it `mmap`s the model, GPU builds a copy.
+- **CPU reaches the first token sooner** in steady state (0.78 s vs 1.2 s). CPU's *first* run after
+  load pays a one-off delegate compile (TTFT 1972 ms, then 780/778 ms).
+- GPU's cost is the **~6.1 GB pinned `GL mtrack` copy** (`MemAvailable` bottomed at 0.66 GB, no
+  fallback possible) — which is why it is gated on RAM rather than switched on unconditionally.
+
+The gate, on the two devices that motivated it:
+
+| Device | Total RAM | GPU attempt | After the gate |
+|---|---|---|---|
+| TCL T807D | 7.6 GB | OOM-killed on every load (`reason=LOW_MEMORY`, `subreason=OOM KILL`) | skips GPU → CPU |
+| Galaxy Z Fold7 (`SM-F966B`) | 12 GB | loads in ~12 s, 10.5 tok/s | passes → GPU |
+
+> The CPU baseline on `SM_S948B` (10.3 tok/s, above) is a *different* device — do not compare it with
+> these numbers. Only same-device, same-prompt runs are comparable.
+
 ### Measured — Android (`SM_S948B`)
 
 Method: fresh install → launch → Download model → send a one-line prompt → read the

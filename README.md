@@ -48,7 +48,7 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 | vector-search / Core ML | `ios/vector-search/coreml` — Core ML `.mlpackage` embedding + Accelerate/BNNS | — (no Android equivalent) |
 | vector-search / Trio | `ios/vector-search/trio` — picker for LiteRT, ONNX or Core ML at runtime, lazy init, shared index cleared on switch | — (Android `dual` covers LiteRT + ONNX only) |
 | vector-search / Dual | — (no iOS equivalent) | `android/vector-search/dual` — picker for LiteRT or ONNX at runtime, lazy init, shared index cleared on switch |
-| llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (Phi-4-mini-instruct), GPU delegate | `android/llm/litert-lm` — LiteRT-LM via MediaPipe `LlmInference` API (Phi-4-mini) |
+| llm / LiteRT-LM | `ios/llm/litert-lm` — LiteRT-LM `.litertlm` bundle (Phi-4-mini-instruct), GPU delegate | `android/llm/litert-lm` — LiteRT-LM `Engine` API (Phi-4-mini), GPU-first with a RAM / known-failure gate, CPU fallback |
 | llm / ONNX GenAI | `ios/llm/onnx-genai` — `onnxruntime-genai` (Obj-C/C++ bridge) running Phi-4-mini-instruct int4 `.onnx` | `android/llm/onnx-genai` — `onnxruntime-genai` AAR, same model family |
 | llm / Core ML | `ios/llm/coreml` — Apple Foundation Models (system-hosted, where available) with Core ML `.mlpackage` fallback | — (no Android equivalent) |
 | llm / Trio | `ios/llm/trio` — picker for LiteRT-LM, ONNX GenAI or Core ML (Phi-4-mini-instruct on the first two, MiniCPM5-1B on Core ML) | — (no Android equivalent) |
@@ -78,6 +78,18 @@ Same contract, different runtime:
 - Minimal demo UI: system prompt + chat thread + tokens/sec + TTFT display.
 
 Each runtime folder owns its model packaging (`.litertlm`, ONNX GenAI config + tokenizer, Core ML / Foundation Models wiring).
+
+On Android, the LiteRT-LM leaves default to the **GPU** backend but skip it on a device already
+known to be unable to hold it — total RAM below `2 × model + 1.5 GiB`, or a GPU load that previously
+died mid-load — and fall back to CPU. GPU keeps a pinned, non-reclaimable weight copy (~6.1 GB for
+Phi-4-mini q8) that can OOM-kill the app outright, so this is decided *before* attempting it. Details:
+[`android/llm/litert-lm` → *GPU feasibility gate*](android/llm/litert-lm/README.md#gpu-feasibility-gate)
+and [`docs/benchmarks.md`](docs/benchmarks.md).
+
+The ONNX GenAI leaves are the mirror image. GenAI *can* be asked for `qnn` or `webgpu`, but no
+accelerated Phi-4-mini exists in its model format and QNN context binaries are SoC-arch-locked, so
+they stay CPU-only. Details:
+[`android/llm/onnx-genai` → *Acceleration on Android*](android/llm/onnx-genai/README.md#acceleration-on-android).
 
 ## Datasets
 

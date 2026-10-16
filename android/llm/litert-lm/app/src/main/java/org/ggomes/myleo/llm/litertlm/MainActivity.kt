@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import org.ggomes.myleo.llm.litertlm.data.AndroidGpuPolicy
 import org.ggomes.myleo.llm.litertlm.data.HttpFileDownloader
 import org.ggomes.myleo.llm.litertlm.data.LiteRTLMEngine
 import org.ggomes.myleo.llm.litertlm.data.LiteRTLMModelLocator
@@ -30,7 +31,7 @@ class MainActivity : ComponentActivity() {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(
             locate = { LiteRTLMModelLocator.locate(context) },
-            makeInference = { file -> LiteRTLMEngine(file.absolutePath) },
+            makeInference = { file -> LiteRTLMEngine(file.absolutePath, AndroidGpuPolicy(context)) },
             downloader = HttpFileDownloader(
                 url = LiteRTLMModelLocator.remoteUrl(),
                 destination = LiteRTLMModelLocator.modelFile(context),

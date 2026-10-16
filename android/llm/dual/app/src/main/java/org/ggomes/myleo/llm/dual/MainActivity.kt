@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import org.ggomes.myleo.llm.dual.data.AndroidGpuPolicy
 import org.ggomes.myleo.llm.dual.data.HttpFileDownloader
 import org.ggomes.myleo.llm.dual.data.LiteRTLMEngine
 import org.ggomes.myleo.llm.dual.data.LiteRTLMModelLocator
@@ -39,7 +40,7 @@ class MainActivity : ComponentActivity() {
                     option = RuntimeOption.LITERT_LM,
                     hint = LiteRTLMModelLocator.HINT,
                     locate = { LiteRTLMModelLocator.locate(context) },
-                    makeInference = { file -> LiteRTLMEngine(file.absolutePath) },
+                    makeInference = { file -> LiteRTLMEngine(file.absolutePath, AndroidGpuPolicy(context)) },
                     downloader = HttpFileDownloader(
                         LiteRTLMModelLocator.remoteUrl(),
                         LiteRTLMModelLocator.modelFile(context),
