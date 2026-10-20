@@ -1,5 +1,6 @@
 package org.ggomes.myleo.llm.onnxgenai.data
 
+import ai.onnxruntime.genai.Config
 import ai.onnxruntime.genai.Generator
 import ai.onnxruntime.genai.GeneratorParams
 import ai.onnxruntime.genai.Model
@@ -20,7 +21,7 @@ import org.ggomes.myleo.llm.onnxgenai.domain.GenerationParams
 /**
  * [ChatInference] over ONNX Runtime GenAI's Java API (`ai.onnxruntime.genai`).
  *
- * Each `generate` call builds the Phi-4-mini prompt, encodes it, and streams
+ * Each `generate` call builds the MiniCPM5-1B prompt, encodes it, and streams
  * decoded tokens via a `Generator` + `TokenizerStream`.
  *
  * The prompt is formatted by hand rather than with `Tokenizer.applyChatTemplate`:
@@ -35,6 +36,7 @@ class OnnxGenAIEngine(
     @Volatile private var model: Model? = null
     @Volatile private var tokenizer: Tokenizer? = null
     @Volatile private var generator: Generator? = null
+    @Volatile private var config: Config? = null
     @Volatile private var lastTokenCount = 0
 
     override suspend fun loadModel(): ChatModelInfo = withContext(Dispatchers.Default) {
@@ -45,16 +47,25 @@ class OnnxGenAIEngine(
         }
         val start = System.currentTimeMillis()
         var created: Model? = null
+        var createdConfig: Config? = null
         try {
-            created = Model(modelDir)
+            // ORTX rejects MiniCPM5's `\p{N}+` Split regex; the patch is idempotent.
+            TokenizerPatch.apply(File(modelDir, OnnxGenAIModelLocator.TOKENIZER_FILE))
+            // The int4 package ships weights without a genai_config.json.
+            MiniCPM5GenAIConfig.ensure(File(modelDir))
+            createdConfig = Config(modelDir)
+            created = Model(createdConfig)
             val createdTokenizer = Tokenizer(created)
             model = created
             tokenizer = createdTokenizer
+            config = createdConfig
         } catch (e: Exception) {
             // Don't leave a half-initialized engine behind.
             model = null
             tokenizer = null
+            config = null
             runCatching { created?.close() }
+            runCatching { createdConfig?.close() }
             throw e
         }
         ChatModelInfo(
@@ -78,14 +89,16 @@ class OnnxGenAIEngine(
         val turns = messages.filter { it.role != ChatRole.SYSTEM }
         require(turns.any { it.role == ChatRole.USER }) { "history must contain a user message" }
 
-        val prompt = Phi4MiniChatTemplate.format(systemPrompt, turns)
+        val prompt = MiniCPM5ChatTemplate.format(systemPrompt, turns)
         val sequences = tokenizer.encode(prompt)
+        val promptTokens = sequences.getSequence(0).size
         val generatorParams = GeneratorParams(model).apply {
             setSearchOption("do_sample", true)
             setSearchOption("temperature", params.temperature)
             setSearchOption("top_k", params.topK.toDouble())
             setSearchOption("top_p", params.topP)
-            setSearchOption("max_length", (params.maxTokens + 1024).toDouble())
+            // GenAI's max_length caps the whole sequence, prompt included.
+            setSearchOption("max_length", maxSequenceLength(promptTokens, params.maxTokens).toDouble())
         }
         val activeGenerator = Generator(model, generatorParams)
         generator = activeGenerator
@@ -119,12 +132,22 @@ class OnnxGenAIEngine(
         runCatching { generator?.close() }
         runCatching { tokenizer?.close() }
         runCatching { model?.close() }
+        runCatching { config?.close() }
         model = null
         tokenizer = null
+        config = null
     }
 
     private companion object {
         const val BACKEND = "ONNX Runtime GenAI (CPU)"
-        const val SOURCE = "https://huggingface.co/microsoft/Phi-4-mini-instruct-onnx"
+        const val SOURCE = "https://huggingface.co/anydaytv/minicpm5-1b-onnx-int4"
     }
 }
+
+/**
+ * GenAI's `max_length` caps the **whole** sequence (prompt + output), while our
+ * `maxTokens` slider means output tokens only — so the prompt is added back in.
+ * The old `maxTokens + 1024` let a 512-token request run for ~1500 tokens.
+ */
+internal fun maxSequenceLength(promptTokens: Int, maxTokens: Int): Int =
+    promptTokens + maxTokens

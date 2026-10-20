@@ -32,6 +32,8 @@ class OnnxFileSetDownloader(
             completedBytes += destination.length()
             onProgress(completedBytes, totalBytes)
         }
+        // Not published upstream; ONNX Runtime GenAI needs it next to the weights.
+        MiniCPM5GenAIConfig.ensure(destinationDir)
         destinationDir
     }
 

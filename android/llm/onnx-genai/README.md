@@ -1,14 +1,46 @@
 # Android LLM — ONNX GenAI
 
 - Runtime: ONNX Runtime GenAI `0.17.0` Android AAR (`ai.onnxruntime.genai` Java API), **CPU only** — what the artifact does and does not allow is in *Acceleration on Android* below.
-- Model format: ORT GenAI package — `genai_config.json` + `model.onnx` (+ `.data`) + `tokenizer.json` + `chat_template.jinja`
+- Model format: ORT GenAI package — `model.onnx` (+ `.data`) + `tokenizer.json` + `tokenizer_config.json`, plus a `genai_config.json` this leaf synthesizes (the published package omits it).
 - Scope contract (F-LLM-1…5): download + load with state/errors; stream with temperature/top-k/top-p/max-tokens; cancel/regenerate/clear; TTFT + tokens/sec; Compose chat (system prompt + params sheet, streaming thread, info sheet). Same UI as the `litert-lm` leaf.
-- Model: **Phi-4-mini-instruct int4** (MIT) — https://huggingface.co/microsoft/Phi-4-mini-instruct-onnx, `cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4/` (~4.9 GB). Same base model as the LiteRT-LM leaf. Never committed.
-- Delivery: first launch downloads 7 files to `filesDir/models/phi-4-mini-instruct-onnx-int4/` (`OnnxFileSetDownloader`, aggregate byte progress + cancel).
-- Architecture (MVVM): `ChatInference` seam → `OnnxGenAIEngine` (Java `Model`/`Tokenizer`/`GeneratorParams`/`Generator` + `TokenizerStream`, chat template via `Tokenizer.applyChatTemplate`); shared `ChatViewModel`/Compose UI.
+- Model: **MiniCPM5-1B int4** (Apache-2.0) — https://huggingface.co/anydaytv/minicpm5-1b-onnx-int4, four files at the repository root (~1.41 GB; `model.onnx` sha256 `9fd8adb…`, `model.onnx.data` sha256 `63000fd…`). Same checkpoint as the `litert-lm` and `coreml` leaves. Never committed — download map in `docs/minicpm5-1b.md`.
+- Delivery: first launch downloads 4 files to `filesDir/models/minicpm5-1b-onnx-int4/` (`OnnxFileSetDownloader`, aggregate byte progress + cancel), then writes `genai_config.json` next to them (`MiniCPM5GenAIConfig`).
+- Prompt: `MiniCPM5ChatTemplate` renders the model's own `chat_template.jinja` by hand — `<s><|im_start|>system\n…<|im_end|>\n…<|im_start|>assistant\n<think>\n\n</think>\n\n`, i.e. thinking disabled exactly as the `litert-lm` leaves run. `Tokenizer.applyChatTemplate` is avoided: that JNI path corrupts the heap on device in 0.17.0.
+- Architecture (MVVM): `ChatInference` seam → `OnnxGenAIEngine` (Java `Model`/`Tokenizer`/`GeneratorParams`/`Generator` + `TokenizerStream`); shared `ChatViewModel`/Compose UI.
 - SDK note: `onnxruntime-genai` is **not on Maven Central**. `app/build.gradle.kts` registers a `downloadGenAiAar` task that fetches the release AAR into `app/libs/` (gitignored) before compile.
 - Build/run: `./gradlew installDebug` (fetches the AAR once). Tests: `./gradlew :app:testDebugUnitTest` — unit tests mock `ChatInference`/`ModelDownloader`, so no model is required.
-- Device note: a 3.8B int4 model needs ~4.5 GB RAM; run on a physical device for realistic TTFT / tokens-per-sec.
+- Device note: int4 weights are ~1.32 GiB of `MatMulNBits` payload. The KV cache is fp32 and static: `max_length × 24 × 2 × 128 × 4 B` per tensor, so 1024 tokens ≈ 50 MB. Run on a physical device (≥6 GB RAM) for realistic TTFT / tokens-per-sec.
+
+## Model choice
+
+The generic fp16 export (`onnx-community/MiniCPM5-1B`) **cannot decode on any released ONNX
+Runtime**. It expands `repeat_kv` outside the attention op in fp16, so `CastFloat16Transformer`
+wraps all 24 `MultiHeadAttention` nodes in 200 precision casts, and the allocation planner sizes
+those buffers from the *prefill* length. The first generated token then throws
+`Shape mismatch attempting to re-use buffer. {1,1,2048} != {1,16,2048}` at
+`layers.1/attn/v_proj/repeat_kv/Reshape_4` — reproduced with plain ORT (no GenAI) on macOS with
+both `1.30.0` and `1.31.0`, and unresponsive to `enable_mem_pattern=false` or
+`graph_optimization_level=ORT_DISABLE_ALL` (both verified applied). Upstream fix is
+[onnxruntime#32717](https://github.com/microsoft/onnxruntime/pull/32717), merged 2026-10-15 — six
+days after `1.31.0` shipped, so no release contains it.
+
+The package this leaf ships is the `onnxruntime-genai` **model builder** export instead: 275 nodes
+instead of 1687, 24 fused `GroupQueryAttention` ops, int4 `MatMulNBits` weights with **fp32**
+activations. No casts are inserted, and the KV cache is a single static buffer
+(`past_present_share_buffer: true`), so the planner never sees a shape change. Built with
+`-p int4 -e cpu --extra_options accuracy_level=4 block_size=32`; measured ~110 tok/s (CPU) on
+host across prompts of 3–16 tokens.
+
+## Tokenizer patch
+
+The int4 package ships the same `tokenizer.json` as the fp16 export (sha256 `3e065a55…`,
+9,894,271 B), and it does not load in ORTX as published: its second BPE `Split`
+uses `\p{N}+`, which is missing from ORTX's fixed branch menu, so the leftover is compiled
+with `std::regex` and the model fails with `Invalid regex: \p{N}+`. `TokenizerPatch` rewrites
+that single occurrence to the equivalent `\p{N}{1,3}` (+4 bytes) before `Model(...)` is
+constructed. It is idempotent, keeps both `Split` steps and every token id intact, and is
+covered by `TokenizerPatchTest`. Root cause and cross-tokenizer verification:
+`docs/llm-model-coverage.md`.
 
 ## Acceleration on Android
 
@@ -25,16 +57,17 @@ This leaf being CPU-only is a **model-artifact** limit, not a missing API:
 - **`qnn` is blocked on artifacts, not on code.** The stock `onnxruntime-android` AAR ships only
   `libonnxruntime.so` + `libonnxruntime4j_jni.so`; the Qualcomm backend libraries live in the
   separate `onnxruntime-android-qnn` artifact (currently `1.29.0`, one behind the `1.30.0` this leaf
-  pins). More decisively, **no QNN export of Phi-4-mini exists in GenAI format**: the upstream repo
-  publishes `cpu_and_mobile/*` and `gpu/gpu-int4-rtn-block-32` only, and the Phi-4 QNN models on
-  Hugging Face are Windows Copilot+PC (Foundry Local) packages — no `genai_config.json`, compiled
-  for a different HTP. QNN context binaries are SoC-arch-locked, so they do not transfer to our
-  device.
+  pins). The int4 package this leaf ships is a CPU/CUDA builder export and **no QNN export** exists
+  for MiniCPM5-1B, and QNN context binaries are SoC-arch-locked, so they would not transfer to
+  another device anyway.
 - **`webgpu` needs no extra native dependency.** The stock AAR already links Dawn's Vulkan backend
   (references `libvulkan.so`, `VK_KHR_android_surface`, `dawn::native::vulkan::Device`) and GenAI has
-  a `WebGPU` adapter, so it is the one cheap candidate: `appendProvider("webgpu")` against
-  `gpu/gpu-int4-rtn-block-32` (~3.4 GB), carrying the same pinned-GPU memory risk the `litert-lm`
-  leaf gates on. Not yet tried or measured.
+  a `WebGPU` adapter, so it is the one cheap candidate: `appendProvider("webgpu")` against the int4
+  package this leaf already ships (~1.41 GB) carries the same pinned-GPU memory risk the `litert-lm`
+  leaf gates on. Not yet tried or measured; the EP's op coverage is partial, so unsupported nodes
+  fall back to CPU with a device↔host copy each — that must be measured, not assumed. Note the
+  builder export was produced with `-e cpu`, so `MatMulNBits` carries CPU-targeted packing; a WebGPU
+  run would need a `-e webgpu` rebuild to be meaningful.
 
 Net: speeding this leaf up means shipping a model built for the accelerator — not building a custom
 AAR, and not flipping a delegate. Until then it stays the CPU reference for the ONNX runtime. (The

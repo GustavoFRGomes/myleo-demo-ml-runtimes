@@ -4,19 +4,30 @@ import android.content.Context
 import java.io.File
 
 /**
- * Resolves the Phi-4-mini-instruct **int4** ONNX Runtime GenAI model. The package
- * (weights + config + tokenizer) is downloaded to `filesDir/models/` on first use.
+ * Resolves the MiniCPM5-1B ONNX Runtime GenAI package.
+ *
+ * This is the `onnxruntime-genai` **model builder** export (int4 `MatMulNBits` weights with
+ * fp32 activations and fused `GroupQueryAttention`), not the generic fp16 export: the fp16
+ * graph computes `repeat_kv` outside the attention op and ONNX Runtime sizes its decode
+ * buffers from the prefill shape, so it throws `Shape mismatch attempting to re-use buffer`
+ * on the first generated token with ORT 1.30/1.31.
+ *
+ * The four packed files live at the repository root and are downloaded flat into
+ * `filesDir/models/minicpm5-1b-onnx-int4/`. `genai_config.json` is not published; it is
+ * synthesized by [MiniCPM5GenAIConfig] once the weights are in place.
  */
 object OnnxGenAIModelLocator {
-    const val FOLDER = "phi-4-mini-instruct-onnx-int4"
-    const val REPO = "microsoft/Phi-4-mini-instruct-onnx"
-    const val DIR = "cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4"
+    const val FOLDER = "minicpm5-1b-onnx-int4"
+    const val REPO = "anydaytv/minicpm5-1b-onnx-int4"
 
-    const val CONFIG_FILE = "genai_config.json"
+    const val CONFIG_FILE = MiniCPM5GenAIConfig.FILE_NAME
     const val WEIGHTS_FILE = "model.onnx"
+    const val WEIGHTS_DATA_FILE = "model.onnx.data"
+    const val TOKENIZER_FILE = "tokenizer.json"
+    const val TOKENIZER_CONFIG_FILE = "tokenizer_config.json"
 
     const val HINT =
-        "Model not downloaded yet — tap Download (~4.9 GB, Phi-4-mini-instruct int4 from Hugging Face)."
+        "Model not downloaded yet — tap Download (~1.4 GB, MiniCPM5-1B int4 from Hugging Face)."
 
     /**
      * One file to fetch. [name] is the repo-relative path (used for the URL); the local
@@ -27,21 +38,27 @@ object OnnxGenAIModelLocator {
     }
 
     val files = listOf(
-        RemoteFile("$DIR/model.onnx"),
-        RemoteFile("$DIR/model.onnx.data"),
-        RemoteFile("$DIR/genai_config.json"),
-        RemoteFile("$DIR/tokenizer.json"),
-        RemoteFile("$DIR/tokenizer_config.json"),
-        RemoteFile("$DIR/vocab.json"),
-        RemoteFile("$DIR/merges.txt"),
+        RemoteFile(WEIGHTS_FILE),
+        RemoteFile(WEIGHTS_DATA_FILE),
+        RemoteFile(TOKENIZER_FILE),
+        RemoteFile(TOKENIZER_CONFIG_FILE),
     )
+
+    /** Files the downloader must place on disk. The config is derived, not downloaded. */
+    val requiredFiles = files.map { it.localName }
 
     fun packageDir(context: Context): File = File(context.filesDir, "models/$FOLDER")
 
+    /**
+     * The package directory once every downloaded file is present. `genai_config.json` is
+     * not checked here: it is synthesized by [MiniCPM5GenAIConfig] (by the downloader after
+     * a fetch, and again by the engine before loading).
+     */
     fun locate(context: Context): File? {
         val dir = packageDir(context)
-        val required = listOf(CONFIG_FILE, WEIGHTS_FILE, "model.onnx.data", "tokenizer.json", "tokenizer_config.json")
-        return dir.takeIf { d -> required.all { File(d, it).exists() && File(d, it).length() > 0 } }
+        return dir.takeIf { d ->
+            requiredFiles.all { File(d, it).exists() && File(d, it).length() > 0 }
+        }
     }
 
     fun url(file: RemoteFile): String =
