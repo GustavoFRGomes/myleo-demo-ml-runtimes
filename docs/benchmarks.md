@@ -283,6 +283,12 @@ to run than a 3B one", not as a runtime ranking.
   long answer are not comparable to these.
 - `android/llm/dual` still runs Phi-4-mini, and no `ios/llm/*` leaf can be measured on
   this machine (no signing identity), so both are absent here.
+- **WebGPU on this leaf is a negative result, not a shipped path.** `appendProvider("webgpu")`
+  on the same int4 package does load and decode (Dawn's Vulkan backend is in the AAR), but
+  measures **71.5 tok/s, TTFT 225–289 ms, load 963–1123 ms, 3.14 GB PSS / 1.50 GB `GL mtrack`**
+  against CPU's **91.3 tok/s / 90 ms / 890 ms / 834 MB**. The weights do reach GPU memory, but
+  the `-e cpu` export packs `MatMulNBits` for CPU, so per-token work is slower and memory is 4×.
+  A fair test needs an `-e webgpu` model build; the provider stays unwired.
 
 ### Open question — should a 1B bundle stay GPU-first?
 

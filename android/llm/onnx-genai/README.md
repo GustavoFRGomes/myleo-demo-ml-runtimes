@@ -60,14 +60,17 @@ This leaf being CPU-only is a **model-artifact** limit, not a missing API:
   pins). The int4 package this leaf ships is a CPU/CUDA builder export and **no QNN export** exists
   for MiniCPM5-1B, and QNN context binaries are SoC-arch-locked, so they would not transfer to
   another device anyway.
-- **`webgpu` needs no extra native dependency.** The stock AAR already links Dawn's Vulkan backend
-  (references `libvulkan.so`, `VK_KHR_android_surface`, `dawn::native::vulkan::Device`) and GenAI has
-  a `WebGPU` adapter, so it is the one cheap candidate: `appendProvider("webgpu")` against the int4
-  package this leaf already ships (~1.41 GB) carries the same pinned-GPU memory risk the `litert-lm`
-  leaf gates on. Not yet tried or measured; the EP's op coverage is partial, so unsupported nodes
-  fall back to CPU with a device↔host copy each — that must be measured, not assumed. Note the
-  builder export was produced with `-e cpu`, so `MatMulNBits` carries CPU-targeted packing; a WebGPU
-  run would need a `-e webgpu` rebuild to be meaningful.
+- **`webgpu` runs, and is slower than CPU here** (tried 2026-10-20 on `SM_S948B`). The stock AAR
+  already links Dawn's Vulkan backend (references `libvulkan.so`, `VK_KHR_android_surface`,
+  `dawn::native::vulkan::Device`) and GenAI has a `WebGPU` adapter, so `appendProvider("webgpu")`
+  against the int4 package this leaf already ships loads and generates — no extra native
+  dependency. One-off build, same prompt and params as the CPU runs above: load **963–1123 ms**,
+  TTFT **225–289 ms**, **71.5 tok/s** at 544 tokens (CPU: 890 ms / 90 ms / 91.3 tok/s), with
+  `dumpsys meminfo` at **1.50 GB `GL mtrack` / 3.14 GB PSS** (CPU: 5.8 MB / 834 MB). The weights do
+  move to GPU memory — PSS is what makes it a loss: the `-e cpu` export packs `MatMulNBits` for CPU,
+  so the EP either re-packs or sends unsupported nodes through host memory each step. A fair verdict
+  needs a `-e webgpu` rebuild of the model; until then the provider stays unwired (no gain, 4× the
+  memory).
 
 Net: speeding this leaf up means shipping a model built for the accelerator — not building a custom
 AAR, and not flipping a delegate. Until then it stays the CPU reference for the ONNX runtime. (The
