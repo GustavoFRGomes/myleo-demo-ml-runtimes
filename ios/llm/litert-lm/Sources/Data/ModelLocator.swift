@@ -1,14 +1,15 @@
 import Foundation
 
 /// Resolves the `.litertlm` model file at runtime. The model is large
-/// (~3.9 GB) and never bundled/committed, so the app looks in two places:
+/// (~793 MB) and never bundled/committed, so the app looks in two places:
 ///
 /// 1. the app bundle (only for small test models),
 /// 2. `Documents/Models/` — where the user drops the downloaded file
 ///    (see the leaf README for the exact name + download link).
 enum ModelLocator {
-    /// Preferred Phi-4-mini-instruct variant: q8, ekv4096, ~3.9 GB.
-    static let preferredFileName = "Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm"
+    /// Preferred MiniCPM5-1B variant: mixed INT4-block32/INT8 W4, GPU-optimized, ~793 MB.
+    /// Needs LiteRT-LM ≥ 0.18.0.
+    static let preferredFileName = "minicpm_wi4b32_wi8_afp32_gpu_opt.litertlm"
     static let modelsSubdirectory = "Models"
 
     static func modelsDirectory(fileManager: FileManager = .default) -> URL {
@@ -45,7 +46,7 @@ enum ModelLocator {
 
     /// Human-readable instructions for the model-missing error state.
     static var missingModelHint: String {
-        "Model not downloaded yet — use Download to fetch \(preferredFileName) (~3.9 GB) from Hugging Face, "
+        "Model not downloaded yet — use Download to fetch \(preferredFileName) (~793 MB) from Hugging Face, "
             + "or drop it into Documents/\(modelsSubdirectory)/ manually."
     }
 }

@@ -40,16 +40,17 @@ actor LiteRTLMEngine: ChatInference {
         let loadMs = Int64(Date().timeIntervalSince(start) * 1000)
         self.engine = engine
 
-        // `Capabilities` (0.17.1) exposes model metadata; note it does not
-        // report a max context length at this version.
-        _ = Capabilities(modelPath: modelURL.path)
+        // `ModelInfo` (0.18.0; renamed from `Capabilities` in 0.17.1) reads model
+        // metadata without loading the weights, and is the only source of the
+        // context length the info sheet shows. It owns its native handle.
+        let modelInfo = ModelInfo(modelPath: modelURL.path)
         let sizeBytes = (try? FileManager.default
             .attributesOfItem(atPath: modelURL.path)[.size] as? NSNumber)?.int64Value ?? 0
         let info = ChatModelInfo(
             displayName: modelURL.lastPathComponent,
             backend: Self.backendName(backend),
             loadMs: loadMs,
-            maxContextTokens: 0,
+            maxContextTokens: modelInfo?.maxContextTokens() ?? 0,
             sizeBytes: sizeBytes,
             sourceURL: ModelLocator.remoteURL(for: modelURL.lastPathComponent).absoluteString
         )

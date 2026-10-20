@@ -9,9 +9,9 @@ final class FakeChatInference: ChatInference, @unchecked Sendable {
         displayName: "fake.litertlm",
         backend: "CPU",
         loadMs: 12,
-        maxContextTokens: 0,
-        sizeBytes: 3_910_090_752,
-        sourceURL: "https://huggingface.co/litert-community/Phi-4-mini-instruct/resolve/main/x.litertlm"
+        maxContextTokens: 131072,
+        sizeBytes: 793_029_040,
+        sourceURL: "https://huggingface.co/litert-community/MiniCPM5-1B/resolve/main/x.litertlm"
     )
     var loadError: Error?
     var generationError: Error?
@@ -57,8 +57,8 @@ final class FakeChatInference: ChatInference, @unchecked Sendable {
 final class FakeModelDownloader: ModelDownloading, @unchecked Sendable {
     var downloadError: Error?
     var progressValues: [ModelDownloadProgress] = [
-        ModelDownloadProgress(receivedBytes: 1_955_045_376, totalBytes: 3_910_090_752),
-        ModelDownloadProgress(receivedBytes: 3_910_090_752, totalBytes: 3_910_090_752),
+        ModelDownloadProgress(receivedBytes: 396_514_520, totalBytes: 793_029_040),
+        ModelDownloadProgress(receivedBytes: 793_029_040, totalBytes: 793_029_040),
     ]
 
     private(set) var downloadCount = 0

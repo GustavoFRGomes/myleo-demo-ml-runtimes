@@ -6,7 +6,7 @@ options:
 packages:
   LiteRTLM:
     url: https://github.com/google-ai-edge/LiteRT-LM
-    exactVersion: 0.17.1
+    exactVersion: 0.18.0
 targets:
   MyLeoLLMLiteRTLM:
     type: application

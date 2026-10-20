@@ -1,11 +1,11 @@
 import Foundation
 
 /// `ModelDownloading` over Hugging Face, using a `URLSessionDownloadTask`
-/// (streams to a temp file instead of holding ~3.9 GB in memory) with delegate
+/// (streams to a temp file instead of holding ~793 MB in memory) with delegate
 /// callbacks for progress.
 final class HuggingFaceModelDownloader: NSObject, ModelDownloading, @unchecked Sendable {
-    /// Repository holding the Phi-4-mini-instruct LiteRT bundles.
-    static let repositoryBase = URL(string: "https://huggingface.co/litert-community/Phi-4-mini-instruct/resolve/main/")!
+    /// Repository holding the MiniCPM5-1B LiteRT bundles.
+    static let repositoryBase = URL(string: "https://huggingface.co/litert-community/MiniCPM5-1B/resolve/main/")!
 
     private let fileName: String
     private let destinationDirectory: URL

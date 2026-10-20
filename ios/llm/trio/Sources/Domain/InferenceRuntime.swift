@@ -1,8 +1,7 @@
 import Foundation
 
-/// The three on-device LLM runtimes this app can drive. LiteRT-LM and ONNX GenAI
-/// share Phi-4-mini-instruct in each runtime's own format/precision; Core ML
-/// uses MiniCPM5-1B (no Phi-4-mini Core ML export fits its hand-wired engine).
+/// The three on-device LLM runtimes this app can drive. Each has its own model
+/// and format; `docs/llm-model-coverage.md` tracks which checkpoint runs where.
 enum InferenceRuntime: String, CaseIterable, Identifiable, Sendable {
     case litertLM
     case onnxGenAI
@@ -20,7 +19,7 @@ enum InferenceRuntime: String, CaseIterable, Identifiable, Sendable {
 
     var subtitle: String {
         switch self {
-        case .litertLM: "Phi-4-mini-instruct q8 .litertlm · ~3.9 GB"
+        case .litertLM: "MiniCPM5-1B W4 .litertlm · ~793 MB"
         case .onnxGenAI: "Phi-4-mini-instruct int4 ONNX GenAI · ~4.9 GB"
         case .coreML: "MiniCPM5-1B 4-bit Core ML · 128-token context · ~619 MB"
         }
