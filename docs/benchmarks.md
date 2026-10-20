@@ -218,11 +218,21 @@ Protocol — same device, same prompt, same params, fresh launch per run:
 
 ### Model parity — MiniCPM5-1B (current)
 
-| Leaf | Model + runtime | Precision / size |
-|---|---|---|
-| `android/llm/litert-lm` | MiniCPM5-1B via LiteRT-LM `.litertlm` (`minicpm_wi4b32_wi8_afp32_gpu_opt`) | W4 block-32 / W8, fp32 activations, **793 MB** |
-| `android/llm/onnx-genai` | MiniCPM5-1B int4 via ONNX Runtime GenAI (`anydaytv/minicpm5-1b-onnx-int4`) | int4 rtn block-32 acc-level-4, **1.43 GB** |
-| `android/llm/dual` | Still Phi-4-mini behind the runtime picker | not measured here |
+| Leaf | Model + runtime | Precision / size | Context window |
+|---|---|---|---|
+| `android/llm/litert-lm` | MiniCPM5-1B via LiteRT-LM `.litertlm` (`minicpm_wi4b32_wi8_afp32_gpu_opt`) | W4 block-32 / W8, fp32 activations, **793 MB** | **1024 tokens** — declared by the bundle (`ModelInfo.maxContextTokens()`, info sheet) |
+| `android/llm/onnx-genai` | MiniCPM5-1B int4 via ONNX Runtime GenAI (`anydaytv/minicpm5-1b-onnx-int4`) | int4 rtn block-32 acc-level-4, **1.43 GB** | **131,072 tokens** — checkpoint maximum in `genai_config.json`; ~4k practical (memory-bound) |
+| `android/llm/dual` | Still Phi-4-mini behind the runtime picker | not measured here | not measured here |
+
+Context, in one paragraph: MiniCPM5-1B supports **131,072 tokens**, but the two Android packs
+declare very different budgets. The LiteRT-LM `_gpu_opt` conversion declares **1024 tokens** — that
+is the number the info sheet shows, and prompt + history + output are expected to fit inside it
+(the 512-token default output leaves ~480 for the prompt, so multi-turn chats are short). The ONNX
+int4 config keeps the full 131,072, but the cache is fp32 at **48 KB/token**
+(`24 layers × 2 (K,V) × 2 kv-heads × 128 head-dim × 4 B`), so 128k would cost ~6.3 GB on its own —
+~4k tokens (~200 MB) is the realistic ceiling next to 1.43 GB of weights, and the leaf only allocates
+`prompt + max-tokens` per run (834 MB PSS measured at 544 tokens). All numbers below were taken with
+short prompts, well inside either window.
 
 ### Speed
 

@@ -10,6 +10,14 @@
 - SDK note: `onnxruntime-genai` is **not on Maven Central**. `app/build.gradle.kts` registers a `downloadGenAiAar` task that fetches the release AAR into `app/libs/` (gitignored) before compile.
 - Build/run: `./gradlew installDebug` (fetches the AAR once). Tests: `./gradlew :app:testDebugUnitTest` — unit tests mock `ChatInference`/`ModelDownloader`, so no model is required.
 - Device note: int4 weights are ~1.32 GiB of `MatMulNBits` payload. The KV cache is fp32 and static: `max_length × 24 × 2 × 128 × 4 B` per tensor, so 1024 tokens ≈ 50 MB. Run on a physical device (≥6 GB RAM) for realistic TTFT / tokens-per-sec.
+- Context window: **131,072 tokens**, MiniCPM5-1B's native maximum, declared in the synthesized
+  `genai_config.json` (`model.context_length`). The graph itself is shape-agnostic; `GenAI` sizes the
+  KV buffers from the `max_length` passed per generation, which is why this leaf allocates
+  `prompt + max-tokens` and not 128k (at 544 tokens it measures 834 MB PSS, see
+  `docs/benchmarks.md`). The ceiling is therefore memory, not the checkpoint: fp32 KV costs
+  **48 KB/token** (`24 layers × 2 (K,V) × 2 kv-heads × 128 head-dim × 4 B`), so the full 131,072-token
+  window would need ~6.3 GB for the cache alone — roughly 4k tokens (~200 MB) is the practical
+  limit alongside the 1.43 GB of weights on a 12 GB phone.
 
 ## Model choice
 

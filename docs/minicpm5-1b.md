@@ -16,6 +16,20 @@ Companion docs: `docs/llm-model-coverage.md` (why this model, plus the ONNX toke
 | `ios/llm/onnx-genai`, `android/llm/onnx-genai`, `android/llm/dual` | ONNX Runtime GenAI 0.17.0 | `anydaytv/minicpm5-1b-onnx-int4` | 4 files, int4 (+ config written by the leaf) | 1,429,810,597 B (~1.33 GiB) |
 | `ios/llm/coreml` | Core ML | `Reza2kn/MiniCPM5-1B-CoreML-4bit` | `.mlpackage` + tokenizer | 618,783,248 B (~590 MiB) |
 
+## Context window on device
+
+The checkpoint supports **131,072 tokens**, but the packaged budgets differ per runtime:
+
+- **LiteRT-LM** `_gpu_opt` bundle: **1024 tokens**. That is what `ModelInfo.maxContextTokens()`
+  reports (info sheet: "Context: 1024 tokens") — the pack's budget, not the checkpoint's. Prompt +
+  history + output are expected to fit inside it, so the 512-token default output leaves ~480
+  tokens for the prompt.
+- **ONNX int4**: **131,072 tokens** in the synthesized `genai_config.json`, but the graph is
+  shape-agnostic and GenAI allocates the KV cache from the `max_length` of each generation
+  (`prompt + max-tokens`). The real ceiling is memory: fp32 KV costs 48 KB/token
+  (`24 × 2 × 2 × 128 × 4 B`), so the full window would need ~6.3 GB — ~4k tokens (~200 MB) is
+  practical next to 1.43 GB of weights.
+
 ## LiteRT-LM — one file, GPU-optimised
 
 Repo: https://huggingface.co/litert-community/MiniCPM5-1B
