@@ -13,7 +13,7 @@ mockitoKotlin = "6.3.0"
 assertj = "3.27.7"
 coroutines = "1.11.0"
 onnxruntime = "1.30.0"
-litertlm = "0.17.1"
+litertlm = "0.18.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

@@ -35,9 +35,10 @@ fun GpuVerdict.resolved(): GpuVerdict =
  *
  * The GPU backend holds the model **and** a private copy of its weights in GPU memory.
  * That copy is not file-backed, so unlike the CPU path's `mmap`ed pages it cannot be
- * reclaimed under memory pressure. Measured with Phi-4-mini q8 (~3.9 GB): the process
- * needs ~2× the model size in total, and ~6.1 GB of that is graphics memory
- * (`GL mtrack`) — see `docs/benchmarks.md`.
+ * reclaimed under memory pressure. The 2× + headroom shape was calibrated on Phi-4-mini
+ * q8 (~3.9 GB), where the process needed ~6.1 GB of graphics memory (`GL mtrack`) — see
+ * `docs/benchmarks.md`. The formula is model-size based, so the shipped MiniCPM5-1B
+ * (~793 MB) lands far below the gate and still attempts GPU.
  *
  * The gate compares against **total** physical RAM, not free RAM: a device whose RAM is
  * smaller than the required footprint can never hold it, whatever else is running,

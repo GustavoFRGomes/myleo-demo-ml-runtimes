@@ -21,6 +21,8 @@ data class ChatModelInfo(
     val loadMs: Long,
     val sizeBytes: Long,
     val sourceUrl: String?,
+    /** Model's maximum context length, or 0 when the runtime does not report one. */
+    val maxContextTokens: Int = 0,
 )
 
 /** Per-generation performance report: TTFT + tokens/sec. */

@@ -11,7 +11,7 @@ composeBom = "2026.02.01"
 mockito = "5.23.0"
 mockitoKotlin = "6.3.0"
 assertj = "3.27.7"
-litertlm = "0.17.1"
+litertlm = "0.18.0"
 coroutines = "1.11.0"
 
 [libraries]

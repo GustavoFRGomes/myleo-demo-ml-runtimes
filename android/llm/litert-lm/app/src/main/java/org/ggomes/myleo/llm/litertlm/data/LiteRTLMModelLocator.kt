@@ -4,15 +4,19 @@ import android.content.Context
 import java.io.File
 
 /**
- * Resolves the Phi-4-mini-instruct `.litertlm` model. The file is large (~3.9 GB)
- * and never bundled, so it is downloaded to `filesDir/models/` on first use.
+ * Resolves the MiniCPM5-1B `.litertlm` model. The file is ~793 MB and never
+ * bundled, so it is downloaded to `filesDir/models/` on first use.
+ *
+ * The bundle is the mixed INT4-block32/INT8 W4 build with FP32 activations,
+ * GPU-optimized (`_gpu_opt`). It carries MiniCPM5's LiteRT-LM config and needs
+ * LiteRT-LM ≥ 0.18.0 — hence the pin in `gradle/libs.versions.toml`.
  */
 object LiteRTLMModelLocator {
-    const val FILE_NAME = "Phi-4-mini-instruct_multi-prefill-seq_q8_ekv4096.litertlm"
-    const val REPO = "litert-community/Phi-4-mini-instruct"
+    const val FILE_NAME = "minicpm_wi4b32_wi8_afp32_gpu_opt.litertlm"
+    const val REPO = "litert-community/MiniCPM5-1B"
 
     const val HINT =
-        "Model not downloaded yet — tap Download (~3.9 GB, Phi-4-mini-instruct from Hugging Face)."
+        "Model not downloaded yet — tap Download (~793 MB, MiniCPM5-1B W4 from Hugging Face)."
 
     fun modelsDir(context: Context): File = File(context.filesDir, "models")
 

@@ -8,6 +8,7 @@ import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
+import com.google.ai.edge.litertlm.ModelInfo
 import com.google.ai.edge.litertlm.SamplerConfig
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,7 @@ class LiteRTLMEngine(
     @Volatile private var activeBackend: Backend? = null
     @Volatile private var conversation: Conversation? = null
     @Volatile private var lastTokenCount = 0
+    @Volatile private var maxContextTokens = 0
 
     override suspend fun loadModel(): ChatModelInfo = withContext(Dispatchers.Default) {
         engine?.let { return@withContext infoFor(modelPath) }
@@ -74,6 +76,7 @@ class LiteRTLMEngine(
         }
         engine = created
         activeBackend = used
+        maxContextTokens = contextLength(modelPath)
         val ms = System.currentTimeMillis() - start
         ChatModelInfo(
             displayName = File(modelPath).name,
@@ -81,6 +84,7 @@ class LiteRTLMEngine(
             loadMs = ms,
             sizeBytes = File(modelPath).length(),
             sourceUrl = null,
+            maxContextTokens = maxContextTokens,
         )
     }
 
@@ -143,7 +147,16 @@ class LiteRTLMEngine(
         loadMs = 0,
         sizeBytes = File(path).length(),
         sourceUrl = null,
+        maxContextTokens = maxContextTokens,
     )
+
+    /**
+     * Reads the model's metadata without loading the weights (LiteRT-LM 0.18.0),
+     * so the info sheet can show the context length. Returns 0 when the bundle
+     * reports none — the field is informational, never a load precondition.
+     */
+    private fun contextLength(path: String): Int =
+        runCatching { ModelInfo.from(path).use { it.maxContextTokens() } }.getOrDefault(0)
 
     /**
      * Backends to try, in order. GPU first unless we already know it can't work here:

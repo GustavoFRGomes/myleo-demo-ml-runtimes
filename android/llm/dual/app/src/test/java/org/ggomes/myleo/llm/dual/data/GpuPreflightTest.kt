@@ -8,8 +8,15 @@ class GpuPreflightTest {
     private val mib = 1024L * 1024
     private val kib = 1024L
 
-    /** The shipped Phi-4-mini q8 `.litertlm`. */
-    private val phiBytes = 3_910_090_752L
+    /** The shipped MiniCPM5-1B W4 `_gpu_opt` `.litertlm`. */
+    private val shippedBytes = 793_029_040L
+
+    /**
+     * Phi-4-mini q8 (~3.9 GB) — the bundle the gate's 2× + headroom shape was
+     * calibrated on. Kept as the "large model" case: at 8.8 GiB required it is the
+     * one that actually splits the two test devices.
+     */
+    private val largeModelBytes = 3_910_090_752L
 
     /** Galaxy Z Fold7 (`SM-F966B`) — GPU loaded fine, ~6.1 GB of it graphics memory. */
     private val fold7RamBytes = 11_379_904L * kib
@@ -24,42 +31,55 @@ class GpuPreflightTest {
     }
 
     @Test
+    fun requiredBytes_shippedModel_needsAboutThreeGiB() {
+        // 2 × 0.739 GiB + 1.5 GiB. Comfortably under both test devices.
+        assertThat(GpuPreflight.requiredBytes(shippedBytes))
+            .isLessThan(3L * 1024 * mib + 64 * mib)
+    }
+
+    @Test
+    fun canAttemptGpu_shippedModel_isTrueOnBothTestDevices() {
+        assertThat(GpuPreflight.canAttemptGpu(shippedBytes, fold7RamBytes, GpuVerdict.UNKNOWN)).isTrue()
+        assertThat(GpuPreflight.canAttemptGpu(shippedBytes, tclRamBytes, GpuVerdict.UNKNOWN)).isTrue()
+    }
+
+    @Test
     fun canAttemptGpu_deviceWithAmpleRam_isTrue() {
-        assertThat(GpuPreflight.canAttemptGpu(phiBytes, fold7RamBytes, GpuVerdict.UNKNOWN)).isTrue()
+        assertThat(GpuPreflight.canAttemptGpu(largeModelBytes, fold7RamBytes, GpuVerdict.UNKNOWN)).isTrue()
     }
 
     @Test
     fun canAttemptGpu_deviceBelowRequiredRam_isFalse() {
-        assertThat(GpuPreflight.canAttemptGpu(phiBytes, tclRamBytes, GpuVerdict.UNKNOWN)).isFalse()
+        assertThat(GpuPreflight.canAttemptGpu(largeModelBytes, tclRamBytes, GpuVerdict.UNKNOWN)).isFalse()
     }
 
     @Test
     fun canAttemptGpu_exactlyRequiredRam_isTrue() {
-        val exact = GpuPreflight.requiredBytes(phiBytes)
+        val exact = GpuPreflight.requiredBytes(largeModelBytes)
 
-        assertThat(GpuPreflight.canAttemptGpu(phiBytes, exact, GpuVerdict.UNKNOWN)).isTrue()
-        assertThat(GpuPreflight.canAttemptGpu(phiBytes, exact - 1, GpuVerdict.UNKNOWN)).isFalse()
+        assertThat(GpuPreflight.canAttemptGpu(largeModelBytes, exact, GpuVerdict.UNKNOWN)).isTrue()
+        assertThat(GpuPreflight.canAttemptGpu(largeModelBytes, exact - 1, GpuVerdict.UNKNOWN)).isFalse()
     }
 
     @Test
     fun canAttemptGpu_rememberedBadVerdict_isFalse_evenWithAmpleRam() {
-        assertThat(GpuPreflight.canAttemptGpu(phiBytes, fold7RamBytes, GpuVerdict.BAD)).isFalse()
+        assertThat(GpuPreflight.canAttemptGpu(largeModelBytes, fold7RamBytes, GpuVerdict.BAD)).isFalse()
     }
 
     @Test
     fun canAttemptGpu_pendingVerdict_isFalse_becauseItMeansTheRunWasKilled() {
-        assertThat(GpuPreflight.canAttemptGpu(phiBytes, fold7RamBytes, GpuVerdict.PENDING)).isFalse()
+        assertThat(GpuPreflight.canAttemptGpu(largeModelBytes, fold7RamBytes, GpuVerdict.PENDING)).isFalse()
     }
 
     @Test
     fun canAttemptGpu_okVerdict_isTrue() {
-        assertThat(GpuPreflight.canAttemptGpu(phiBytes, fold7RamBytes, GpuVerdict.OK)).isTrue()
+        assertThat(GpuPreflight.canAttemptGpu(largeModelBytes, fold7RamBytes, GpuVerdict.OK)).isTrue()
     }
 
     @Test
     fun canAttemptGpu_allowPolicy_permitsGpuOnAnyDevice() {
         assertThat(
-            GpuPreflight.canAttemptGpu(phiBytes, GpuPolicy.Allow.totalRamBytes(), GpuPolicy.Allow.verdict()),
+            GpuPreflight.canAttemptGpu(largeModelBytes, GpuPolicy.Allow.totalRamBytes(), GpuPolicy.Allow.verdict()),
         ).isTrue()
     }
 

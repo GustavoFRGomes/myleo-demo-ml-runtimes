@@ -297,6 +297,12 @@ private fun InfoSheet(state: ChatUiState, onDismiss: () -> Unit) {
                     Text("Backend: ${status.info.backend}", style = MaterialTheme.typography.bodyMedium)
                     Text("Size: ${formatBytes(status.info.sizeBytes)}", style = MaterialTheme.typography.bodyMedium)
                     Text("Loaded in: ${status.info.loadMs} ms", style = MaterialTheme.typography.bodyMedium)
+                    if (status.info.maxContextTokens > 0) {
+                        Text(
+                            "Context: ${status.info.maxContextTokens} tokens",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                     status.info.sourceUrl?.let { Text("Source: $it", style = MaterialTheme.typography.bodySmall) }
                 }
                 else -> Text("Model not loaded", style = MaterialTheme.typography.bodyMedium)
