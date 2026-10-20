@@ -8,7 +8,8 @@ Short answer: **yes — MiniCPM5-1B** (as of 2026-10-16). It needs one documente
 model, Phi-4-mini-instruct, still cannot reach Core ML.
 
 Companion docs: `docs/model_discovery.md` (where models come from per runtime, how
-many load, how to triage a candidate) and `docs/benchmarks.md` (measured speed).
+many load, how to triage a candidate), `docs/minicpm5-1b.md` (download URLs and file
+lists per runtime) and `docs/benchmarks.md` (measured speed).
 
 ## Coverage matrix
 

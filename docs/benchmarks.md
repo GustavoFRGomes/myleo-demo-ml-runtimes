@@ -198,3 +198,99 @@ in about half the time, at the cost of the larger int4 download (4.9 vs 3.9 GB).
 LiteRT-LM and ONNX GenAI share the Phi-4-mini checkpoint but use different precisions
 (q8 vs int4) and quantizers, so throughput is comparable in intent, not exact.
 
+## LLM re-benchmark — MiniCPM5-1B on Android (`SM_S948B`, 2026-10-20)
+
+> Appended, not replacing anything above: the Phi-4-mini numbers stay as the baseline
+> for the leaves still on Phi-4 (`android/llm/dual`, `ios/llm/onnx-genai`). This section
+> measures the two Android leaves that now ship **MiniCPM5-1B**.
+
+Protocol — same device, same prompt, same params, fresh launch per run:
+
+- Device: Galaxy S25 Ultra (`SM_S948B`), 11,350,972 kB RAM, Android 17 (SDK 37),
+  4 KB pages, on charger, no throttling (`Thermal Status: 0`; skin 37.9 °C, battery
+  26.5 → 36 °C over the whole session).
+- Prompt: *"Explain how a refrigerator works in detail."* — one turn, no system prompt.
+- Params: both leaves' defaults — temperature 0.8, top-k 40, top-p 0.95, max 512 tokens.
+- Runs: `am force-stop` + relaunch before each generation (so `load ms` is a cold
+  process load with a warm page cache), 3 runs per cell, values read from the banner
+  (`loaded in X ms`) and the metrics line (`TTFT X ms · Y tok/s · N tokens`).
+- `tok/s` = decode window only (`generatedTokens / (totalMs − ttftMs)`), as above.
+
+### Model parity — MiniCPM5-1B (current)
+
+| Leaf | Model + runtime | Precision / size |
+|---|---|---|
+| `android/llm/litert-lm` | MiniCPM5-1B via LiteRT-LM `.litertlm` (`minicpm_wi4b32_wi8_afp32_gpu_opt`) | W4 block-32 / W8, fp32 activations, **793 MB** |
+| `android/llm/onnx-genai` | MiniCPM5-1B int4 via ONNX Runtime GenAI (`anydaytv/minicpm5-1b-onnx-int4`) | int4 rtn block-32 acc-level-4, **1.43 GB** |
+| `android/llm/dual` | Still Phi-4-mini behind the runtime picker | not measured here |
+
+### Speed
+
+Bold = median of the three runs.
+
+| Leaf | Backend | Load ms | TTFT ms | tok/s | Generated tokens |
+|---|---|---|---|---|---|
+| `android/llm/litert-lm` | **GPU** (ML Drift / OpenCL) | 3616 / 2828 / 2902 → **2902** | 421 / 436 / 538 → **436** | 67.2 / 71.0 / 71.2 → **71.0** | 544 / 544 / 544 |
+| `android/llm/litert-lm` | **CPU** (XNNPACK) | 782 / 296 / 317 → **317** | 565 / 597 / 591 → **591** | 73.7 / 72.3 / 72.6 → **72.6** | 544 / 544 / 544 |
+| `android/llm/onnx-genai` | **CPU** | 1079 / 887 / 890 → **890** | 110 / 89 / 90 → **90** | 97.9 / 91.3 / 89.6 → **91.3** | 361 / 544 / 544 |
+
+Reading it:
+
+- **GPU and CPU decode the same at 1B.** 71.0 vs 72.6 tok/s is inside run-to-run noise.
+  GPU only buys a ~150 ms earlier first token (436 vs 591 ms) — and pays ~2.6 s more
+  load. On Phi-4-mini q8 (above) the same GPU path was **1.8× faster** per token; at
+  793 MB the model is small enough that neither backend is dominated by weight traffic.
+- **ONNX GenAI is the fastest at steady state** (91.3 vs 72.6 tok/s = 1.26×) and has the
+  lowest TTFT (90 ms) — but the slowest load (890 ms: ORT parses/optimizes the graph and
+  copies 1.43 GB into native heap) and the largest download.
+- The ONNX run that stopped early (361 tokens, EOS) shows the highest tok/s (97.9):
+  a shorter decode window means a smaller KV cache. The median is the honest number.
+
+### Memory during decode (`dumpsys meminfo`, one generation per row)
+
+| Leaf | Backend | Total PSS | Total RSS | `GL mtrack` | Notes |
+|---|---|---|---|---|---|
+| `android/llm/litert-lm` | GPU | **1.80 GB** | 1.93 GB | **1.37 GB** | weights uploaded to a pinned graphics buffer — not reclaimable under pressure |
+| `android/llm/litert-lm` | CPU | **918 MB** | 1.04 GB | 5.5 MB | `mmap`ed weights; clean pages are evictable |
+| `android/llm/onnx-genai` | CPU | **834 MB** | 958 MB | 5.8 MB | 577 MB native heap — ORT copies the model into anonymous memory |
+
+So the GPU attempt costs **~880 MB more PSS and ~1.37 GB of pinned graphics memory**
+for zero decode gain on this bundle. The RAM gate still does its job (it answers "will
+it fit", not "is it faster") — see the open question at the end.
+
+### Versus the Phi-4-mini numbers above (same device, same protocol shape)
+
+| Leaf | Metric | Phi-4-mini | MiniCPM5-1B | Delta |
+|---|---|---|---|---|
+| `android/llm/litert-lm` | tok/s (CPU) | 10.3 | **72.6** | 7.0× |
+| `android/llm/litert-lm` | load ms (CPU) | 7418 | **317** | 23× faster |
+| `android/llm/onnx-genai` | tok/s (CPU) | 48.0 | **91.3** | 1.9× |
+| `android/llm/onnx-genai` | load ms | 3910 | **890** | 4.4× faster |
+
+Different checkpoint, precision and tokenizer: read this as "a 1B model is far cheaper
+to run than a 3B one", not as a runtime ranking.
+
+### Caveats
+
+- `generatedTokens` includes the **prompt** in both leaves (544 = 32 prompt + 512
+  output), so `tok/s` is ~6% optimistic. The bias is identical in both, so cross-leaf
+  comparison holds.
+- The ONNX leaf used to ignore the max-tokens slider: GenAI's `max_length` is a
+  *whole-sequence* cap, and the old `maxTokens + 1024` let a 512-token request run for
+  700–1000 tokens. Measured before the fix: **810 / 699 / 1004 tokens at 88.2 / 90.3 /
+  79.4 tok/s**. Fixed on 2026-10-20 (`maxSequenceLength(promptTokens, maxTokens)`),
+  which is why the table above is capped at 544. Older ONNX tok/s figures taken from a
+  long answer are not comparable to these.
+- `android/llm/dual` still runs Phi-4-mini, and no `ios/llm/*` leaf can be measured on
+  this machine (no signing identity), so both are absent here.
+
+### Open question — should a 1B bundle stay GPU-first?
+
+`GpuPreflight` answers "can this device hold the GPU copy", not "is GPU worth it". On
+Phi-4-mini q8 the answer was yes (1.8× decode); on MiniCPM5-1B W4 it is neutral-to-worse
+(parity, +2.6 s load, +880 MB PSS). Options, not decided yet:
+
+1. Leave as is — room to grow if a larger MiniCPM bundle lands later.
+2. Skip GPU below a weight-size threshold (e.g. GPU only when the bundle is > 2 GB).
+3. CPU-first for `_gpu_opt` bundles, keeping the GPU attempt behind a manual switch.
+
