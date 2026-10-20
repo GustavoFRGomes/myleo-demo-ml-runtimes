@@ -19,9 +19,10 @@ data class LoadedRuntime(
  * session so re-selecting is instant.
  *
  * The index is shared between runtimes and holds one runtime's vectors at a
- * time: selecting a different runtime clears it first (vectors differ in
- * width — 512-d LiteRT vs 384-d MiniLM padded to 512 — so mixing would rank
- * across incomparable spaces).
+ * time: selecting a different runtime clears it first. Both runtimes embed the
+ * same 384-d MiniLM weights, so the spaces are comparable — the clear exists
+ * because a corpus ingested through one runtime has no vectors from the other,
+ * and stale hits would mix models if the assets ever drift apart.
  *
  * The [load] / [hasModelAssets] seams are injected so unit tests never touch
  * assets or native runtimes.

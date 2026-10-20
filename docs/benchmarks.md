@@ -41,7 +41,45 @@ Debug `.app` totals (measured): litert ~95 MB, onnx ~127 MB, coreml ~91 MB, trio
 |---|---|---|---|---|---|
 | `litert` | `litert:2.2.0` — AARs ~12 MB download (`litert` 11 MB + `litert-api` 0.9 MB; per-ABI slice installed) | MediaPipe `bert_embedder` `.tflite`, **25 MB**, 512-d | TBD | TBD | Different weights/dims than every other leaf — scores aren't cross-comparable |
 | `onnx` | `onnxruntime-android:1.30.0` — AAR **51 MB** download (all ABIs; per-ABI slice installed) | MiniLM-L6-v2 `.onnx`, **86 MB**, 384-d | **417–439** | **~9–19** (350–2630-char emails; 50-mail ingest: ~530 embed of ~660 total) | `OrtSession` from asset bytes; inputs via `LongBuffer` (the generic tensor overload is gone in 1.30) |
-| `dual` | Both AARs above, ~63 MB download | MiniLM both formats, **86 + 86 MB**, 384-d shared index | **417** (ONNX path) | **~9–19** (ONNX path) | LiteRT path (MiniLM `.tflite`, named inputs + mean-pool) not yet timed on-device |
+| `dual` | Both AARs above, ~63 MB download | MiniLM both formats, **86 + 86 MB**, 384-d shared index | **131** (LiteRT) / **489** (ONNX) | **~8–13** (LiteRT) / **~10–16** (ONNX) | Same weights in both files — identical rankings, see the measured section below |
+
+### Measured — `dual`, both runtimes on the same weights (`SM_S948B`, 2026-10-20)
+
+Same app, same corpus, same query; only the runtime changes. Both files are
+`all-MiniLM-L6-v2` (fp32, 384-d, `maxSeqLen` 128, mean-pool + L2 in app code, CPU, no
+delegates/EPs). The `.tflite` was converted from the official `tf_model.h5`; the
+`.onnx` is the official export. Before the device run, both were fed identical token
+ids on the host: **cosine 1.000000, max |diff| 1.9e-7** per pooled vector.
+
+Corpus — 5 free-text chunks (blank line = chunk), one deliberately unrelated:
+fridge/cold, compressor/refrigerant, thermostat, freezer/−18 °C, quarterly revenue.
+Query, typed exactly as below (typo kept so both runs match): `how dose a fridge stay cold`.
+
+| Step | LiteRT (TFLite) | ONNX Runtime |
+|---|---|---|
+| Model load | **131 ms** | **489 ms** |
+| Ingest 5 chunks | **70 ms** (embed 65 / store 5) | **76 ms** (embed 72 / store 4) |
+| Embed per chunk, cold → warm | 27 / 13 / 8 / 9 / 8 ms | 24 / 16 / 11 / 10 / 11 ms |
+| Query embed | **18 ms** | **18 ms** |
+| Rank 5 hits (HNSW) | **1 ms** | **0 ms** |
+| Ranked order + scores | fridge **73%**, freezer **58%**, thermostat **42%**, compressor **40%**, revenue **0%** | identical: **73 / 58 / 42 / 40 / 0 %** |
+
+Reading it:
+
+- **Identical results, as expected from identical weights.** Same order, same rounded
+  scores, same 0% outlier — the shared 384-d index is interchangeable when both sides
+  are fed the same checkpoint.
+- **LiteRT loads ~3.7× faster** (131 vs 489 ms): `Interpreter` mmaps the asset, while
+  the ONNX factory `readBytes()`s 86 MB into memory and then builds the session.
+- **Embedding speed is a wash** (65 vs 72 ms for 5 chunks; 8–11 ms per chunk warm), and
+  the per-query embed is 18 ms in both. Ranking is sub-millisecond — at this corpus size
+  the index is not the bottleneck.
+- **Switching runtimes clears the index**, as designed: the switch logged
+  `switched to LiteRT, index cleared` and the next search returned 0 hits. Both models
+  stay resident, so switching back is instant.
+- Known UI wart: the ingest screen's chunk count and the search results keep their old
+  values after a switch (the database is empty; the screen state is stale until the next
+  ingest/search).
 
 ## Accelerated runs — iOS ANE (separate from the CPU baselines above)
 
