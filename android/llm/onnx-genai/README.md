@@ -66,9 +66,9 @@ This leaf being CPU-only is a **model-artifact** limit, not a missing API:
   against the int4 package this leaf already ships loads and generates — no extra native
   dependency. One-off build, same prompt and params as the CPU runs above: load **963–1123 ms**,
   TTFT **225–289 ms**, **71.5 tok/s** at 544 tokens (CPU: 890 ms / 90 ms / 91.3 tok/s), with
-  `dumpsys meminfo` at **1.50 GB `GL mtrack` / 3.14 GB PSS** (CPU: 5.8 MB / 834 MB). The weights do
-  move to GPU memory — PSS is what makes it a loss: the `-e cpu` export packs `MatMulNBits` for CPU,
-  so the EP either re-packs or sends unsupported nodes through host memory each step. A fair verdict
+  `dumpsys meminfo` at **1.50 GB `GL mtrack` / 3.14 GB PSS** (CPU: 5.8 MB / 834 MB). So the weights
+  do reach GPU memory — the loss is elsewhere: the `-e cpu` export packs `MatMulNBits` for CPU, so
+  the EP either re-packs or sends unsupported nodes through host memory each step. A fair verdict
   needs a `-e webgpu` rebuild of the model; until then the provider stays unwired (no gain, 4× the
   memory).
 
