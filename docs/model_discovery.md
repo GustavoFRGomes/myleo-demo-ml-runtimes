@@ -101,12 +101,14 @@ be too large to attempt on GPU. Sizes below are the real files; the gate column 
 | Phi-4-mini int4 | ONNX `gpu` | 3.4 GB | 7.9 GiB | pass | **skip GPU** |
 | MiniCPM5-1B W4 | `.litertlm` | 793 MB | 3.0 GiB | pass | pass |
 | MiniCPM5-1B W8 dynamic | `.litertlm` | 1.1 GB | 3.6 GiB | pass | pass |
+| MiniCPM5-1B int4 | ONNX | 1.43 GB | 2.4 GiB | pass | pass |
 | MiniCPM5-1B fp16 | ONNX | 2.2 GB | 5.6 GiB | pass | pass |
 
 The ONNX rows are illustrative: only the LiteRT-LM leaf implements the gate, and the
-ONNX leaves run CPU-only today. They show what a future GPU path would face. Note
-that the ONNX copy of MiniCPM5-1B is fp16 only — no int4 export exists — so the
-smallest ONNX option is still ~2.8× the `.litertlm` one.
+ONNX leaves run CPU-only today. They show what a future GPU path would face. The int4
+row is the `anydaytv/minicpm5-1b-onnx-int4` export both platforms actually ship; the
+fp16 row is the `onnx-community` package, which no released ORT can decode (its
+pre-tokenizer uses `\p{N}+` and needs the same 4-byte tokenizer patch).
 
 ## Triage a candidate in minutes, before downloading gigabytes
 

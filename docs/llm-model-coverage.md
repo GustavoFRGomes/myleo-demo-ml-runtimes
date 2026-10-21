@@ -78,11 +78,12 @@ every `Split` must appear in ORTX's menu, or the model needs an equivalent rewri
 
 ## What we use where
 
-- Every `litert-lm` / `onnx-genai` leaf (both platforms), plus `android/llm/dual`
-  and the LiteRT-LM + ONNX GenAI runtimes of `ios/llm/trio`: **Phi-4-mini-instruct**.
+- Every LLM leaf except `ios/llm/coreml` now runs **MiniCPM5-1B**: `litert-lm` on
+  both platforms, `onnx-genai` on both platforms, and all three runtimes of
+  `ios/llm/trio` (LiteRT-LM, ONNX GenAI, Core ML). `android/llm/dual` is the last
+  leaf still on Phi-4-mini behind its picker.
 - `ios/llm/coreml` and the trio's Core ML runtime: **MiniCPM5-1B** (default) +
-  Apple Foundation Models (system option). Documented in that leaf's README,
-  including everything a Phi-4-mini port would have to change.
+  Apple Foundation Models (system option). Documented in that leaf's README.
 
 ## Remaining work
 
@@ -95,8 +96,8 @@ figures: 60.91 vs 66.16 overall), and the Core ML engine's 128-token context
 stays as it is.
 
 Sizes differ a lot per runtime, which matters on Android where the GPU path needs
-total RAM ≥ `2 × model + 1.5 GiB` (`GpuPreflight`): 793 MB (W4 `.litertlm`), 2.2 GB
-(fp16 ONNX — no int4 export exists) and 619 MB (Core ML). Against Phi-4-mini's
+total RAM ≥ `2 × model + 1.5 GiB` (`GpuPreflight`): 793 MB (W4 `.litertlm`), 1.43 GB
+(int4 ONNX, `anydaytv/minicpm5-1b-onnx-int4`) and 619 MB (Core ML). Against Phi-4-mini's
 3.9 GB / 3.4 GB that is the difference between "8 GB phones can attempt GPU" and
 "they cannot". Full table in `docs/model_discovery.md`.
 

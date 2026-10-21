@@ -354,7 +354,9 @@ Phi-4-mini q8 the answer was yes (1.8× decode); on MiniCPM5-1B W4 it is neutral
 
 > Appended, not replacing anything above. This is the iOS counterpart to the Android
 > MiniCPM5 section: same checkpoint, same prompt, same parameters, measured on a
-> physical device through the Trio app's real engines.
+> physical device through the Trio app's real engines. Toolchain and packaging hurdles
+> behind these numbers, plus the per-runtime accelerator caveats, are collected in
+> [`docs/ios-llm-hurdles.md`](ios-llm-hurdles.md).
 
 Protocol:
 
@@ -362,7 +364,7 @@ Protocol:
 - Prompt: *"Explain how a refrigerator works in detail."* — one turn, no system prompt.
 - Params: `GenerationParams.default` — temperature 0.8, top-k 40, top-p 0.95, max 512.
 - Runs: 3 per cell, each a **cold process**. The app launches with
-  `--benchmark litert-gpu|litert-cpu|coreml` (`Sources/Benchmark/BenchmarkMode.swift`),
+  `--benchmark litert-gpu|litert-cpu|onnx|coreml` (`Sources/Benchmark/BenchmarkMode.swift`),
   loads the model, runs one generation, writes a JSON report to `Documents/` and exits.
   Normal launches are unaffected; the engines, params and metrics code are the same ones
   the chat UI uses.
@@ -377,8 +379,8 @@ Protocol:
 | Runtime | Model + format | Precision / size | Context window |
 |---|---|---|---|
 | `litert-lm` | MiniCPM5-1B `.litertlm` (`minicpm_wi4b32_wi8_afp32_gpu_opt`) | W4 block-32 / W8, fp32 activations, **793 MB** | **1024** — declared by the bundle (`ModelInfo.maxContextTokens()`) |
+| `onnx-genai` | MiniCPM5-1B int4 (`anydaytv/minicpm5-1b-onnx-int4`, same package as Android) | int4 rtn block-32 acc-level-4, **1.43 GB** | **131,072** — checkpoint max; ~4k practical (fp32 KV, 48 KB/token) |
 | `coreml` | MiniCPM5-1B 4-bit `.mlpackage` (`Reza2kn/MiniCPM5-1B-CoreML-4bit`) | 4-bit, **602 MB** on disk | **128** — fixed stateless window, no attention mask |
-| `onnx-genai` | not measured — the iOS leg still points at Phi-4-mini int4 | — | — |
 
 ### Speed
 
@@ -388,13 +390,23 @@ Bold = median of the three runs.
 |---|---|---|---|---|---|---|
 | `litert-lm` | **GPU** (Metal) | 1090 / 1158 / 1301 → **1158** | 978 / 338 / 360 → **360** | 43.7 / 43.8 / 43.8 → **43.8** | 533 | 13186 / 12496 / 12524 |
 | `litert-lm` | **CPU** (XNNPACK) | 456 / 433 / 427 → **433** | 2320 / 1252 / 1233 → **1252** | 35.5 / 35.7 / 35.7 → **35.7** | 278 | 10146 / 9034 / 9016 |
+| `onnx-genai` | **CPU** | 593 / 740 / 635 → **635** | 236 / 202 / 207 → **207** | 46.6 / 46.8 / 43.1 → **46.6** | 392–533 | 11675 / 8569 / 11170 |
 | `coreml` | **ANE/GPU/CPU** (`.cpuAndNeuralEngine`) | 30061 (first ever, package compile) then 1473 / 1480 → **1480** | 4019 / 1753 / 3386 → **3386** | 2.1 / 2.0 / 2.0 → **2.0** | 337–512 | 200687 / 264316 / 172963 → **200687** |
 
 Reading it:
 
+- **ONNX GenAI wins this phone outright** — 46.6 tok/s, TTFT 207 ms, load 635 ms, better
+  than LiteRT-LM GPU (43.8 / 360 / 1158) on all three axes, at the cost of a bigger download
+  (1.43 GB vs 793 MB). It is also the same `anydaytv/minicpm5-1b-onnx-int4` package the
+  Android leaf runs, so this is the one iOS/Android cell that compares the identical
+  weights file — the closest thing to a pure runtime comparison in this document.
 - **GPU beats CPU on both axes here** — 43.8 vs 35.7 tok/s (1.23×) and TTFT 360 vs 1252 ms,
   for +0.7 s of load (1158 vs 433 ms). Unlike the Android S25 Ultra, where the same 1B bundle
-  made GPU and CPU a dead heat, the SE's CPU path is the weaker one.
+  made GPU and CPU a dead heat, the SE's CPU path is the weaker one. The GPU cell is a real
+  Metal run, not a requested-but-silently-fallen-back one: the device log shows
+  `name=GPU Metal`, a created Metal device and both graphs delegated to the Metal
+  `InferenceContext` (only the sampler is CPU-side). Excerpt and caveats:
+  [`docs/ios-llm-hurdles.md`](ios-llm-hurdles.md#proof-that-the-litert-lm-gpu-run-is-real).
 - **First launch is not steady state.** The very first process to touch the bundle ever paid
   5634 ms load / 959 ms TTFT (Metal pipeline compilation); the first run of each later batch
   still shows the TTFT bump (978 ms) before settling at 338–360 ms. Core ML is the extreme
@@ -405,8 +417,8 @@ Reading it:
   trio ships it, not as a runtime race.
 - **Token counts differ because sampling differs, not counting.** LiteRT GPU always reaches
   the 512 cap (533 = 512 output + ~21 chat-template/prompt tokens, the same accounting as the
-  Android 544 = 512 + 32); CPU stops at EOS after 278; Core ML slides its window and lands
-  between 337 and 512.
+  Android 544 = 512 + 32); CPU stops at EOS after 278; ONNX lands between 392 and 533 as EOS
+  fires; Core ML slides its window and lands between 337 and 512.
 - **Cross-platform, same checkpoint:** S25 Ultra `litert-lm` GPU 71.0 tok/s vs iPhone SE 43.8;
   TTFT 436 vs 360 ms (warm GPU). Different SoC classes — this compares a current flagship
   against a 2022 budget phone, so it is not a runtime verdict.
