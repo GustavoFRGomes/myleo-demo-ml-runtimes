@@ -107,13 +107,13 @@ final class MiniCPMFileSetDownloader: NSObject, ModelDownloading, @unchecked Sen
     ) async throws -> URL {
         try fileManager.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)
         return try await withCheckedThrowingContinuation { continuation in
-            lock.withLock {
-                self.continuation = continuation
-                self.progressHandler = progress
-                self.index = 0
-                self.completedBytes = 0
-                self.resumed = false
-            }
+            lock.lock()
+            defer { lock.unlock() }
+            self.continuation = continuation
+            self.progressHandler = progress
+            self.index = 0
+            self.completedBytes = 0
+            self.resumed = false
             startNextFile()
         }
     }
@@ -160,14 +160,13 @@ final class MiniCPMFileSetDownloader: NSObject, ModelDownloading, @unchecked Sen
     }
 
     private func finish(_ result: Result<URL, Error>) {
-        let continuation: CheckedContinuation<URL, Error>? = lock.withLock {
-            guard !resumed, let continuation else { return nil }
-            resumed = true
-            self.continuation = nil
-            self.progressHandler = nil
-            return continuation
-        }
-        continuation?.resume(with: result)
+        lock.lock()
+        let pending: CheckedContinuation<URL, Error>? = resumed ? nil : continuation
+        resumed = true
+        continuation = nil
+        progressHandler = nil
+        lock.unlock()
+        pending?.resume(with: result)
     }
 }
 

@@ -46,12 +46,15 @@ final class HuggingFaceModelDownloader: NSObject, ModelDownloading, @unchecked S
         return try await withCheckedThrowingContinuation { continuation in
             let url = Self.repositoryBase.appendingPathComponent(fileName)
             let task = session.downloadTask(with: url)
-            lock.withLock {
-                self.continuation = continuation
-                self.progressHandler = progress
-                self.resumed = false
-                self.task = task
-            }
+            // Synchronous section: lock()/defer instead of a `withLock` closure.
+            // swift-frontend 6.3 spins forever in ClosureLifetimeFixup when a
+            // closure captures the continuation.
+            lock.lock()
+            self.continuation = continuation
+            self.progressHandler = progress
+            self.resumed = false
+            self.task = task
+            lock.unlock()
             task.resume()
         }
     }
@@ -64,15 +67,14 @@ final class HuggingFaceModelDownloader: NSObject, ModelDownloading, @unchecked S
     // MARK: - Continuation plumbing
 
     private func finish(_ result: Result<URL, Error>) {
-        let continuation: CheckedContinuation<URL, Error>? = lock.withLock {
-            guard !resumed, let continuation else { return nil }
-            resumed = true
-            self.continuation = nil
-            self.progressHandler = nil
-            self.task = nil
-            return continuation
-        }
-        continuation?.resume(with: result)
+        lock.lock()
+        let pending: CheckedContinuation<URL, Error>? = resumed ? nil : continuation
+        resumed = true
+        continuation = nil
+        progressHandler = nil
+        task = nil
+        lock.unlock()
+        pending?.resume(with: result)
     }
 
     private func reportProgress(_ progress: ModelDownloadProgress) {
