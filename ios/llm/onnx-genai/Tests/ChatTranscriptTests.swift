@@ -4,11 +4,11 @@ import XCTest
 final class ChatTranscriptTests: XCTestCase {
     private func sampleData() -> TranscriptData {
         TranscriptData(
-            modelName: "phi-4-mini-instruct-onnx-int4",
+            modelName: "minicpm5-1b-onnx-int4",
             modelBackend: "GPU",
             modelSizeBytes: 4_908_692_182,
             modelLoadMs: 1450,
-            sourceURL: "https://huggingface.co/microsoft/Phi-4-mini-instruct-onnx/resolve/main/model.onnx",
+            sourceURL: "https://huggingface.co/anydaytv/minicpm5-1b-onnx-int4/resolve/main/model.onnx",
             systemPrompt: "You are terse.",
             params: GenerationParams(temperature: 0.8, topK: 40, topP: 0.95, maxTokens: 512),
             messages: [
@@ -47,7 +47,7 @@ final class ChatTranscriptTests: XCTestCase {
 
         XCTAssertTrue(md.contains("# MyLeo LLM ONNX-GenAI — Chat Transcript"))
         XCTAssertTrue(md.contains("## Model"))
-        XCTAssertTrue(md.contains("phi-4-mini-instruct-onnx-int4"))
+        XCTAssertTrue(md.contains("minicpm5-1b-onnx-int4"))
         XCTAssertTrue(md.contains("## Generation parameters"))
         XCTAssertTrue(md.contains("## Performance"))
         XCTAssertTrue(md.contains("Average speed: 10.0 tok/s"))

@@ -1,26 +1,27 @@
 import Foundation
 
-/// Location + Hugging Face delivery for the Phi-4-mini-instruct **int4** ONNX
-/// Runtime GenAI model (`microsoft/Phi-4-mini-instruct-onnx`,
-/// `cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4/`).
+/// Location + Hugging Face delivery for the MiniCPM5-1B **int4** ONNX Runtime GenAI
+/// package (`anydaytv/minicpm5-1b-onnx-int4`) — the same file set the Android
+/// `onnx-genai` leaf uses, so both platforms decode identical weights.
+///
+/// The repo publishes only weights + tokenizer; `genai_config.json` is synthesized
+/// by `MiniCPM5GenAIConfig` and `tokenizer.json` is repaired by `TokenizerPatch`
+/// (see their doc comments) before the package is loaded.
 enum OnnxGenAIModelLocator {
     /// Subdirectory under Documents/Models holding the whole GenAI package.
-    static let folderName = "phi-4-mini-instruct-onnx-int4"
-    static let repo = "microsoft/Phi-4-mini-instruct-onnx"
-    static let dir = "cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4"
+    static let folderName = "minicpm5-1b-onnx-int4"
+    static let repo = "anydaytv/minicpm5-1b-onnx-int4"
+    static let dir = ""
     static let configFileName = "genai_config.json"
     static let weightsFileName = "model.onnx"
 
     /// Files to fetch: repo-relative path → repo. The package is saved flat
     /// (by basename) so the runtime finds `model.onnx` + `.data` side by side.
     static let files: [(name: String, repo: String)] = [
-        ("\(dir)/model.onnx", repo),
-        ("\(dir)/model.onnx.data", repo),
-        ("\(dir)/genai_config.json", repo),
-        ("\(dir)/tokenizer.json", repo),
-        ("\(dir)/tokenizer_config.json", repo),
-        ("\(dir)/vocab.json", repo),
-        ("\(dir)/merges.txt", repo),
+        ("model.onnx", repo),
+        ("model.onnx.data", repo),
+        ("tokenizer.json", repo),
+        ("tokenizer_config.json", repo),
     ]
 
     /// Local filename for a repo-relative path.
@@ -39,9 +40,10 @@ enum OnnxGenAIModelLocator {
     }
 
     /// Returns the package directory when every required file exists.
+    /// `genai_config.json` is not required: it is synthesized on load.
     static func locate(fileManager: FileManager = .default) -> URL? {
         let dir = packageDirectory(fileManager: fileManager)
-        let required = [configFileName, weightsFileName, "tokenizer.json", "tokenizer_config.json"]
+        let required = [weightsFileName, "tokenizer.json", "tokenizer_config.json"]
         for name in required where !fileManager.fileExists(atPath: dir.appendingPathComponent(name).path) {
             return nil
         }
@@ -64,12 +66,12 @@ enum OnnxGenAIModelLocator {
     }
 
     static var hint: String {
-        "Download the Phi-4-mini-instruct int4 ONNX package (~4.9 GB) — 7 files from Hugging Face "
-            + "(microsoft/Phi-4-mini-instruct-onnx)."
+        "Download the MiniCPM5-1B int4 ONNX GenAI package (~1.4 GB) — 4 files from Hugging Face "
+            + "(anydaytv/minicpm5-1b-onnx-int4). genai_config.json is generated on load."
     }
 
     static var primarySourceURL: String {
-        sourceURL(for: "\(dir)/model.onnx", repo: repo).absoluteString
+        sourceURL(for: weightsFileName, repo: repo).absoluteString
     }
 }
 
@@ -107,13 +109,16 @@ final class OnnxGenAIFileSetDownloader: NSObject, ModelDownloading, @unchecked S
     ) async throws -> URL {
         try fileManager.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)
         return try await withCheckedThrowingContinuation { continuation in
-            lock.withLock {
-                self.continuation = continuation
-                self.progressHandler = progress
-                self.index = 0
-                self.completedBytes = 0
-                self.resumed = false
-            }
+            // Synchronous section: lock()/defer instead of a `withLock` closure.
+            // swift-frontend 6.3 spins forever in ClosureLifetimeFixup when a
+            // closure captures the continuation.
+            lock.lock()
+            defer { lock.unlock() }
+            self.continuation = continuation
+            self.progressHandler = progress
+            self.index = 0
+            self.completedBytes = 0
+            self.resumed = false
             startNextFile()
         }
     }
@@ -159,14 +164,13 @@ final class OnnxGenAIFileSetDownloader: NSObject, ModelDownloading, @unchecked S
     }
 
     private func finish(_ result: Result<URL, Error>) {
-        let continuation: CheckedContinuation<URL, Error>? = lock.withLock {
-            guard !resumed, let continuation else { return nil }
-            resumed = true
-            self.continuation = nil
-            self.progressHandler = nil
-            return continuation
-        }
-        continuation?.resume(with: result)
+        lock.lock()
+        let pending: CheckedContinuation<URL, Error>? = resumed ? nil : continuation
+        resumed = true
+        continuation = nil
+        progressHandler = nil
+        lock.unlock()
+        pending?.resume(with: result)
     }
 }
 

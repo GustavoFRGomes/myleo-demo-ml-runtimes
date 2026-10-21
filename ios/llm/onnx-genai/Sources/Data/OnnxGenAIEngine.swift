@@ -2,10 +2,10 @@ import Foundation
 
 /// `ChatInference` over the ONNX Runtime GenAI C API (`OgaGenerator`).
 ///
-/// Model: Phi-4-mini-instruct **int4** (`microsoft/Phi-4-mini-instruct-onnx`,
-/// `cpu_and_mobile/cpu-int4-rtn-block-32-acc-level-4/`). One `OgaModel` +
-/// tokenizer live for the session; each turn builds a generator, applies the
-/// model's chat template, and streams decoded tokens.
+/// Model: MiniCPM5-1B **int4** (`anydaytv/minicpm5-1b-onnx-int4`) — the same
+/// package the Android ONNX leaf uses. One `OgaModel` + tokenizer live for the
+/// session; each turn builds a generator, encodes a hand-built ChatML prompt
+/// (`MiniCPM5ChatTemplate`), and streams decoded tokens.
 actor OnnxGenAIEngine: ChatInference {
     private let packageDirectory: URL
     private let sizeBytes: Int64
@@ -24,6 +24,17 @@ actor OnnxGenAIEngine: ChatInference {
     func loadModel() async throws -> ChatModelInfo {
         if let cachedInfo, model != nil { return cachedInfo }
 
+        // The published package has no `genai_config.json` and carries the one
+        // ORTX-incompatible regex in `tokenizer.json`; both are repaired here so
+        // downloaded and sideloaded copies behave the same. Idempotent.
+        do {
+            try MiniCPM5GenAIConfig.ensure(in: packageDirectory)
+            try TokenizerPatch.apply(to: packageDirectory.appendingPathComponent("tokenizer.json"))
+        } catch {
+            throw ChatError.loadFailed("could not prepare ONNX package: \(error.localizedDescription)")
+        }
+
+        let started = Date()
         var model: OpaquePointer?
         do {
             try check(OgaCreateModel(packageDirectory.path, &model))
@@ -40,12 +51,13 @@ actor OnnxGenAIEngine: ChatInference {
             throw ChatError.loadFailed(error.localizedDescription)
         }
         self.tokenizer = tokenizer
+        let loadMs = Int64(Date().timeIntervalSince(started) * 1000)
 
         let info = ChatModelInfo(
-            displayName: "Phi-4-mini-instruct int4 (ONNX GenAI)",
+            displayName: "MiniCPM5-1B int4 (ONNX GenAI)",
             backend: "CPU",
-            loadMs: 0,
-            maxContextTokens: 131072,
+            loadMs: loadMs,
+            maxContextTokens: MiniCPM5GenAIConfig.contextLength,
             sizeBytes: sizeBytes,
             sourceURL: OnnxGenAIModelLocator.primarySourceURL
         )
@@ -65,14 +77,23 @@ actor OnnxGenAIEngine: ChatInference {
             throw ChatError.invalidParams(error.localizedDescription)
         }
 
-        // Build the prompt with the model's own chat template.
-        let prompt = try applyChatTemplate(tokenizer: tokenizer, systemPrompt: systemPrompt, messages: messages)
+        // Hand-built ChatML prompt: `OgaTokenizerApplyChatTemplate` corrupts the
+        // heap on device in 0.17.0 (see MiniCPM5ChatTemplate).
+        let turns = messages.filter(\.isConversationTurn)
+        guard let last = turns.last, last.role == .user else {
+            throw ChatError.generationFailed("history must end with a user message")
+        }
+        let prompt = MiniCPM5ChatTemplate.format(systemPrompt: systemPrompt, turns: turns)
 
         var sequences: OpaquePointer?
         try check(OgaCreateSequences(&sequences))
         guard let sequences else { throw ChatError.generationFailed("OgaCreateSequences returned nil") }
         defer { OgaDestroySequences(sequences) }
         try check(OgaTokenizerEncode(tokenizer, prompt, sequences))
+        let promptTokens = Int(OgaSequencesGetSequenceCount(sequences, 0))
+        // Same accounting as the other runtime: the KV-cache delta includes the
+        // prompt, so `tok/s` is comparable with the LiteRT-LM numbers.
+        generatedTokens = promptTokens
 
         var generatorParams: OpaquePointer?
         try check(OgaCreateGeneratorParams(model, &generatorParams))
@@ -82,7 +103,7 @@ actor OnnxGenAIEngine: ChatInference {
         try check(OgaGeneratorParamsSetSearchNumber(generatorParams, "temperature", params.temperature))
         try check(OgaGeneratorParamsSetSearchNumber(generatorParams, "top_k", Double(params.topK)))
         try check(OgaGeneratorParamsSetSearchNumber(generatorParams, "top_p", params.topP))
-        try check(OgaGeneratorParamsSetSearchNumber(generatorParams, "max_length", Double(params.maxTokens) + 1024))
+        try check(OgaGeneratorParamsSetSearchNumber(generatorParams, "max_length", Double(promptTokens + params.maxTokens)))
 
         var generator: OpaquePointer?
         try check(OgaCreateGenerator(model, generatorParams, &generator))
@@ -137,35 +158,6 @@ actor OnnxGenAIEngine: ChatInference {
     }
 
     // MARK: - Helpers
-
-    private func applyChatTemplate(
-        tokenizer: OpaquePointer,
-        systemPrompt: String,
-        messages: [ChatMessage]
-    ) throws -> String {
-        var jsonMessages: [[String: String]] = []
-        let system = systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !system.isEmpty {
-            jsonMessages.append(["role": "system", "content": system])
-        }
-        for message in messages where message.isConversationTurn {
-            jsonMessages.append([
-                "role": message.role == .user ? "user" : "assistant",
-                "content": message.text,
-            ])
-        }
-        let data = try JSONSerialization.data(withJSONObject: jsonMessages)
-        guard let messagesJSON = String(data: data, encoding: .utf8) else {
-            throw ChatError.generationFailed("could not serialize messages")
-        }
-        var promptPointer: UnsafePointer<CChar>?
-        // nil template → use the template shipped in the model config.
-        try check(OgaTokenizerApplyChatTemplate(tokenizer, nil, messagesJSON, nil, true, &promptPointer))
-        guard let promptPointer else { throw ChatError.generationFailed("chat template returned nil") }
-        let prompt = String(cString: promptPointer)
-        OgaDestroyString(promptPointer)
-        return prompt
-    }
 
     /// Throws when a non-null `OgaResult` carries an error, freeing it either way.
     private func check(_ result: OpaquePointer?) throws {

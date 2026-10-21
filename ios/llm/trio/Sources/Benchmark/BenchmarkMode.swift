@@ -27,6 +27,7 @@ enum BenchmarkMode {
 enum BenchmarkID: String, CaseIterable {
     case litertGPU = "litert-gpu"
     case litertCPU = "litert-cpu"
+    case onnx = "onnx"
     case coreml
 
     /// Stable label used in `docs/benchmarks.md`.
@@ -34,6 +35,7 @@ enum BenchmarkID: String, CaseIterable {
         switch self {
         case .litertGPU: "litert-lm-gpu"
         case .litertCPU: "litert-lm-cpu"
+        case .onnx: "onnx-genai-cpu"
         case .coreml: "coreml-ane"
         }
     }
@@ -97,6 +99,14 @@ final class BenchmarkRunner: ObservableObject {
                 throw ChatError.modelNotFound("Core ML package not in Documents/Models")
             }
             return MiniCPMCoreMLEngine(packageDirectory: directory)
+        case .onnx:
+            guard let directory = OnnxGenAIModelLocator.locate() else {
+                throw ChatError.modelNotFound("ONNX GenAI package not in Documents/Models")
+            }
+            return OnnxGenAIEngine(
+                packageDirectory: directory,
+                sizeBytes: OnnxGenAIModelLocator.packageSize()
+            )
         }
     }
 

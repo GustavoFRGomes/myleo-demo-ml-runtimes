@@ -11,7 +11,7 @@ final class FakeChatInference: ChatInference, @unchecked Sendable {
         loadMs: 12,
         maxContextTokens: 0,
         sizeBytes: 4_908_692_182,
-        sourceURL: "https://huggingface.co/microsoft/Phi-4-mini-instruct-onnx/resolve/main/model.onnx"
+        sourceURL: "https://huggingface.co/anydaytv/minicpm5-1b-onnx-int4/resolve/main/model.onnx"
     )
     var loadError: Error?
     var generationError: Error?

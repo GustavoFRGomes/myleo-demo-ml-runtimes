@@ -5,7 +5,7 @@ import Foundation
 struct PreviewChatInference: ChatInference {
     func loadModel() async throws -> ChatModelInfo {
         ChatModelInfo(
-            displayName: "Phi-4-mini-instruct int4 (preview)",
+            displayName: "MiniCPM5-1B int4 (preview)",
             backend: "CPU",
             loadMs: 1200,
             maxContextTokens: 0,

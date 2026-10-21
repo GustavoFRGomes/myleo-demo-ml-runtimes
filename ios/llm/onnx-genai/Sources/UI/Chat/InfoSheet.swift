@@ -128,7 +128,7 @@ struct InfoSheet: View {
 #Preview {
     InfoSheet(state: ChatState(
         status: .ready(ChatModelInfo(
-            displayName: "phi-4-mini-instruct-onnx-int4",
+            displayName: "minicpm5-1b-onnx-int4",
             backend: "CPU",
             loadMs: 1450,
             maxContextTokens: 0,
