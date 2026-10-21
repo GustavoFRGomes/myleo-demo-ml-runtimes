@@ -195,6 +195,7 @@ struct ChatScreen: View {
                 Button { store.send(.send) } label: {
                     Image(systemName: "arrow.up.circle.fill")
                 }
+                .accessibilityLabel("Send")
                 .font(.title2)
                 .disabled(!store.state.canSend)
             }

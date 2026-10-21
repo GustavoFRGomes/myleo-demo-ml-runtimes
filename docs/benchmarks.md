@@ -329,8 +329,9 @@ to run than a 3B one", not as a runtime ranking.
   79.4 tok/s**. Fixed on 2026-10-20 (`maxSequenceLength(promptTokens, maxTokens)`),
   which is why the table above is capped at 544. Older ONNX tok/s figures taken from a
   long answer are not comparable to these.
-- `android/llm/dual` still runs Phi-4-mini, and no `ios/llm/*` leaf can be measured on
-  this machine (no signing identity), so both are absent here.
+- `android/llm/dual` still runs Phi-4-mini, and `ios/llm/onnx-genai` / the ONNX leg of
+  `ios/llm/trio` still point at the Phi-4-mini package, so neither is measured here. The
+  iOS MiniCPM5 numbers (LiteRT-LM GPU/CPU + Core ML) are in the iOS section further down.
 - **WebGPU on this leaf is a negative result, not a shipped path.** `appendProvider("webgpu")`
   on the same int4 package does load and decode (Dawn's Vulkan backend is in the AAR), but
   measures **71.5 tok/s, TTFT 225–289 ms, load 963–1123 ms, 3.14 GB PSS / 1.50 GB `GL mtrack`**
@@ -348,3 +349,67 @@ Phi-4-mini q8 the answer was yes (1.8× decode); on MiniCPM5-1B W4 it is neutral
 2. Skip GPU below a weight-size threshold (e.g. GPU only when the bundle is > 2 GB).
 3. CPU-first for `_gpu_opt` bundles, keeping the GPU attempt behind a manual switch.
 
+
+## iOS LLM — MiniCPM5-1B on Trio (iPhone SE 3rd gen, 2026-10-21)
+
+> Appended, not replacing anything above. This is the iOS counterpart to the Android
+> MiniCPM5 section: same checkpoint, same prompt, same parameters, measured on a
+> physical device through the Trio app's real engines.
+
+Protocol:
+
+- Device: iPhone SE 3rd gen (`iPhone14,6`, A15), **iOS 27.0.1 (24A446)**, 128 GB storage.
+- Prompt: *"Explain how a refrigerator works in detail."* — one turn, no system prompt.
+- Params: `GenerationParams.default` — temperature 0.8, top-k 40, top-p 0.95, max 512.
+- Runs: 3 per cell, each a **cold process**. The app launches with
+  `--benchmark litert-gpu|litert-cpu|coreml` (`Sources/Benchmark/BenchmarkMode.swift`),
+  loads the model, runs one generation, writes a JSON report to `Documents/` and exits.
+  Normal launches are unaffected; the engines, params and metrics code are the same ones
+  the chat UI uses.
+- `tok/s` = decode window only (`generatedTokens / (totalMs − ttftMs)`), same formula as Android.
+- Thermal matters on this phone: a CPU batch taken straight after ~11 minutes of Core ML
+  at full tilt read **25.6–26.4 tok/s**; after a 10-minute cooldown the same binary read
+  **35.5–35.7**. The table is the cooled batch. The SE has no vapour chamber, so sustained
+  runs (or hot-room runs) will land nearer the lower number.
+
+### Model parity
+
+| Runtime | Model + format | Precision / size | Context window |
+|---|---|---|---|
+| `litert-lm` | MiniCPM5-1B `.litertlm` (`minicpm_wi4b32_wi8_afp32_gpu_opt`) | W4 block-32 / W8, fp32 activations, **793 MB** | **1024** — declared by the bundle (`ModelInfo.maxContextTokens()`) |
+| `coreml` | MiniCPM5-1B 4-bit `.mlpackage` (`Reza2kn/MiniCPM5-1B-CoreML-4bit`) | 4-bit, **602 MB** on disk | **128** — fixed stateless window, no attention mask |
+| `onnx-genai` | not measured — the iOS leg still points at Phi-4-mini int4 | — | — |
+
+### Speed
+
+Bold = median of the three runs.
+
+| Runtime | Backend | Load ms | TTFT ms | tok/s | Tokens | Total ms |
+|---|---|---|---|---|---|---|
+| `litert-lm` | **GPU** (Metal) | 1090 / 1158 / 1301 → **1158** | 978 / 338 / 360 → **360** | 43.7 / 43.8 / 43.8 → **43.8** | 533 | 13186 / 12496 / 12524 |
+| `litert-lm` | **CPU** (XNNPACK) | 456 / 433 / 427 → **433** | 2320 / 1252 / 1233 → **1252** | 35.5 / 35.7 / 35.7 → **35.7** | 278 | 10146 / 9034 / 9016 |
+| `coreml` | **ANE/GPU/CPU** (`.cpuAndNeuralEngine`) | 30061 (first ever, package compile) then 1473 / 1480 → **1480** | 4019 / 1753 / 3386 → **3386** | 2.1 / 2.0 / 2.0 → **2.0** | 337–512 | 200687 / 264316 / 172963 → **200687** |
+
+Reading it:
+
+- **GPU beats CPU on both axes here** — 43.8 vs 35.7 tok/s (1.23×) and TTFT 360 vs 1252 ms,
+  for +0.7 s of load (1158 vs 433 ms). Unlike the Android S25 Ultra, where the same 1B bundle
+  made GPU and CPU a dead heat, the SE's CPU path is the weaker one.
+- **First launch is not steady state.** The very first process to touch the bundle ever paid
+  5634 ms load / 959 ms TTFT (Metal pipeline compilation); the first run of each later batch
+  still shows the TTFT bump (978 ms) before settling at 338–360 ms. Core ML is the extreme
+  case: 30 s on the first launch (`MLModel.compileModel`), 1.5 s once the compiled model is cached.
+- **Core ML is 20× slower per token and not comparable.** The engine has no KV cache — it
+  re-runs the whole 128-token window and reads a 130,560-wide logits row for every token — so
+  2.0 tok/s is the price of the hand-wired loop, not of the ANE. It is included because the
+  trio ships it, not as a runtime race.
+- **Token counts differ because sampling differs, not counting.** LiteRT GPU always reaches
+  the 512 cap (533 = 512 output + ~21 chat-template/prompt tokens, the same accounting as the
+  Android 544 = 512 + 32); CPU stops at EOS after 278; Core ML slides its window and lands
+  between 337 and 512.
+- **Cross-platform, same checkpoint:** S25 Ultra `litert-lm` GPU 71.0 tok/s vs iPhone SE 43.8;
+  TTFT 436 vs 360 ms (warm GPU). Different SoC classes — this compares a current flagship
+  against a 2022 budget phone, so it is not a runtime verdict.
+- **No memory column.** iOS has no `dumpsys meminfo` equivalent from the CLI; a footprint
+  number needs Instruments' Activity Monitor during a run, and would still not be
+  comparable to Android's PSS.

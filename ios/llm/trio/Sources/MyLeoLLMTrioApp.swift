@@ -6,7 +6,11 @@ struct MyLeoLLMTrioApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppRootView(session: session)
+            if let benchmark = BenchmarkMode.requestedID {
+                BenchmarkScreen(id: benchmark)
+            } else {
+                AppRootView(session: session)
+            }
         }
     }
 }
