@@ -2,7 +2,9 @@ package org.ggomes.myleo.vectorsearch.dual
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,6 +33,7 @@ import org.ggomes.myleo.vectorsearch.dual.data.LiteRtEmbedderFactory
 import org.ggomes.myleo.vectorsearch.dual.data.LoadedRuntime
 import org.ggomes.myleo.vectorsearch.dual.data.ObjectBoxDocumentRepository
 import org.ggomes.myleo.vectorsearch.dual.data.OnnxEmbedderFactory
+import org.ggomes.myleo.vectorsearch.dual.data.OnnxExecutionProvider
 import org.ggomes.myleo.vectorsearch.dual.data.RuntimeManager
 import org.ggomes.myleo.vectorsearch.dual.data.StatsExporter
 import org.ggomes.myleo.vectorsearch.dual.data.db.ObjectBoxStores
@@ -160,8 +163,11 @@ class MainActivity : ComponentActivity() {
                     name = LiteRtEmbedderFactory.DEFAULT_MODEL_ASSET_PATH.substringAfterLast("/")
                 }
                 InferenceRuntime.ONNX -> {
-                    embedder = OnnxEmbedderFactory.create(applicationContext)
-                    name = OnnxEmbedderFactory.DEFAULT_MODEL_ASSET_PATH.substringAfterLast("/")
+                    val provider = OnnxExecutionProvider.fromExtra(intent.getStringExtra("onnx_ep"))
+                    val created = OnnxEmbedderFactory.create(applicationContext, provider = provider)
+                    embedder = created
+                    name = OnnxEmbedderFactory.DEFAULT_MODEL_ASSET_PATH.substringAfterLast("/") +
+                        " · " + created.providerLabel
                 }
             }
         }
@@ -304,10 +310,51 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        maybeRunBenchmark()
     }
 
-    private fun switchRuntime(target: InferenceRuntime, done: (Boolean) -> Unit) {
+    /**
+     * Sustained embedding workload for power measurement:
+     * `am start … --es onnx_ep cpu|webgpu --ei bench_seconds 120`.
+     *
+     * Runs the real `Embedder` in a tight loop (no database writes, no UI taps) for
+     * the requested duration, keeping the screen on, then logs chunks and ms/chunk.
+     * A single 6-chunk ingest lasts ~0.1 s — far below the battery counters'
+     * resolution — so power runs need a load that lasts minutes.
+     */
+    private fun maybeRunBenchmark() {
+        val seconds = intent.getIntExtra("bench_seconds", 0)
+        if (seconds <= 0) return
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         lifecycleScope.launch {
+            val loaded = withContext(Dispatchers.Default) { runtimeManager.select(InferenceRuntime.ONNX) }
+                .getOrElse { error ->
+                    Log.e(TAG, "MyLeo-Bench: model load failed: ${error.message}")
+                    return@launch
+                }
+            Log.i(TAG, "MyLeo-Bench: start ${seconds}s · ${loaded.modelName} · load ${loaded.modelLoadMs}ms")
+            val embedder = loaded.embedder
+            val started = SystemClock.elapsedRealtime()
+            var chunks = 0
+            withContext(Dispatchers.Default) {
+                while (SystemClock.elapsedRealtime() - started < seconds * 1000L) {
+                    val t0 = SystemClock.elapsedRealtime()
+                    embedder.embed(BENCH_TEXTS[chunks % BENCH_TEXTS.size])
+                    val dt = SystemClock.elapsedRealtime() - t0
+                    if (chunks < 5) Log.i(TAG, "MyLeo-Bench: chunk $chunks took ${dt}ms")
+                    chunks++
+                }
+            }
+            val elapsed = SystemClock.elapsedRealtime() - started
+            Log.i(
+                TAG,
+                "MyLeo-Bench: embedded $chunks chunks in ${elapsed}ms " +
+                    "(${String.format(Locale.US, "%.2f", elapsed.toDouble() / chunks)} ms/chunk)",
+            )
+        }
+    }
+
+    private fun switchRuntime(target: InferenceRuntime, done: (Boolean) -> Unit) {        lifecycleScope.launch {
             val result = withContext(Dispatchers.Default) { runtimeManager.select(target) }
             result
                 .onSuccess { loaded ->
@@ -375,3 +422,15 @@ class MainActivity : ComponentActivity() {
         private const val APP_LABEL = "MyLeo VS Dual"
     }
 }
+
+/** Fixed, varied inputs for the sustained benchmark loop (same list for every EP). */
+private val BENCH_TEXTS = listOf(
+    "The refrigerator keeps food cold by moving heat from inside the cabinet to the room.",
+    "A compressor circulates refrigerant through the coils and the expansion valve drops its pressure.",
+    "The thermostat cycles the compressor on and off to hold the set temperature.",
+    "Freezers reach about minus eighteen degrees Celsius to preserve food for months.",
+    "A heat pump moves thermal energy in the opposite direction to a fridge.",
+    "Insulation slows heat transfer so the cabinet stays cold with less work.",
+    "The defrost cycle briefly warms the evaporator to melt accumulated frost.",
+    "A dirty condenser coil makes the fridge run longer and use more energy.",
+)

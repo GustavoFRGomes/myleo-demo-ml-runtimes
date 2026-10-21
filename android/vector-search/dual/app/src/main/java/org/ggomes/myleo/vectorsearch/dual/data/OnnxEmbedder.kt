@@ -12,6 +12,8 @@ class OnnxEmbedder(
     private val runner: OnnxSessionRunner,
     private val tokenizer: TextTokenizer,
     private val maxSeqLen: Int = DEFAULT_MAX_SEQ_LEN,
+    /** Which execution provider actually built the session (`cpu`, `webgpu`). */
+    val providerLabel: String = "cpu",
 ) : Embedder, AutoCloseable {
 
     override fun embed(text: String): List<Float> {

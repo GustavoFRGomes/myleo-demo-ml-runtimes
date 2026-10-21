@@ -81,8 +81,52 @@ Reading it:
   values after a switch (the database is empty; the screen state is stale until the next
   ingest/search).
 
-## Accelerated runs — iOS ANE (separate from the CPU baselines above)
+### Accelerated — ONNX WebGPU (Android, `SM-S938B`, 2026-10-21)
 
+> Device note: the tables above were measured on `SM_S948B`; this run is a different unit
+> (`SM-S938B`, 12 GB). Compare the two columns *within this section*, not across sections.
+
+The ONNX lane now takes an execution provider at launch: `--es onnx_ep webgpu` (default
+`cpu`). WebGPU is attempted and then validated with a warmup inference — a session that
+builds but cannot run (Dawn without a usable Vulkan device, unsupported ops) logs the
+reason, rebuilds on CPU, and the stats sheet shows which EP actually ran
+(`embedding.onnx · webgpu`). The embedding values are unchanged: same 6-chunk corpus and
+query rank identically on both EPs (`74 / 58 / 52 / 42 / 42 %`), and the in-app timings
+move the same direction as the loop below (ingest embed 122 → 99 ms, search 28 → 17 ms;
+load 504 → 785 ms, because Dawn init + the warmup are paid up front).
+
+Sustained throughput — 120 s of the real embedder in a loop, no DB writes:
+
+| EP | ms/chunk | chunks/s |
+|---|---|---|
+| CPU (XNNPACK) | 19.2 / 25.2 | 45.4 / 39.8 |
+| **WebGPU** | **13.4 / 13.4** | **74.9 / 73.3** |
+
+Energy — unplugged, wireless adb, screen on, `batterystats` reset per run, 120 s each:
+
+| Config | charge counter / 120 s | per 1000 chunks | ≈ energy |
+|---|---|---|---|
+| idle (app foreground) | 4.9 mAh | — | ~0.6 W |
+| CPU | 64.0 mAh (both runs) | ~11–12 mAh | ~160–180 mJ/chunk |
+| **WebGPU** | **54.2 / 29.6 mAh** | **~3–6 mAh** | **~40–80 mJ/chunk** |
+
+Reading it:
+
+- **WebGPU is ~1.7× faster and does the same work for roughly 2–3× less energy per chunk.**
+  This is the opposite of the LLM WebGPU result, where per-token work was slower and memory
+  4× higher — there the model was a 1B decoder on a CPU-optimised graph; here the graph is
+  a small encoder and the GPU path is the intended one.
+- **The per-UID `batterystats` estimate is unusable for GPU work.** It models CPU time, so
+  it reported 4.6 mAh for a run whose pack-level draw was 30–54 mAh. The charge-counter and
+  %-level deltas are the honest whole-device numbers; only those are used above.
+- **Resolution caveat:** the charge counter updates in ~4.9 mAh steps and `current_now` is
+  permission-denied on this Samsung without root, so treat each cell as ±1 step. The
+  CPU-vs-GPU gap is well outside that, but the two WebGPU runs (54 vs 30 mAh) are not
+  meaningfully different from each other.
+- **Thermals favour WebGPU under sustained load:** the second CPU run throttled to
+  25.2 ms/chunk (from 19.2), while WebGPU held 13.4 in both runs.
+
+## Accelerated runs — iOS ANE (separate from the CPU baselines above)
 Measured on the Trio app on the iPhone SE 3rd gen, 50 Enron email chunks,
 with ANE acceleration requested on all three runtimes. Same models, same
 dims — only the execution path changes:
