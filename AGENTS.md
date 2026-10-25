@@ -16,11 +16,12 @@ android/vector-search/onnx/    # Android vector search with ONNX Runtime Mobile
 android/llm/litert-lm/         # Android chat inference with LiteRT-LM (MediaPipe LlmInference)
 android/llm/onnx-genai/        # Android chat inference with ONNX Runtime GenAI
 android/llm/dual/              # Android chat inference dual runtime (LiteRT-LM + ONNX GenAI)
+android/decision/litert/       # Android structured decisions (Julia-1) with LiteRT
 ```
 
-`coreml/` exists on iOS only. Never create `android/**/coreml/`. Android has no Core ML equivalent.
+`decision/` exists on Android only for now (no iOS leaf). `coreml/` exists on iOS only. Never create `android/**/coreml/`. Android has no Core ML equivalent.
 
-Naming is exact: `litert` = embedding/retrieval runtime, `litert-lm` = LLM generation runtime, `onnx` = embedding/retrieval, `onnx-genai` = LLM generation. Do not rename or merge them (e.g. never collapse `litert` + `litert-lm` into one folder).
+Naming is exact: `litert` = single-pass runtime (embedding/retrieval or classification), `litert-lm` = LLM generation runtime, `onnx` = single-pass ONNX runtime, `onnx-genai` = LLM generation. Do not rename or merge them (e.g. never collapse `litert` + `litert-lm` into one folder).
 
 ## What belongs where
 
@@ -28,6 +29,7 @@ Naming is exact: `litert` = embedding/retrieval runtime, `litert-lm` = LLM gener
 - `android/` — Kotlin-first only. Jetpack Compose for any future demo UI. Each leaf folder is one **standalone Gradle project** cloned from the Activity + Compose template (see Android section below): open the leaf folder itself in Android Studio, not an `android/` root. No Java unless required for interop.
 - `*/vector-search/*` — embedding + index + top-k cosine search contract only. No chat UI, no token streaming, no generation params.
 - `*/llm/*` — prompt → streaming token contract only (temperature, top-k, top-p, max-tokens, tokens/sec + TTFT reporting). No embedding index, no retrieval logic.
+- `*/decision/*` — one forward pass per request: state + typed question (`choice` / `score` / `noul`) + 2–20 options → one probability per option. No token streaming, no chat UI, no retrieval index.
 - Model binaries (`*.tflite`, `*.litertlm`, `*.onnx`, `*.mlpackage`, `*.bin`) are never committed. Each leaf `README.md` must document download URL + placement path instead.
 - Root `README.md` = structure tree + technology matrix (keep in sync when adding folders). Leaf `README.md` = runtime version, model, scope contract for that variation. This `AGENTS.md` = working rules.
 
@@ -119,6 +121,7 @@ Reference template: `android/vector-search/litert/` — Android Studio **Activit
 | `android/llm/onnx-genai/` | `org.ggomes.myleo.llm.onnxgenai` | `MyLeo LLM ONNX-GenAI` | `MyLeoLlmOnnxgenaiTheme` | `Theme.MyLeoLlmOnnxgenai` | `MyLeo LLM ONNX-GenAI` |
 | `android/llm/dual/` | `org.ggomes.myleo.llm.dual` | `MyLeo LLM Dual` | `MyLeoLlmDualTheme` | `Theme.MyLeoLlmDual` | `MyLeo LLM Dual` |
 | `android/vector-search/dual/` | `org.ggomes.myleo.vectorsearch.dual` | `MyLeo VS Dual` | `MyLeoVsDualTheme` | `Theme.MyLeoVsDual` | `MyLeo VS Dual` |
+| `android/decision/litert/` | `org.ggomes.myleo.decision.litert` | `MyLeo Decision LiteRT` | `MyLeoDecisionLitertTheme` | `Theme.MyLeoDecisionLitert` | `MyLeo Decision LiteRT` |
 
 - When cloning the template to a new Android variant: copy `.gitignore`, `app/`, `build.gradle.kts`, `gradle.properties`, `gradle/`, `gradlew`, `gradlew.bat`, `settings.gradle.kts`. **Never copy** `.gradle/`, `.idea/`, `build/`, or `local.properties`. Preserve the target's existing `README.md`. Then move the three `org/ggomes/myleolite` source roots (`app/src/main`, `app/src/androidTest`, `app/src/test`) to the new package path and replace: package + imports in all `*.kt`, `namespace` + `applicationId` in `app/build.gradle.kts`, `rootProject.name` in `settings.gradle.kts`, `app_name` in `res/values/strings.xml`, style in `res/values/themes.xml` + `AndroidManifest.xml` (both `application` and `activity` theme attrs), theme composable fn name, and the `assertEquals(<package>)` in `ExampleInstrumentedTest.kt`.
 - Android MVVM: keep `MainActivity` thin (edge-to-edge + `setContent` only). Screen state lives in a `ViewModel` exposed as `StateFlow`; inference SDK access goes through a `Repository` interface. Compose screens observe state only.
@@ -146,6 +149,17 @@ Same area = same features everywhere. Only the runtime SDK, model format, and de
 - F-LLM-5: Chat UI: system prompt field, message thread with streaming updates, regenerate/clear. iOS = SwiftUI, Android = Compose.
 
 Parity notes: `coreml` leafs are iOS-only but must still implement the full area contract. Runtime-only extras (e.g. a delegate toggle, NNAPI/GPU selector) are allowed but must be documented in that leaf's `README.md` and must not remove contract features.
+
+### Decision — every `*/decision/*` leaf (Android `litert`)
+
+- F-DEC-1: Request = state text + question type (`choice` / `score` / `noul`) + 2–20 ordered options; strict encoding (reject over-long requests, never truncate).
+- F-DEC-2: Tokenize, build the marker sequence (`<mask>` before each option), gather host-side embeddings where the runtime requires it, run **one** forward pass; probabilities = softmax over the marker logits at temperature 1.
+- F-DEC-3: Answer in the author's terms: `choice` = winning option id, `score` = expected zero-based rubric index, `noul` = P(true).
+- F-DEC-4: Report model load ms (tokenizer / table / graph) + per-request prepare, graph and decode ms, token count, window and accelerator.
+- F-DEC-5: UI: state field, question/type/options editor, presets, probability bars per option, error/empty states. Android = Compose.
+- Accelerator rule: GPU must request **FP32** explicitly; if the device cannot compile it, fall back to CPU and report which backend ran. No fp16 and no NPU path (fp16 changes the answers).
+
+Parity notes: Julia-1 ships per runtime (`.tflite` + host token table for LiteRT, `.onnx` for ONNX); a new leaf must implement F-DEC-1…5, not a subset. `android/decision/litert` is the first leaf, so the area currently has no parity gap.
 
 ## Testing (must follow, once code is requested)
 
