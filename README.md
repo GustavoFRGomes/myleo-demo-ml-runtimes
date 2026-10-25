@@ -36,7 +36,8 @@ Each `platform / area / runtime` combination is an independent, comparable varia
     │   └── dual/          # Runtime chooser: LiteRT-LM or ONNX GenAI (Kotlin)
     └── decision/
         ├── litert/        # Julia-1 decision model (state + question + options → probabilities) (Kotlin)
-        └── onnx/          # Same Julia-1 contract on ONNX Runtime (Kotlin)
+        ├── onnx/          # Same Julia-1 contract on ONNX Runtime (Kotlin)
+        └── dual/          # Runtime chooser: LiteRT or ONNX, per-runtime download + engine swap (Kotlin)
 ```
 
 > Naming: `litert-lm` and `onnx-genai` are the LLM-specific runtime SDKs (chat/generation).
@@ -60,6 +61,7 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 | llm / Dual | — (no iOS equivalent) | `android/llm/dual` — picker for LiteRT-LM or ONNX GenAI at runtime, both Phi-4-mini-instruct |
 | decision / LiteRT | — (no iOS equivalent) | `android/decision/litert` — Julia-1 decision model (`litert-community/Julia-1-LiteRT`): state + typed question + 2–20 options → probabilities, GPU FP32 or CPU |
 | decision / ONNX | — (no iOS equivalent) | `android/decision/onnx` — the same Julia-1 contract on ONNX Runtime (`SupersonicLabs/Julia-1-ONNX`), CPU, ids in / per-option logits out |
+| decision / Dual | — (no iOS equivalent) | `android/decision/dual` — picker for LiteRT or ONNX with per-runtime download; switching releases the previous engine and keeps the edited question form |
 
 ## What each variation implements
 
