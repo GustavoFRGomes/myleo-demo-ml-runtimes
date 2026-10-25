@@ -65,9 +65,13 @@ class OnnxDecider(
         val run = runner.run(JuliaInputs.pack(sequence))
 
         val decodeStart = now()
+        // The ONNX graph gathers the marker logits itself (marker_pos/marker_mask in, one logit
+        // per option out — the author's parity.py slices `candidate[i, :size]`), so the runner
+        // output is already per-option and feeds decode() directly. Only the LiteRT lane outputs
+        // per-position logits and gathers them by sequence position.
         val decoded =
             JuliaDecoder.decode(
-                JuliaDecoder.gather(run.tokenLogits, sequence.markers),
+                DoubleArray(run.tokenLogits.size) { run.tokenLogits[it].toDouble() },
                 request.question,
             )
         val decodeMs = now() - decodeStart
