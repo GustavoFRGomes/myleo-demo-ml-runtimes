@@ -4,13 +4,17 @@ import java.io.File
 import kotlinx.coroutines.CompletableDeferred
 import org.ggomes.myleo.decision.dual.data.DecisionModelDownloader
 import org.ggomes.myleo.decision.dual.data.DecisionRuntime
+import org.ggomes.myleo.decision.dual.data.ReportExporter
 import org.ggomes.myleo.decision.dual.data.RuntimeBinding
+import org.ggomes.myleo.decision.dual.data.SystemStatsProvider
 import org.ggomes.myleo.decision.dual.domain.Accelerator
+import org.ggomes.myleo.decision.dual.domain.BatterySample
 import org.ggomes.myleo.decision.dual.domain.Decider
 import org.ggomes.myleo.decision.dual.domain.DecisionOutcome
 import org.ggomes.myleo.decision.dual.domain.DecisionQuestion
 import org.ggomes.myleo.decision.dual.domain.DecisionRequest
 import org.ggomes.myleo.decision.dual.domain.DecisionTimings
+import org.ggomes.myleo.decision.dual.domain.DeviceProfile
 import org.ggomes.myleo.decision.dual.domain.ModelInfo
 import org.ggomes.myleo.decision.dual.domain.QuestionType
 
@@ -22,8 +26,10 @@ class FakeDecider(
     var decideError: Exception? = null
     var closed = false
 
-    /** When set, [decide] suspends until it completes (to test switching/deleting mid-run). */
+    /** When set, [decide] suspends once more than [pauseAfter] calls have been made. */
     var decideGate: CompletableDeferred<Unit>? = null
+    var pauseAfter: Int = Int.MAX_VALUE
+    private var calls = 0
 
     val requests = mutableListOf<DecisionRequest>()
 
@@ -34,7 +40,8 @@ class FakeDecider(
 
     override suspend fun decide(request: DecisionRequest): DecisionOutcome {
         requests += request
-        decideGate?.await()
+        calls++
+        if (calls > pauseAfter) decideGate?.await()
         decideError?.let { throw it }
         val question = request.question
         val probabilities = DoubleArray(question.options.size) { 1.0 / question.options.size }
@@ -78,6 +85,7 @@ class FakeDecider(
             tokenCount: Int = 42,
             window: Int = 512,
             accelerator: Accelerator = Accelerator.GPU,
+            timings: DecisionTimings = DecisionTimings(1.0, 2.0, 0.0, 3.0, 4.0, 5.0, 6.0),
         ): DecisionOutcome {
             val noNoul = question.type != QuestionType.NOUL
             return DecisionOutcome(
@@ -91,15 +99,14 @@ class FakeDecider(
                 tokenCount = tokenCount,
                 window = window,
                 accelerator = accelerator,
-                timings = DecisionTimings(1.0, 2.0, 0.0, 3.0, 4.0, 5.0, 6.0),
+                timings = timings,
             )
         }
     }
 }
 
 /** [DecisionModelDownloader] fake; [gate] keeps it suspended so cancel can be exercised. */
-class FakeDownloader(
-    var error: Exception? = null,
+class FakeDownloader(    var error: Exception? = null,
     private val gate: CompletableDeferred<Unit>? = null,
     private val onComplete: () -> Unit = {},
 ) : DecisionModelDownloader {
@@ -129,3 +136,38 @@ fun binding(
         createDecider = createDecider,
         downloader = downloader,
     )
+
+/** Scripted device/battery/time source; the last sample is reused once the list is exhausted. */
+class FakeStats(
+    var deviceProfile: DeviceProfile = DeviceProfile("TestCorp", "TestPhone", "16", 36),
+    batterySamples: List<BatterySample> =
+        listOf(
+            BatterySample(percent = 80, chargeCounterUah = 2_000_000, currentNowUa = -350_000, temperatureC = 31.5f),
+            BatterySample(percent = 79, chargeCounterUah = 1_999_000, currentNowUa = -400_000, temperatureC = 32.0f),
+        ),
+    timesMs: List<Long> = listOf(1_000L, 9_000L),
+) : SystemStatsProvider {
+    private val batteries = batterySamples.toMutableList()
+    private val times = timesMs.toMutableList()
+
+    override fun device(): DeviceProfile = deviceProfile
+
+    override fun battery(): BatterySample =
+        if (batteries.size > 1) batteries.removeAt(0) else batteries.first()
+
+    override fun nowMs(): Long = if (times.size > 1) times.removeAt(0) else times.first()
+}
+
+/** Captures exported content so formatting can be asserted without MediaStore. */
+class FakeExporter(private var result: Result<String> = Result.success("Downloads/report.md")) : ReportExporter {
+    val calls = mutableListOf<Triple<String, String, String>>()
+
+    override fun export(fileName: String, mimeType: String, content: String): Result<String> {
+        calls += Triple(fileName, mimeType, content)
+        return result
+    }
+
+    fun failWith(error: Exception) {
+        result = Result.failure(error)
+    }
+}

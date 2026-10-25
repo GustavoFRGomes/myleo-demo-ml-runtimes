@@ -7,11 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import org.ggomes.myleo.decision.dual.data.AndroidSystemStatsProvider
 import org.ggomes.myleo.decision.dual.data.DecisionRuntime
 import org.ggomes.myleo.decision.dual.data.HttpFileSetDownloader
 import org.ggomes.myleo.decision.dual.data.LiteRtDecider
 import org.ggomes.myleo.decision.dual.data.LiteRtGraphRunner
 import org.ggomes.myleo.decision.dual.data.LiteRtModelLocator
+import org.ggomes.myleo.decision.dual.data.MediaStoreReportExporter
 import org.ggomes.myleo.decision.dual.data.OnnxDecider
 import org.ggomes.myleo.decision.dual.data.OnnxGraphRunner
 import org.ggomes.myleo.decision.dual.data.OnnxModelLocator
@@ -72,6 +74,8 @@ class MainActivity : ComponentActivity() {
                                     ),
                             ),
                     ),
+                stats = AndroidSystemStatsProvider(context),
+                exporter = MediaStoreReportExporter(context),
             ) as T
     }
 }

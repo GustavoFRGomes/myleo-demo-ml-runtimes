@@ -161,9 +161,11 @@ Parity notes: `coreml` leafs are iOS-only but must still implement the full area
 - F-DEC-3: Answer in the author's terms: `choice` = winning option id, `score` = expected zero-based rubric index, `noul` = P(true).
 - F-DEC-4: Report model load ms (tokenizer / table / graph) + per-request prepare, graph and decode ms, token count, window and accelerator.
 - F-DEC-5: UI: state field, question/type/options editor, presets, probability bars per option, error/empty states. Android = Compose.
+- F-DEC-6: Suite mode: the same 18 built-in prompts (8 multi-answer, 5 score, 5 yes/no) run in order on the active runtime, with per-prompt progress/cancel and results shown as they arrive.
+- F-DEC-7: Benchmark report per suite run: per-prompt and per-type timings (total/average/min/max), wall clock, load timings, device profile, battery level + charge-counter delta (null when unavailable), exportable as Markdown and JSON. A `dual` leaf keeps one report per runtime and offers a comparison.
 - Accelerator rule: GPU must request **FP32** explicitly; if the device cannot compile it, fall back to CPU and report which backend ran. No fp16 and no NPU path (fp16 changes the answers).
 
-Parity notes: Julia-1 ships per runtime (`.tflite` + host token table for LiteRT, `.onnx` with the table in-graph for ONNX); all decision leaves implement F-DEC-1…5 and, with the same tokenizer, accept identical token ids for the same request. Accelerated backends differ by runtime and must be documented: LiteRT runs GPU FP32 with CPU fallback, ONNX is CPU-only (the published export targets browser WebGPU and no Android EP is validated). A `dual` leaf adds one `RuntimeBinding` per runtime (locate/download/build) and must swap engines on selection instead of keeping both models resident, while preserving the edited request for comparison.
+Parity notes: Julia-1 ships per runtime (`.tflite` + host token table for LiteRT, `.onnx` with the table in-graph for ONNX); all decision leaves implement F-DEC-1…7 and, with the same tokenizer, accept identical token ids for the same request. Accelerated backends differ by runtime and must be documented: LiteRT runs GPU FP32 with CPU fallback, ONNX is CPU-only (the published export targets browser WebGPU and no Android EP is validated). A `dual` leaf adds one `RuntimeBinding` per runtime (locate/download/build) and must swap engines on selection instead of keeping both models resident, while preserving the edited request for comparison.
 
 ## Testing (must follow, once code is requested)
 

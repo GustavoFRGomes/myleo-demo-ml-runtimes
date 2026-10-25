@@ -107,6 +107,15 @@ accelerated Phi-4-mini exists in its model format and QNN context binaries are S
 they stay CPU-only. Details:
 [`android/llm/onnx-genai` → *Acceleration on Android*](android/llm/onnx-genai/README.md#acceleration-on-android).
 
+### decision (`*/decision/*`)
+
+Same contract, different runtime:
+
+- One forward pass per request: state text + typed question (`choice` / `score` / `noul`) + 2–20 options → one probability per option.
+- Strict encoding (reject, never truncate); answers reported as the winning option, the expected rubric index, or P(true).
+- Demo UI: state + question editor, presets, probability bars, per-stage timings.
+- **Suite mode**: 18 built-in prompts (8 multi-answer, 5 score, 5 yes/no) run in order, with a benchmark report — per-prompt and per-type timings, device, battery charge delta — exportable as Markdown/JSON. The `dual` leaf keeps one report per runtime and shows a comparison card.
+
 ## Datasets
 
 Default dataset for **all vector-search variants** (both platforms, every runtime):

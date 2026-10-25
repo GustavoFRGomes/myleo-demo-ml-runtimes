@@ -13,6 +13,7 @@ there is no host-side token table. No text generation, no streaming, no TTFT.
   - Strict encoding: nothing is truncated; a request that does not fit 1,024 tokens raises `EncodingException`
   - Answer: winning option (`choice`), expected zero-based rubric index (`score`), P(true) (`noul`) — plain softmax at temperature 1
   - Compose form with presets, question/option editor, probability bars, per-stage timings, cancel/retry/error states
+  - Built-in **18-prompt suite** (8 multi-answer, 5 score, 5 yes/no) run in order, with a benchmark report: per-prompt + per-type timings, device, battery charge delta, and Markdown/JSON export to Downloads
 - Model: **Julia-1** (Apache-2.0, 144.3M parameters, mmBERT-small encoder + decision head) — [`SupersonicLabs/Julia-1-ONNX`](https://huggingface.co/SupersonicLabs/Julia-1-ONNX) (revision `82a2fadf8fccfccdc5fd4e1009ba8f1a265eb7a8`), the author's export of [`SupersonicLabs/Julia-1`](https://huggingface.co/SupersonicLabs/Julia-1):
   - `model.onnx` — 2,988,923 B (graph only)
   - `model.onnx.data` — 576,782,336 B (external weights, including the 256,000 × 384 table; must stay next to the graph)
@@ -26,5 +27,5 @@ there is no host-side token table. No text generation, no streaming, no TTFT.
 - Encoding: same strict marker sequence as the LiteRT leaf (`<bos> "{type} question: {instructions}" <eos>`, `<mask>` + option per option, `<eos> state <eos>`) with window 1,024 and head budget 512. Because the tokenizer is the same file, **any request both leaves accept produces identical token ids**, so the two runtimes can be compared answer-for-answer.
 - Timings: `prepare` (encode + sequence), `graph` split into tensor write / `session.run` / readback, `decode`, total; plus token count, window and tokenizer/session load.
 - Architecture (MVVM): `Decider` seam (`load` / `decide`); `JuliaEngine` → `JuliaTokenizer` → `JuliaSequenceBuilder` → `JuliaInputs` → `OnnxGraphRunner` (`OrtSession`) → `JuliaDecoder`; `DecisionViewModel` exposes `StateFlow<DecisionUiState>`; `MainActivity` only wires the factory.
-- Build/run: `./gradlew installDebug` from this folder (no model needed to build). Tests: `./gradlew :app:testDebugUnitTest` — 83 JVM tests cover the decoder, strict builder, tokenizer, input packing, locator, presets, formatting and ViewModel; no model or device required.
+- Build/run: `./gradlew installDebug` from this folder (no model needed to build). Tests: `./gradlew :app:testDebugUnitTest` — 110 JVM tests cover the decoder, strict builder, tokenizer, input packing, locator, presets, suite/report formatting and ViewModel; no model or device required.
 - Attribution: `JuliaJson`/`JuliaTokenizer` are adapted from the Apache-2.0 `Julia-1-LiteRT` Android sample (SPDX headers kept); encoding and answer semantics follow the author's `julia/data.py` / `julia/typed.py` contract.

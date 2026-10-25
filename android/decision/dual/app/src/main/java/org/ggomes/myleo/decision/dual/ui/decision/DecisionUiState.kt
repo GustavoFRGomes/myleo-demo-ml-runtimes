@@ -4,8 +4,11 @@ import org.ggomes.myleo.decision.dual.data.DecisionRuntime
 import org.ggomes.myleo.decision.dual.domain.DecisionOption
 import org.ggomes.myleo.decision.dual.domain.DecisionOutcome
 import org.ggomes.myleo.decision.dual.domain.DecisionQuestion
+import org.ggomes.myleo.decision.dual.domain.DecisionSuite
 import org.ggomes.myleo.decision.dual.domain.ModelInfo
 import org.ggomes.myleo.decision.dual.domain.QuestionType
+import org.ggomes.myleo.decision.dual.domain.SuiteReport
+import org.ggomes.myleo.decision.dual.domain.SuiteResult
 
 /** Model lifecycle state. */
 sealed interface ModelStatus {
@@ -103,10 +106,34 @@ data class QuestionDraft(
     }
 }
 
+/** Which screen mode is active: the editable custom request or the fixed prompt suite. */
+enum class DecisionMode { CUSTOM, SUITE }
+
+/** Progress and per-prompt results of one suite run on the active runtime. */
+data class SuiteProgress(
+    val running: Boolean = false,
+    val completed: Int = 0,
+    val total: Int = DecisionSuite.Cases.size,
+    val results: List<SuiteResult> = emptyList(),
+    /** Sum of the per-prompt totals; excludes UI overhead between prompts. */
+    val promptMs: Double = 0.0,
+) {
+    val fraction: Float
+        get() = if (total > 0) (completed.toDouble() / total).toFloat().coerceIn(0f, 1f) else 0f
+
+    val averageMs: Double
+        get() = if (results.isEmpty()) 0.0 else promptMs / results.size
+}
+
 /** Unidirectional UI state for the decision screen (MVVM). */
 data class DecisionUiState(
     val runtime: DecisionRuntime = DecisionRuntime.LITERT,
     val availableRuntimes: List<DecisionRuntime> = DecisionRuntime.entries,
+    val mode: DecisionMode = DecisionMode.CUSTOM,
+    val suite: SuiteProgress = SuiteProgress(),
+    /** Last completed benchmark per runtime, kept across switches for comparison. */
+    val reports: Map<DecisionRuntime, SuiteReport> = emptyMap(),
+    val message: String? = null,
     val status: ModelStatus = ModelStatus.Idle,
     val download: DownloadState = DownloadState.Idle,
     val hasFiles: Boolean = false,
@@ -126,7 +153,13 @@ data class DecisionUiState(
         get() = hasFiles && status is ModelStatus.Failed && !isDownloading
 
     val canDecide: Boolean
-        get() = status is ModelStatus.Ready && !isDeciding && stateText.isNotBlank()
+        get() = mode == DecisionMode.CUSTOM && status is ModelStatus.Ready && !isDeciding && stateText.isNotBlank()
+
+    val canRunSuite: Boolean
+        get() = mode == DecisionMode.SUITE && status is ModelStatus.Ready && !suite.running && !isDeciding
+
+    /** True while a suite run or a custom decision is in flight; the pickers are disabled then. */
+    val isBusy: Boolean get() = isDeciding || suite.running
 
     val isReady: Boolean get() = status is ModelStatus.Ready
 }

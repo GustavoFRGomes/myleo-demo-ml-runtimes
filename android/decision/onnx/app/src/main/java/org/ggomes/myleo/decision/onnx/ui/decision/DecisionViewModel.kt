@@ -6,6 +6,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,20 +16,32 @@ import kotlinx.coroutines.launch
 import org.ggomes.myleo.decision.onnx.data.DecisionModelDownloader
 import org.ggomes.myleo.decision.onnx.data.JuliaModelFiles
 import org.ggomes.myleo.decision.onnx.data.JuliaModelLocator
+import org.ggomes.myleo.decision.onnx.data.ReportExporter
+import org.ggomes.myleo.decision.onnx.data.SystemStatsProvider
 import org.ggomes.myleo.decision.onnx.domain.Decider
 import org.ggomes.myleo.decision.onnx.domain.DecisionPreset
 import org.ggomes.myleo.decision.onnx.domain.DecisionRequest
+import org.ggomes.myleo.decision.onnx.domain.DecisionSuite
 import org.ggomes.myleo.decision.onnx.domain.QuestionType
+import org.ggomes.myleo.decision.onnx.domain.ReportFormat
+import org.ggomes.myleo.decision.onnx.domain.SuiteReport
+import org.ggomes.myleo.decision.onnx.domain.SuiteReportFormat
+import org.ggomes.myleo.decision.onnx.domain.SuiteResult
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * Decision screen ViewModel (MVVM): package download, model load, question editing and one
- * forward pass per question. Seams are injected so unit tests never touch the file system,
- * network or the ONNX runtime.
+ * Decision screen ViewModel (MVVM): package download, model load, question editing, one forward
+ * pass per question, and the fixed 18-prompt suite with its benchmark report. Seams are injected
+ * so unit tests never touch the file system, network, battery or the ONNX runtime.
  */
 class DecisionViewModel(
     private val locate: () -> JuliaModelFiles?,
     private val makeDecider: (JuliaModelFiles) -> Decider,
     private val downloader: DecisionModelDownloader,
+    private val stats: SystemStatsProvider,
+    private val exporter: ReportExporter,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
@@ -38,9 +52,18 @@ class DecisionViewModel(
     private var loadJob: Job? = null
     private var downloadJob: Job? = null
     private var decideJob: Job? = null
+    private var suiteJob: Job? = null
 
     init {
         load()
+    }
+
+    // MARK: - Mode
+
+    fun selectMode(mode: DecisionMode) {
+        val state = _uiState.value
+        if (mode == state.mode || state.isBusy) return
+        _uiState.update { it.copy(mode = mode, error = null, message = null) }
     }
 
     // MARK: - Model lifecycle
@@ -63,9 +86,7 @@ class DecisionViewModel(
                     }
                 }
                 .onFailure { error ->
-                    // Drop the failed engine so Retry starts from a clean tokenizer/table/graph.
-                    decider?.close()
-                    decider = null
+                    releaseDecider()
                     _uiState.update {
                         it.copy(status = ModelStatus.Failed(error.message ?: "could not load Julia-1"))
                     }
@@ -102,6 +123,112 @@ class DecisionViewModel(
         downloadJob?.cancel()
         _uiState.update { it.copy(download = DownloadState.Idle) }
     }
+
+    // MARK: - Prompt suite
+
+    fun runSuite() {
+        val current = _uiState.value
+        if (!current.canRunSuite) return
+        val engine = decider ?: return
+        val info = (current.status as ModelStatus.Ready).info
+        val device = stats.device()
+        val batteryStart = stats.battery()
+        val startedAt = stats.nowMs()
+
+        _uiState.update {
+            it.copy(
+                suite = SuiteProgress(running = true),
+                report = null,
+                error = null,
+                message = null,
+            )
+        }
+        suiteJob = viewModelScope.launch(ioDispatcher) {
+            val collected = mutableListOf<SuiteResult>()
+            try {
+                for (case in DecisionSuite.Cases) {
+                    currentCoroutineContext().ensureActive()
+                    val outcome = engine.decide(DecisionRequest(case.state, case.question))
+                    collected += SuiteResult(case, outcome)
+                    val snapshot = collected.toList()
+                    _uiState.update { state ->
+                        state.copy(
+                            suite =
+                                state.suite.copy(
+                                    completed = snapshot.size,
+                                    results = snapshot,
+                                    promptMs = snapshot.sumOf { it.outcome.timings.totalMs },
+                                ),
+                        )
+                    }
+                }
+
+                val completed = collected.toList()
+                val report =
+                    SuiteReport(
+                        runtimeLabel = RUNTIME_LABEL,
+                        backend = info.backend,
+                        window = info.defaultWindow,
+                        device = device,
+                        loadMs = info.totalLoadMs,
+                        tokenizerLoadMs = info.tokenizerLoadMs,
+                        graphLoadMs = info.graphLoadMs,
+                        batteryStart = batteryStart,
+                        batteryEnd = stats.battery(),
+                        startedAtEpochMs = startedAt,
+                        finishedAtEpochMs = stats.nowMs(),
+                        results = completed,
+                    )
+                _uiState.update {
+                    it.copy(
+                        suite =
+                            it.suite.copy(
+                                running = false,
+                                completed = completed.size,
+                                results = completed,
+                                promptMs = report.promptMs,
+                            ),
+                        report = report,
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                _uiState.update { it.copy(suite = it.suite.copy(running = false)) }
+                throw cancelled
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(
+                        suite = it.suite.copy(running = false),
+                        error = error.message ?: "suite failed",
+                    )
+                }
+            }
+        }
+    }
+
+    fun cancelSuite() {
+        suiteJob?.cancel()
+        _uiState.update { it.copy(suite = it.suite.copy(running = false)) }
+    }
+
+    /** Writes the report to Downloads and surfaces the location as a message. */
+    fun exportReport(format: ReportFormat) {
+        val report = _uiState.value.report ?: return
+        val stamp =
+            SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(report.finishedAtEpochMs))
+        val fileName = "${report.fileNameStem}-$stamp.${format.extension}"
+        val content =
+            when (format) {
+                ReportFormat.MARKDOWN -> SuiteReportFormat.markdown(report)
+                ReportFormat.JSON -> SuiteReportFormat.json(report)
+            }
+        exporter.export(fileName, format.mimeType, content)
+            .onSuccess { location -> _uiState.update { it.copy(message = "Saved $location") } }
+            .onFailure { error ->
+                _uiState.update { it.copy(message = error.message ?: "export failed") }
+            }
+    }
+
+    fun dismissMessage() = _uiState.update { it.copy(message = null) }
 
     // MARK: - Input
 
@@ -196,7 +323,8 @@ class DecisionViewModel(
     }
 
     override fun onCleared() {
-        decider?.close()
+        suiteJob?.cancel()
+        runCatching { decider?.close() }
         decider = null
         super.onCleared()
     }
@@ -213,8 +341,16 @@ class DecisionViewModel(
             }
         }
 
+    /** Drops the current engine off the main thread; the next [load] builds a fresh one. */
+    private fun releaseDecider() {
+        val previous = decider ?: return
+        decider = null
+        viewModelScope.launch(ioDispatcher) { runCatching { previous.close() } }
+    }
+
     private companion object {
         const val MIN_OPTIONS = 2
         const val MAX_OPTIONS = 20
+        const val RUNTIME_LABEL = "ONNX"
     }
 }

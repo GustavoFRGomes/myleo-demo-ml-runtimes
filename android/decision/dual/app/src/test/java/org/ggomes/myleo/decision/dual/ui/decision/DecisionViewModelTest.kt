@@ -9,14 +9,22 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.ggomes.myleo.decision.dual.FakeDecider
 import org.ggomes.myleo.decision.dual.FakeDownloader
+import org.ggomes.myleo.decision.dual.FakeExporter
+import org.ggomes.myleo.decision.dual.FakeStats
 import org.ggomes.myleo.decision.dual.binding
 import org.ggomes.myleo.decision.dual.data.DecisionRuntime
+import org.ggomes.myleo.decision.dual.data.JuliaJson
+import org.ggomes.myleo.decision.dual.data.SystemStatsProvider
 import org.ggomes.myleo.decision.dual.domain.Accelerator
+import org.ggomes.myleo.decision.dual.domain.BatterySample
 import org.ggomes.myleo.decision.dual.domain.Decider
 import org.ggomes.myleo.decision.dual.domain.DecisionPresets
+import org.ggomes.myleo.decision.dual.domain.DecisionSuite
 import org.ggomes.myleo.decision.dual.domain.QuestionType
+import org.ggomes.myleo.decision.dual.domain.ReportFormat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -38,12 +46,16 @@ class DecisionViewModelTest {
         onnx: () -> Decider? = { FakeDecider(onnxInfo) },
         litertDownloader: FakeDownloader = FakeDownloader(),
         onnxDownloader: FakeDownloader = FakeDownloader(),
+        stats: SystemStatsProvider = FakeStats(),
+        exporter: FakeExporter = FakeExporter(),
     ) = DecisionViewModel(
         bindings =
             mapOf(
                 DecisionRuntime.LITERT to binding(DecisionRuntime.LITERT, litert, litertDownloader),
                 DecisionRuntime.ONNX to binding(DecisionRuntime.ONNX, onnx, onnxDownloader),
             ),
+        stats = stats,
+        exporter = exporter,
         ioDispatcher = dispatcher,
     )
 
@@ -245,7 +257,7 @@ class DecisionViewModelTest {
     @Test
     fun selectRuntime_whileDeciding_isIgnored() = runTest {
         val gate = CompletableDeferred<Unit>()
-        val litertDecider = FakeDecider().apply { decideGate = gate }
+        val litertDecider = FakeDecider().apply { decideGate = gate; pauseAfter = 0 }
         val viewModel = viewModel(litert = { litertDecider })
         advanceUntilIdle()
 
@@ -259,6 +271,276 @@ class DecisionViewModelTest {
         assertThat(viewModel.uiState.value.runtime).isEqualTo(DecisionRuntime.LITERT)
         gate.complete(Unit)
         advanceUntilIdle()
+    }
+
+    // MARK: - Prompt suite
+
+    @Test
+    fun selectMode_switchesBetweenCustomAndSuite() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.selectMode(DecisionMode.SUITE)
+        assertThat(viewModel.uiState.value.mode).isEqualTo(DecisionMode.SUITE)
+        assertThat(viewModel.uiState.value.canRunSuite).isTrue()
+
+        viewModel.selectMode(DecisionMode.CUSTOM)
+        assertThat(viewModel.uiState.value.mode).isEqualTo(DecisionMode.CUSTOM)
+    }
+
+    @Test
+    fun runSuite_runsEveryPromptInOrderAndPublishesResults() = runTest {
+        val decider = FakeDecider()
+        val viewModel = viewModel(litert = { decider })
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+
+        viewModel.runSuite()
+        advanceUntilIdle()
+
+        val suite = viewModel.uiState.value.suite
+        assertThat(decider.requests).hasSize(18)
+        assertThat(decider.requests.map { it.state })
+            .containsExactlyElementsOf(DecisionSuite.Cases.map { it.state })
+        assertThat(decider.requests.map { it.question.instructions })
+            .containsExactlyElementsOf(DecisionSuite.Cases.map { it.question.instructions })
+        assertThat(suite.completed).isEqualTo(18)
+        assertThat(suite.total).isEqualTo(18)
+        assertThat(suite.results).hasSize(18)
+        assertThat(suite.results.map { it.case.id })
+            .containsExactlyElementsOf(DecisionSuite.Cases.map { it.id })
+        assertThat(suite.running).isFalse()
+        assertThat(suite.promptMs).isGreaterThan(0.0)
+        assertThat(viewModel.uiState.value.error).isNull()
+    }
+
+    @Test
+    fun runSuite_withoutALoadedModel_doesNothing() = runTest {
+        val decider = FakeDecider()
+        val viewModel = viewModel(litert = { null }, onnx = { null })
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+
+        viewModel.runSuite()
+        advanceUntilIdle()
+
+        assertThat(decider.requests).isEmpty()
+        assertThat(viewModel.uiState.value.suite.running).isFalse()
+        assertThat(viewModel.uiState.value.suite.completed).isZero()
+    }
+
+    @Test
+    fun selectMode_whileSuiteIsRunning_isIgnored() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val decider = FakeDecider().apply { decideGate = gate; pauseAfter = 0 }
+        val viewModel = viewModel(litert = { decider })
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+
+        viewModel.runSuite()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.suite.running).isTrue()
+
+        viewModel.selectMode(DecisionMode.CUSTOM)
+        assertThat(viewModel.uiState.value.mode).isEqualTo(DecisionMode.SUITE)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun cancelSuite_keepsCompletedResultsAndStops() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val decider = FakeDecider().apply { decideGate = gate; pauseAfter = 3 }
+        val viewModel = viewModel(litert = { decider })
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+
+        viewModel.runSuite()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.suite.results).hasSize(3)
+        assertThat(viewModel.uiState.value.suite.running).isTrue()
+
+        viewModel.cancelSuite()
+        assertThat(viewModel.uiState.value.suite.running).isFalse()
+        assertThat(viewModel.uiState.value.suite.results).hasSize(3)
+        gate.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun selectRuntime_duringSuite_isIgnoredUntilItStops() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val litertDecider = FakeDecider().apply { decideGate = gate; pauseAfter = 2 }
+        val viewModel = viewModel(litert = { litertDecider }, onnx = { FakeDecider(onnxInfo) })
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+
+        viewModel.runSuite()
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.suite.results).hasSize(2)
+
+        viewModel.selectRuntime(DecisionRuntime.ONNX)
+
+        // Same rule as a custom decision: tear-down waits until the in-flight prompt returns.
+        assertThat(viewModel.uiState.value.runtime).isEqualTo(DecisionRuntime.LITERT)
+        assertThat(viewModel.uiState.value.suite.running).isTrue()
+
+        viewModel.cancelSuite()
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.suite.running).isFalse()
+    }
+
+    // MARK: - Benchmark report
+
+    @Test
+    fun runSuite_producesABenchmarkReportWithPerformanceAndBattery() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+        viewModel.runSuite()
+        advanceUntilIdle()
+
+        val report = viewModel.uiState.value.reports.getValue(DecisionRuntime.LITERT)
+        assertThat(report.runtimeLabel).isEqualTo("LiteRT")
+        assertThat(report.backend).isEqualTo("GPU FP32")
+        assertThat(report.window).isEqualTo(512)
+        assertThat(report.device.manufacturer).isEqualTo("TestCorp")
+        assertThat(report.results).hasSize(18)
+        assertThat(report.promptMs).isGreaterThan(0.0)
+        assertThat(report.averageMs).isCloseTo(report.promptMs / 18, within(1e-9))
+        assertThat(report.wallMs).isEqualTo(8_000L)
+        assertThat(report.minMs).isLessThanOrEqualTo(report.maxMs)
+        assertThat(report.aggregate(QuestionType.CHOICE).count).isEqualTo(8)
+        assertThat(report.aggregate(QuestionType.SCORE).count).isEqualTo(5)
+        assertThat(report.aggregate(QuestionType.NOUL).count).isEqualTo(5)
+        assertThat(report.batteryStart.percent).isEqualTo(80)
+        assertThat(report.batteryEnd.percent).isEqualTo(79)
+        assertThat(report.chargeDeltaUah).isEqualTo(-1_000L)
+        assertThat(report.chargeDeltaMah).isCloseTo(-1.0, within(1e-9))
+    }
+
+    @Test
+    fun runSuite_keepsOneReportPerRuntimeForComparison() = runTest {
+        val stats =
+            FakeStats(
+                batterySamples =
+                    listOf(
+                        BatterySample(80, 2_000_000, -350_000, 31.5f),
+                        BatterySample(79, 1_990_000, -400_000, 32.0f),
+                        BatterySample(79, 1_990_000, -380_000, 32.2f),
+                        BatterySample(78, 1_985_000, -420_000, 32.4f),
+                    ),
+                timesMs = listOf(1_000L, 9_000L, 10_000L, 15_000L),
+            )
+        val viewModel = viewModel(stats = stats)
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+
+        viewModel.runSuite()
+        advanceUntilIdle()
+        viewModel.selectRuntime(DecisionRuntime.ONNX)
+        advanceUntilIdle()
+        viewModel.runSuite()
+        advanceUntilIdle()
+
+        val reports = viewModel.uiState.value.reports
+        assertThat(reports.keys).containsExactlyInAnyOrder(DecisionRuntime.LITERT, DecisionRuntime.ONNX)
+        assertThat(reports.getValue(DecisionRuntime.LITERT).backend).isEqualTo("GPU FP32")
+        assertThat(reports.getValue(DecisionRuntime.ONNX).backend).isEqualTo("CPU")
+        assertThat(reports.getValue(DecisionRuntime.ONNX).window).isEqualTo(1024)
+        // Switching back keeps both reports available for the comparison card.
+        viewModel.selectRuntime(DecisionRuntime.LITERT)
+        advanceUntilIdle()
+        assertThat(viewModel.uiState.value.reports).hasSize(2)
+    }
+
+    @Test
+    fun runSuite_newRunReplacesThatRuntimesReport() = runTest {
+        val stats =
+            FakeStats(
+                batterySamples =
+                    listOf(
+                        BatterySample(80, 2_000_000, -350_000, 31.5f),
+                        BatterySample(79, 1_990_000, -400_000, 32.0f),
+                        BatterySample(79, 1_990_000, -380_000, 32.2f),
+                        BatterySample(78, 1_985_000, -420_000, 32.4f),
+                    ),
+                timesMs = listOf(1_000L, 9_000L, 10_000L, 15_000L),
+            )
+        val viewModel = viewModel(stats = stats)
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+
+        viewModel.runSuite()
+        advanceUntilIdle()
+        val first = viewModel.uiState.value.reports.getValue(DecisionRuntime.LITERT)
+
+        viewModel.runSuite()
+        advanceUntilIdle()
+        val second = viewModel.uiState.value.reports.getValue(DecisionRuntime.LITERT)
+
+        assertThat(viewModel.uiState.value.reports).hasSize(1)
+        assertThat(second.startedAtEpochMs).isGreaterThan(first.startedAtEpochMs)
+    }
+
+    @Test
+    fun exportReport_writesMarkdownThenJsonWithTheReportContent() = runTest {
+        val exporter = FakeExporter()
+        val viewModel = viewModel(exporter = exporter)
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+        viewModel.runSuite()
+        advanceUntilIdle()
+
+        viewModel.exportReport(ReportFormat.MARKDOWN)
+        viewModel.exportReport(ReportFormat.JSON)
+
+        assertThat(exporter.calls).hasSize(2)
+        val (markdownName, markdownMime, markdown) = exporter.calls[0]
+        assertThat(markdownName).startsWith("julia-1-suite-litert-").endsWith(".md")
+        assertThat(markdownMime).isEqualTo("text/markdown")
+        assertThat(markdown).contains("# Julia-1 suite — LiteRT")
+        assertThat(markdown).contains("| multi-answer | 8 |")
+        assertThat(markdown).contains("## Prompts")
+
+        val (jsonName, jsonMime, json) = exporter.calls[1]
+        assertThat(jsonName).endsWith(".json")
+        assertThat(jsonMime).isEqualTo("application/json")
+        val root = JuliaJson.asObject(JuliaJson.parse(json))
+        assertThat(root["runtime"]).isEqualTo("LiteRT")
+        assertThat(root["backend"]).isEqualTo("GPU FP32")
+        assertThat(JuliaJson.asArray(root["prompts"])).hasSize(18)
+        val battery = JuliaJson.asObject(root["battery"])
+        assertThat((battery["chargeDeltaUah"] as Number).toLong()).isEqualTo(-1_000L)
+        assertThat(viewModel.uiState.value.message).contains("Saved Downloads/")
+    }
+
+    @Test
+    fun exportReport_failure_surfacesTheErrorMessage() = runTest {
+        val exporter = FakeExporter().apply { failWith(IllegalStateException("disk full")) }
+        val viewModel = viewModel(exporter = exporter)
+        advanceUntilIdle()
+        viewModel.selectMode(DecisionMode.SUITE)
+        viewModel.runSuite()
+        advanceUntilIdle()
+
+        viewModel.exportReport(ReportFormat.JSON)
+
+        assertThat(viewModel.uiState.value.message).contains("disk full")
+    }
+
+    @Test
+    fun exportReport_withoutAReport_doesNothing() = runTest {
+        val exporter = FakeExporter()
+        val viewModel = viewModel(exporter = exporter)
+        advanceUntilIdle()
+
+        viewModel.exportReport(ReportFormat.MARKDOWN)
+
+        assertThat(exporter.calls).isEmpty()
+        assertThat(viewModel.uiState.value.message).isNull()
     }
 
     // MARK: - Decide

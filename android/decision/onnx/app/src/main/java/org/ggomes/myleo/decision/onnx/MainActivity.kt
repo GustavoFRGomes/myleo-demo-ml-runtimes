@@ -7,9 +7,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import org.ggomes.myleo.decision.onnx.data.AndroidSystemStatsProvider
 import org.ggomes.myleo.decision.onnx.data.HttpFileSetDownloader
 import org.ggomes.myleo.decision.onnx.data.JuliaEngine
 import org.ggomes.myleo.decision.onnx.data.JuliaModelLocator
+import org.ggomes.myleo.decision.onnx.data.MediaStoreReportExporter
 import org.ggomes.myleo.decision.onnx.data.OnnxGraphRunner
 import org.ggomes.myleo.decision.onnx.ui.decision.DecisionScreen
 import org.ggomes.myleo.decision.onnx.ui.decision.DecisionViewModel
@@ -41,6 +43,8 @@ class MainActivity : ComponentActivity() {
                         files = JuliaModelLocator.DOWNLOAD,
                         directory = JuliaModelLocator.directory(context),
                     ),
+                stats = AndroidSystemStatsProvider(context),
+                exporter = MediaStoreReportExporter(context),
             ) as T
     }
 }

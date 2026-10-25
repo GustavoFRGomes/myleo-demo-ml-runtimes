@@ -37,14 +37,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 import org.ggomes.myleo.decision.dual.data.DecisionRuntime
 import org.ggomes.myleo.decision.dual.domain.DecisionFormat
 import org.ggomes.myleo.decision.dual.domain.DecisionOutcome
 import org.ggomes.myleo.decision.dual.domain.DecisionPresets
+import org.ggomes.myleo.decision.dual.domain.DecisionSuite
 import org.ggomes.myleo.decision.dual.domain.DecisionTimings
 import org.ggomes.myleo.decision.dual.domain.QuestionType
+import org.ggomes.myleo.decision.dual.domain.ReportFormat
+import org.ggomes.myleo.decision.dual.domain.SuiteCase
+import org.ggomes.myleo.decision.dual.domain.SuiteReport
+import org.ggomes.myleo.decision.dual.domain.SuiteResult
 
 /**
  * Julia-1 decision screen: download/load status, presets, an editable state + question list, and
@@ -66,50 +72,303 @@ fun DecisionScreen(viewModel: DecisionViewModel) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             RuntimePicker(state, viewModel::selectRuntime)
+            ModePicker(state, viewModel::selectMode)
             ModelCard(state, viewModel)
-            PresetRow(viewModel)
-            StateField(state.stateText, viewModel::onStateChange)
 
-            state.questions.forEachIndexed { index, draft ->
-                QuestionEditor(
-                    index = index,
-                    draft = draft,
-                    canRemove = state.questions.size > 1,
-                    viewModel = viewModel,
-                )
-            }
-            TextButton(onClick = viewModel::onAddQuestion) { Text("Add question") }
-
-            Button(
-                onClick = viewModel::decide,
-                enabled = state.canDecide,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (state.isDeciding) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Deciding…")
-                } else {
-                    Text(if (state.questions.size == 1) "Decide" else "Decide all ${state.questions.size}")
-                }
+            if (state.mode == DecisionMode.CUSTOM) {
+                CustomSection(state, viewModel)
+            } else {
+                SuiteSection(state, viewModel)
             }
 
             state.error?.let { message ->
                 Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
-
-            if (state.results.isEmpty() && !state.isDeciding && state.error == null) {
-                Text(
-                    "Julia-1 scores the options you supply in one forward pass — it does not write text. " +
-                        "Probabilities are the plain softmax at temperature 1.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            state.results.forEach { outcome -> ResultCard(outcome) }
         }
     }
 }
+
+// MARK: - Custom mode
+
+@Composable
+private fun CustomSection(state: DecisionUiState, viewModel: DecisionViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        PresetRow(viewModel)
+        StateField(state.stateText, viewModel::onStateChange)
+
+        state.questions.forEachIndexed { index, draft ->
+            QuestionEditor(
+                index = index,
+                draft = draft,
+                canRemove = state.questions.size > 1,
+                viewModel = viewModel,
+            )
+        }
+        TextButton(onClick = viewModel::onAddQuestion) { Text("Add question") }
+
+        Button(
+            onClick = viewModel::decide,
+            enabled = state.canDecide,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (state.isDeciding) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text("Deciding…")
+            } else {
+                Text(if (state.questions.size == 1) "Decide" else "Decide all ${state.questions.size}")
+            }
+        }
+
+        if (state.results.isEmpty() && !state.isDeciding) {
+            Text(
+                "Julia-1 scores the options you supply in one forward pass — it does not write text. " +
+                    "Probabilities are the plain softmax at temperature 1.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        state.results.forEach { outcome -> ResultCard(outcome) }
+    }
+}
+
+// MARK: - Suite mode
+
+@Composable
+private fun ModePicker(state: DecisionUiState, onSelect: (DecisionMode) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        DecisionMode.entries.forEach { mode ->
+            FilterChip(
+                selected = state.mode == mode,
+                onClick = { onSelect(mode) },
+                enabled = !state.isBusy,
+                label = {
+                    Text(
+                        if (mode == DecisionMode.CUSTOM) "Custom" else "Suite (${DecisionSuite.Cases.size})",
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuiteSection(state: DecisionUiState, viewModel: DecisionViewModel) {
+    val suite = state.suite
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Julia-1 prompt suite", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "${DecisionSuite.CHOICE_COUNT} multi-answer · ${DecisionSuite.SCORE_COUNT} score · " +
+                        "${DecisionSuite.NOUL_COUNT} yes/no. One forward pass per prompt, in order, " +
+                        "on ${state.runtime.label}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (suite.running || suite.results.isNotEmpty()) {
+                    LinearProgressIndicator(progress = { suite.fraction }, modifier = Modifier.fillMaxWidth())
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "${suite.completed} / ${suite.total} prompts",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (suite.running) {
+                            TextButton(onClick = viewModel::cancelSuite) { Text("Cancel") }
+                        }
+                    }
+                    if (!suite.running && suite.completed == suite.total) {
+                        Text(
+                            "Done · ${DecisionFormat.millis(suite.promptMs)} prompt time · " +
+                                "${DecisionFormat.millis(suite.averageMs)} average",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                if (!suite.running) {
+                    Button(
+                        onClick = viewModel::runSuite,
+                        enabled = state.canRunSuite,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (suite.completed == 0) "Run ${suite.total} prompts" else "Run again")
+                    }
+                }
+            }
+        }
+
+        state.reports[state.runtime]?.let { report ->
+            ReportCard(report, onExport = viewModel::exportReport)
+        }
+        if (state.reports.size > 1) {
+            ComparisonCard(state.reports)
+        }
+        state.message?.let { message ->
+            Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+        }
+
+        QuestionType.entries.forEach { group ->
+            val cases = DecisionSuite.of(group)
+            Text("${groupLabel(group)} (${cases.size})", style = MaterialTheme.typography.titleSmall)
+            cases.forEach { case ->
+                SuiteCaseCard(case, suite.results.firstOrNull { it.case.id == case.id })
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuiteCaseCard(case: SuiteCase, result: SuiteResult?) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                case.state,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(case.question.instructions, style = MaterialTheme.typography.bodyMedium)
+            if (result == null) {
+                Text(
+                    "not run",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        DecisionFormat.headline(result.outcome),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(DecisionFormat.millis(result.outcome.timings.totalMs), style = MaterialTheme.typography.bodySmall)
+                }
+                Text(
+                    "${result.outcome.window} window · ${result.outcome.tokenCount} tokens · " +
+                        result.outcome.accelerator.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private fun groupLabel(type: QuestionType): String =
+    when (type) {
+        QuestionType.CHOICE -> "Multi-answer"
+        QuestionType.SCORE -> "Score"
+        QuestionType.NOUL -> "Yes/no"
+    }
+
+// MARK: - Benchmark report
+
+@Composable
+private fun ReportCard(report: SuiteReport, onExport: (ReportFormat) -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Benchmark · ${report.runtimeLabel}",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(report.backend, style = MaterialTheme.typography.labelMedium)
+            }
+            Text(
+                "${report.device.manufacturer} ${report.device.model} · Android ${report.device.osVersion} · " +
+                    "window ${report.window}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "Prompts ${report.results.size} · ${DecisionFormat.millis(report.promptMs)} prompt time · " +
+                    "${DecisionFormat.millis(report.averageMs)} avg · " +
+                    "${DecisionFormat.millis(report.minMs)}–${DecisionFormat.millis(report.maxMs)}",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "Wall ${DecisionFormat.millis(report.wallMs.toDouble())} · " +
+                    "load ${DecisionFormat.millis(report.loadMs)} " +
+                    "(tokenizer ${DecisionFormat.millis(report.tokenizerLoadMs)} · " +
+                    "graph ${DecisionFormat.millis(report.graphLoadMs)})",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(batteryLine(report), style = MaterialTheme.typography.bodySmall)
+            HorizontalDivider()
+            report.aggregates.forEach { aggregate ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        groupLabel(aggregate.type),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "${aggregate.count} prompts · avg ${DecisionFormat.millis(aggregate.averageMs)}",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+            HorizontalDivider()
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { onExport(ReportFormat.MARKDOWN) }) { Text("Export Markdown") }
+                TextButton(onClick = { onExport(ReportFormat.JSON) }) { Text("Export JSON") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComparisonCard(reports: Map<DecisionRuntime, SuiteReport>) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Runtime comparison", style = MaterialTheme.typography.titleMedium)
+            reports.entries.sortedBy { it.key.ordinal }.forEach { (runtime, report) ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        runtime.label,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "${report.backend} · ${DecisionFormat.millis(report.averageMs)} avg · " +
+                            chargeText(report),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun batteryLine(report: SuiteReport): String {
+    val percent = "${report.batteryStart.percent ?: "?"}% → ${report.batteryEnd.percent ?: "?"}%"
+    val delta = report.chargeDeltaMah
+    val charge =
+        if (delta == null) {
+            "charge counter unavailable"
+        } else {
+            String.format(Locale.US, "charge Δ %.3f mAh", delta)
+        }
+    val current =
+        report.batteryEnd.currentNowUa?.let {
+            String.format(Locale.US, " · %.0f mA at end", it / 1000.0)
+        } ?: ""
+    return "Battery $percent · $charge$current"
+}
+
+private fun chargeText(report: SuiteReport): String =
+    report.chargeDeltaMah?.let { String.format(Locale.US, "Δ %.3f mAh", it) } ?: "charge n/a"
 
 // MARK: - Runtime picker
 
@@ -121,7 +380,7 @@ private fun RuntimePicker(state: DecisionUiState, onSelect: (DecisionRuntime) ->
                 FilterChip(
                     selected = runtime == state.runtime,
                     onClick = { onSelect(runtime) },
-                    enabled = !state.isDeciding && state.status !is ModelStatus.Loading,
+                    enabled = !state.isBusy && state.status !is ModelStatus.Loading,
                     label = { Text(runtime.label) },
                 )
             }

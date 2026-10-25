@@ -6,17 +6,29 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.ggomes.myleo.decision.dual.data.DecisionRuntime
+import org.ggomes.myleo.decision.dual.data.ReportExporter
 import org.ggomes.myleo.decision.dual.data.RuntimeBinding
+import org.ggomes.myleo.decision.dual.data.SystemStatsProvider
 import org.ggomes.myleo.decision.dual.domain.Decider
 import org.ggomes.myleo.decision.dual.domain.DecisionPreset
 import org.ggomes.myleo.decision.dual.domain.DecisionRequest
+import org.ggomes.myleo.decision.dual.domain.DecisionSuite
 import org.ggomes.myleo.decision.dual.domain.QuestionType
+import org.ggomes.myleo.decision.dual.domain.ReportFormat
+import org.ggomes.myleo.decision.dual.domain.SuiteReport
+import org.ggomes.myleo.decision.dual.domain.SuiteReportFormat
+import org.ggomes.myleo.decision.dual.domain.SuiteResult
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Decision screen ViewModel (MVVM) shared by both runtimes: package download, model load,
@@ -31,6 +43,8 @@ import org.ggomes.myleo.decision.dual.domain.QuestionType
 class DecisionViewModel(
     private val bindings: Map<DecisionRuntime, RuntimeBinding>,
     startupRuntime: DecisionRuntime = bindings.keys.first(),
+    private val stats: SystemStatsProvider,
+    private val exporter: ReportExporter,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
@@ -44,6 +58,7 @@ class DecisionViewModel(
     private var loadJob: Job? = null
     private var downloadJob: Job? = null
     private var decideJob: Job? = null
+    private var suiteJob: Job? = null
 
     private fun binding(): RuntimeBinding = bindings.getValue(_uiState.value.runtime)
 
@@ -51,14 +66,24 @@ class DecisionViewModel(
         load()
     }
 
+    // MARK: - Mode
+
+    /** Switches between the editable request and the fixed prompt suite. */
+    fun selectMode(mode: DecisionMode) {
+        val state = _uiState.value
+        if (mode == state.mode || state.isBusy) return
+        _uiState.update { it.copy(mode = mode, error = null, message = null) }
+    }
+
     // MARK: - Runtime selection
 
     fun selectRuntime(runtime: DecisionRuntime) {
         val state = _uiState.value
         if (runtime == state.runtime) return
-        // Don't tear a runtime down mid-load or mid-decision; the picker is disabled then.
-        if (state.isDeciding || state.status is ModelStatus.Loading) return
+        // Don't tear a runtime down mid-load, mid-decision or mid-suite; pickers are disabled then.
+        if (state.isBusy || state.status is ModelStatus.Loading) return
         downloadJob?.cancel()
+        suiteJob?.cancel()
         releaseDecider()
         _uiState.value =
             state.copy(
@@ -67,8 +92,10 @@ class DecisionViewModel(
                 download = DownloadState.Idle,
                 hasFiles = false,
                 results = emptyList(),
+                suite = SuiteProgress(),
                 isDeciding = false,
                 error = null,
+                message = null,
             )
         load()
     }
@@ -143,6 +170,124 @@ class DecisionViewModel(
         downloadJob?.cancel()
         _uiState.update { it.copy(download = DownloadState.Idle) }
     }
+
+    // MARK: - Prompt suite
+
+    /** Runs the 18 built-in prompts in order on the active runtime, publishing each answer. */
+    fun runSuite() {
+        val current = _uiState.value
+        if (!current.canRunSuite) return
+        val engine = decider ?: return
+        val runtime = current.runtime
+        val info = (current.status as ModelStatus.Ready).info
+        val device = stats.device()
+        val batteryStart = stats.battery()
+        val startedAt = stats.nowMs()
+
+        _uiState.update {
+            it.copy(
+                suite = SuiteProgress(running = true),
+                reports = it.reports - runtime,
+                error = null,
+                message = null,
+            )
+        }
+        suiteJob = viewModelScope.launch(ioDispatcher) {
+            val collected = mutableListOf<SuiteResult>()
+            try {
+                for (case in DecisionSuite.Cases) {
+                    currentCoroutineContext().ensureActive()
+                    val outcome = engine.decide(DecisionRequest(case.state, case.question))
+                    collected += SuiteResult(case, outcome)
+                    val snapshot = collected.toList()
+                    _uiState.update { state ->
+                        if (state.runtime != runtime) {
+                            state
+                        } else {
+                            state.copy(
+                                suite =
+                                    state.suite.copy(
+                                        completed = snapshot.size,
+                                        results = snapshot,
+                                        promptMs = snapshot.sumOf { it.outcome.timings.totalMs },
+                                    ),
+                            )
+                        }
+                    }
+                }
+
+                val completed = collected.toList()
+                val report =
+                    SuiteReport(
+                        runtimeLabel = runtime.label,
+                        backend = info.backend,
+                        window = info.defaultWindow,
+                        device = device,
+                        loadMs = info.totalLoadMs,
+                        tokenizerLoadMs = info.tokenizerLoadMs,
+                        graphLoadMs = info.graphLoadMs,
+                        batteryStart = batteryStart,
+                        batteryEnd = stats.battery(),
+                        startedAtEpochMs = startedAt,
+                        finishedAtEpochMs = stats.nowMs(),
+                        results = completed,
+                    )
+                _uiState.update { state ->
+                    if (state.runtime != runtime) {
+                        state
+                    } else {
+                        state.copy(
+                            suite =
+                                state.suite.copy(
+                                    running = false,
+                                    completed = completed.size,
+                                    results = completed,
+                                    promptMs = report.promptMs,
+                                ),
+                            reports = state.reports + (runtime to report),
+                        )
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                _uiState.update { it.copy(suite = it.suite.copy(running = false)) }
+                throw cancelled
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(
+                        suite = it.suite.copy(running = false),
+                        error = error.message ?: "suite failed",
+                    )
+                }
+            }
+        }
+    }
+
+    /** Stops the suite after the current prompt; results already collected stay on screen. */
+    fun cancelSuite() {
+        suiteJob?.cancel()
+        _uiState.update { it.copy(suite = it.suite.copy(running = false)) }
+    }
+
+    /** Writes the current runtime's report to Downloads and surfaces the location as a message. */
+    fun exportReport(format: ReportFormat) {
+        val state = _uiState.value
+        val report = state.reports[state.runtime] ?: return
+        val stamp =
+            SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(report.finishedAtEpochMs))
+        val fileName = "${report.fileNameStem}-$stamp.${format.extension}"
+        val content =
+            when (format) {
+                ReportFormat.MARKDOWN -> SuiteReportFormat.markdown(report)
+                ReportFormat.JSON -> SuiteReportFormat.json(report)
+            }
+        exporter.export(fileName, format.mimeType, content)
+            .onSuccess { location -> _uiState.update { it.copy(message = "Saved $location") } }
+            .onFailure { error ->
+                _uiState.update { it.copy(message = error.message ?: "export failed") }
+            }
+    }
+
+    fun dismissMessage() = _uiState.update { it.copy(message = null) }
 
     // MARK: - Input
 
@@ -244,6 +389,7 @@ class DecisionViewModel(
     }
 
     override fun onCleared() {
+        suiteJob?.cancel()
         runCatching { decider?.close() }
         decider = null
         super.onCleared()
