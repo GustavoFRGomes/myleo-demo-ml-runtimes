@@ -17,6 +17,7 @@ android/llm/litert-lm/         # Android chat inference with LiteRT-LM (MediaPip
 android/llm/onnx-genai/        # Android chat inference with ONNX Runtime GenAI
 android/llm/dual/              # Android chat inference dual runtime (LiteRT-LM + ONNX GenAI)
 android/decision/litert/       # Android structured decisions (Julia-1) with LiteRT
+android/decision/onnx/         # Android structured decisions (Julia-1) with ONNX Runtime
 ```
 
 `decision/` exists on Android only for now (no iOS leaf). `coreml/` exists on iOS only. Never create `android/**/coreml/`. Android has no Core ML equivalent.
@@ -122,6 +123,7 @@ Reference template: `android/vector-search/litert/` — Android Studio **Activit
 | `android/llm/dual/` | `org.ggomes.myleo.llm.dual` | `MyLeo LLM Dual` | `MyLeoLlmDualTheme` | `Theme.MyLeoLlmDual` | `MyLeo LLM Dual` |
 | `android/vector-search/dual/` | `org.ggomes.myleo.vectorsearch.dual` | `MyLeo VS Dual` | `MyLeoVsDualTheme` | `Theme.MyLeoVsDual` | `MyLeo VS Dual` |
 | `android/decision/litert/` | `org.ggomes.myleo.decision.litert` | `MyLeo Decision LiteRT` | `MyLeoDecisionLitertTheme` | `Theme.MyLeoDecisionLitert` | `MyLeo Decision LiteRT` |
+| `android/decision/onnx/` | `org.ggomes.myleo.decision.onnx` | `MyLeo Decision ONNX` | `MyLeoDecisionOnnxTheme` | `Theme.MyLeoDecisionOnnx` | `MyLeo Decision ONNX` |
 
 - When cloning the template to a new Android variant: copy `.gitignore`, `app/`, `build.gradle.kts`, `gradle.properties`, `gradle/`, `gradlew`, `gradlew.bat`, `settings.gradle.kts`. **Never copy** `.gradle/`, `.idea/`, `build/`, or `local.properties`. Preserve the target's existing `README.md`. Then move the three `org/ggomes/myleolite` source roots (`app/src/main`, `app/src/androidTest`, `app/src/test`) to the new package path and replace: package + imports in all `*.kt`, `namespace` + `applicationId` in `app/build.gradle.kts`, `rootProject.name` in `settings.gradle.kts`, `app_name` in `res/values/strings.xml`, style in `res/values/themes.xml` + `AndroidManifest.xml` (both `application` and `activity` theme attrs), theme composable fn name, and the `assertEquals(<package>)` in `ExampleInstrumentedTest.kt`.
 - Android MVVM: keep `MainActivity` thin (edge-to-edge + `setContent` only). Screen state lives in a `ViewModel` exposed as `StateFlow`; inference SDK access goes through a `Repository` interface. Compose screens observe state only.
@@ -150,7 +152,7 @@ Same area = same features everywhere. Only the runtime SDK, model format, and de
 
 Parity notes: `coreml` leafs are iOS-only but must still implement the full area contract. Runtime-only extras (e.g. a delegate toggle, NNAPI/GPU selector) are allowed but must be documented in that leaf's `README.md` and must not remove contract features.
 
-### Decision — every `*/decision/*` leaf (Android `litert`)
+### Decision — every `*/decision/*` leaf (Android `litert`/`onnx`)
 
 - F-DEC-1: Request = state text + question type (`choice` / `score` / `noul`) + 2–20 ordered options; strict encoding (reject over-long requests, never truncate).
 - F-DEC-2: Tokenize, build the marker sequence (`<mask>` before each option), gather host-side embeddings where the runtime requires it, run **one** forward pass; probabilities = softmax over the marker logits at temperature 1.
@@ -159,7 +161,7 @@ Parity notes: `coreml` leafs are iOS-only but must still implement the full area
 - F-DEC-5: UI: state field, question/type/options editor, presets, probability bars per option, error/empty states. Android = Compose.
 - Accelerator rule: GPU must request **FP32** explicitly; if the device cannot compile it, fall back to CPU and report which backend ran. No fp16 and no NPU path (fp16 changes the answers).
 
-Parity notes: Julia-1 ships per runtime (`.tflite` + host token table for LiteRT, `.onnx` for ONNX); a new leaf must implement F-DEC-1…5, not a subset. `android/decision/litert` is the first leaf, so the area currently has no parity gap.
+Parity notes: Julia-1 ships per runtime (`.tflite` + host token table for LiteRT, `.onnx` with the table in-graph for ONNX); both leaves implement F-DEC-1…5 and, with the same tokenizer, accept identical token ids for the same request. Accelerated backends differ by runtime and must be documented: LiteRT runs GPU FP32 with CPU fallback, ONNX is CPU-only (the published export targets browser WebGPU and no Android EP is validated).
 
 ## Testing (must follow, once code is requested)
 
