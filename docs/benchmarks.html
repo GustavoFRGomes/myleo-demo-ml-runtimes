@@ -358,7 +358,9 @@
     "model": "Julia-1",
     "loadMs": 2670,
     "msPerPrompt": 476.4,
-    "note": "18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX."
+    "note": "18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX.",
+    "powerW": 4.59,
+    "mjPerPrompt": 2033.3
   },
   {
     "platform": "iOS",
@@ -369,7 +371,9 @@
     "model": "Julia-1",
     "loadMs": 3032,
     "msPerPrompt": 36.8,
-    "note": "18-prompt suite; window 1024; 26.7-53.8 ms; ~13x faster than LiteRT."
+    "note": "18-prompt suite; window 1024; 26.7-53.8 ms; ~13x faster than LiteRT.",
+    "powerW": 5.27,
+    "mjPerPrompt": 136.0
   }
 ]
 </script>
@@ -388,6 +392,7 @@
     { key: "msPerChunk", label: "Embedding per chunk",      unit: "ms",    better: "lower" },
     { key: "mjPerChunk", label: "Energy per chunk",         unit: "mJ",    better: "lower" },
     { key: "msPerPrompt",label: "Decision per prompt",      unit: "ms",    better: "lower" },
+    { key: "mjPerPrompt",label: "Energy per decision",      unit: "mJ",    better: "lower" },
     { key: "pssMb",      label: "Memory (PSS)",             unit: "MB",    better: "lower" }
   ];
   var METRIC_BY_KEY = {};

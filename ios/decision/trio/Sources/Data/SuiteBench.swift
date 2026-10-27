@@ -19,7 +19,14 @@ enum SuiteBench {
 
     static func run() async {
         UIDevice.current.isBatteryMonitoringEnabled = true
-        for runtime in [DecisionRuntime.litert, .onnx] {
+        let repeats = max(1, Int(ProcessInfo.processInfo.arguments
+            .firstIndex(of: "--suite-repeats").map { $0 + 1 }
+            .flatMap { $0 < ProcessInfo.processInfo.arguments.count ? ProcessInfo.processInfo.arguments[$0] : nil } ?? "") ?? 1)
+        let only = ProcessInfo.processInfo.arguments
+            .firstIndex(of: "--suite-runtime").map { $0 + 1 }
+            .flatMap { $0 < ProcessInfo.processInfo.arguments.count ? ProcessInfo.processInfo.arguments[$0] : nil }
+        let lanes: [DecisionRuntime] = only == "onnx" ? [.onnx] : only == "litert" ? [.litert] : [.litert, .onnx]
+        for runtime in lanes {
             do {
                 let engine = try await TrioBench.makeEngine(runtime)
                 let info = try await engine.load()
@@ -28,14 +35,14 @@ enum SuiteBench {
                 let state = batteryState()
                 var results: [SuiteResult] = []
 
-                for item in DecisionSuite.cases {
-                    let request = try DecisionRequest(state: item.state, question: item.question)
-                    let outcome = try await engine.decide(request)
-                    results.append(SuiteResult(item: item, outcome: outcome))
-                    print(String(format: "SUITE|runtime=%@|id=%@|ms=%.2f|answer=%@",
-                                 runtime.rawValue, item.id, outcome.timings.totalMs,
-                                 answer(outcome)))
+                for _ in 1...repeats {
+                    for item in DecisionSuite.cases {
+                        let request = try DecisionRequest(state: item.state, question: item.question)
+                        let outcome = try await engine.decide(request)
+                        results.append(SuiteResult(item: item, outcome: outcome))
+                    }
                 }
+                print("SUITE|runtime=\(runtime.rawValue)|prompts=\(results.count)|repeats=\(repeats)")
 
                 let finished = Date()
                 let report = SuiteReport(

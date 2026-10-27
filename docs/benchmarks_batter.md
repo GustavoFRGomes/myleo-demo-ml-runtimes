@@ -83,6 +83,26 @@ Energy converted with the SE 3 pack: **2018 mAh, 3.86 V nominal**.
 - `%`-based battery deltas are not usable at this run length; the in-app fields are still
   recorded (`batteryStartPct`, `batteryDeltaPct`, `energyMWhEstimate`) for long runs.
 
+## Decision suite (iOS, iPhone 15 Pro)
+
+The 18-prompt decision suite is far too short to move the iOS battery gauge: 4× the suite is
+36 s on LiteRT and 3 s on ONNX, and the in-app reading stayed **80% → 80%** in both cases.
+iOS does not expose battery current or wattage to apps, so a percentage delta is the only
+battery-level signal available — and it is quantised in ~5% steps, i.e. useless at this length.
+
+The energy figures below come from `xctrace` **Power Profiler** attached to the run
+(`SystemPowerLevel`, mean %/hour), converted with the SE/15 Pro-class pack assumption
+(2018 mAh, 3.86 V). They are model-based, not a meter.
+
+| Lane (4× suite = 72 prompts) | Wall | mean %/hr | ≈ power | Energy | ≈ per prompt |
+|---|---:|---:|---:|---:|---:|
+| LiteRT CPU (window 512) | 36.4 s | 58.9 | 4.6 W | 146 J | **2033 mJ** |
+| ONNX CPU (window 1024) | 3.0 s | 67.6 | 5.3 W | 10 J | **136 mJ** |
+
+Caveats: the ONNX window is only ~2 s of samples (three points), so its figure is indicative;
+LiteRT's is the more reliable of the two. The per-prompt energy tracks the 13× speed gap almost
+exactly — the runtimes draw similar power but ONNX spends far less time doing it.
+
 ## Reproduce
 
 Android vector search:
