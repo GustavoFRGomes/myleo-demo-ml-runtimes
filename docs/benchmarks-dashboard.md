@@ -5,6 +5,15 @@ search / Decision), device filter, metric selector (tok/s, TTFT, load, power, en
 token/chunk, embed ms, decision ms, PSS), a sorted bar chart, a head-to-head card and the full
 table. No network calls, no CDN, no build step.
 
+Two collapsible panels sit above and below the chart:
+
+- **Methodology — what ran** (open by default): the model, prompt/corpus/suite and parameters for
+  the selected area, plus the iOS and Android device notes for the selected platform(s). It
+  follows the platform and area selectors.
+- **Notes & quirks for this selection** (collapsed): platform/runtime caveats and the per-row
+  notes, filtered to the current selection. A runtime quirk only appears when that runtime is in
+  the filtered rows, so e.g. the Core ML note is absent unless Core ML is on screen.
+
 Current contents: **19 rows** across Android and iOS, covering LLM, vector search and the
 Julia-1 decision suite. The dashboard is the interactive view of the Markdown tables and must
 be updated whenever a benchmark is documented.

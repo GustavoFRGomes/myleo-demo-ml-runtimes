@@ -58,6 +58,15 @@
   .empty { color: var(--muted); padding: 18px; }
   .actions { display:flex; gap:10px; flex-wrap:wrap; }
   a { color: var(--accent); }
+
+  details.panel { border:1px solid var(--line); border-radius:10px; margin-top:14px; padding:0 12px; }
+  details.panel > summary { cursor:pointer; padding:10px 0; font-weight:600; font-size:14px; }
+  details.panel[open] > summary { border-bottom:1px solid var(--line); margin-bottom:10px; }
+  details.panel h4 { margin:12px 0 4px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  details.panel p, details.panel li { font-size:13px; color:var(--fg); }
+  details.panel ul { margin:4px 0 8px 18px; padding:0; }
+  details.panel li { margin:3px 0; }
+  details.panel code { font-size:12px; }
 </style>
 </head>
 <body>
@@ -105,6 +114,11 @@
     </div>
   </section>
 
+  <details class="panel" id="method" open>
+    <summary>Methodology — what ran</summary>
+    <div id="method-body"></div>
+  </details>
+
   <p class="hint" id="hint" aria-live="polite"></p>
 
   <section class="chart-wrap" aria-label="Bar chart">
@@ -112,6 +126,11 @@
     <div class="legend"><span><i class="dot" style="background:var(--android)"></i>Android</span>
       <span><i class="dot" style="background:var(--ios)"></i>iOS</span></div>
   </section>
+
+  <details class="panel" id="quirks">
+    <summary>Notes &amp; quirks for this selection</summary>
+    <div id="quirks-body"></div>
+  </details>
 
   <section>
     <h2 style="font-size:18px;margin:0 0 10px">Head to head</h2>
@@ -400,6 +419,26 @@
 
   var state = { platform: "All", area: "LLM", device: "All", metric: "tokPerSec", order: "best" };
 
+  // Selection-aware notes. `runtime` is optional: a note without it applies to the whole
+  // platform/area; one with it appears only when that runtime is in the filtered rows.
+  var QUIRKS = [
+    { platform: "iOS", area: "LLM", text: "Power figures come from xctrace Power Profiler (model-based, display included). The battery gauge is quantised (~5%) and cannot resolve a single run." },
+    { platform: "iOS", area: "LLM", runtime: "LiteRT-LM", text: "The GPU cell is verified Metal (device log: name=GPU Metal, both graphs delegated); only the sampler runs on the CPU." },
+    { platform: "iOS", area: "LLM", runtime: "LiteRT-LM", text: "The first process ever to touch the bundle pays Metal pipeline compilation (5.6 s load, 959 ms TTFT); later cold launches settle at ~1.2 s / 360 ms." },
+    { platform: "iOS", area: "LLM", runtime: "ONNX GenAI", text: "Runs the same anydaytv int4 package as the Android ONNX leaf; ORT GenAI loads it CPU-only." },
+    { platform: "iOS", area: "LLM", runtime: "Core ML", text: "128-token stateless window with no KV cache: every token re-runs 128 positions and reads a 130,560-wide logits row. 2 tok/s is structural, not a missing ANE." },
+    { platform: "Android", area: "LLM", runtime: "LiteRT-LM", text: "GPU keeps a pinned ~1.37 GB graphics copy; load is ~2.9 s versus ~0.3 s on CPU, and decode is at parity on this 1B bundle." },
+    { platform: "Android", area: "LLM", runtime: "ONNX GenAI", text: "CPU only: WebGPU was measured and rejected (71.5 tok/s and 3.14 GB versus 91.3 tok/s and 834 MB on CPU)." },
+    { platform: "iOS", area: "Vector search", text: "Per-chunk embedding is CPU-only; the Core ML execution plan is compiled at load, which is why Core ML loads slowest but embeds fastest." },
+    { platform: "Android", area: "Vector search", text: "ONNX WebGPU is ~1.7x faster and uses 2-3x less energy per chunk than CPU; the charge counter moves in ~4.9 mAh steps, so treat cell values as +/-1 step." },
+    { platform: "iOS", area: "Decision", text: "Both lanes are CPU-only. TFLite Metal (fp32 and fp16) and the Core ML delegate all fail to create an interpreter for this graph; LiteRT 2.3's Metal accelerator does not register." },
+    { platform: "iOS", area: "Decision", text: "Battery is not measurable: iOS exposes no current/wattage API, the gauge did not move (80% to 80%), and the suite is seconds long. Energy comes from Power Profiler with repeated runs." },
+    { platform: "iOS", area: "Decision", runtime: "ONNX", text: "Uses the ONNX Runtime C API because the ObjC wrapper has no bool tensor, and this graph's marker_mask is tensor(bool)." },
+    { platform: "Android", area: "Decision", runtime: "LiteRT", text: "GPU FP32 lane; fp16 is not offered because it changes the answers. CPU fallback is reported when the GPU compile fails." },
+    { platform: "Android", area: "Decision", runtime: "ONNX", text: "CPU only; the published export targets browser WebGPU and no Android execution provider is validated for this graph." }
+  ];
+
+
   var $ = function (id) { return document.getElementById(id); };
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -584,6 +623,75 @@
     if (!rows.length) $("table").innerHTML = "<tbody><tr><td class='empty'>No rows.</td></tr></tbody>";
   }
 
+
+  function renderNotes() {
+    var rows = filtered();
+    var area = state.area;
+    var platforms = state.platform === "All"
+      ? Array.from(new Set(rows.map(function (r) { return r.platform; })))
+      : [state.platform];
+    var runtimes = new Set(rows.map(function (r) { return r.platform + ":" + r.area + ":" + r.runtime; }));
+
+    var method = "";
+    if (area === "LLM") {
+      method += "<h4>What ran</h4><p><strong>MiniCPM5-1B</strong> chat inference, one turn per cold launch. " +
+        "Prompt: <em>“Explain how a refrigerator works in detail.”</em> No system prompt. " +
+        "Params: temperature 0.8, top-k 40, top-p 0.95, max 512. " +
+        "Reported: model load, TTFT, decode tok/s over the decode window only.</p>";
+      method += "<h4>Formats</h4><ul>" +
+        "<li>LiteRT-LM: <code>.litertlm</code> W4 block-32 / W8, 793 MB (1024-token bundle context).</li>" +
+        "<li>ONNX GenAI: int4 <code>anydaytv/minicpm5-1b-onnx-int4</code>, 1.43 GB, CPU.</li>" +
+        "<li>Core ML: 4-bit <code>.mlpackage</code>, 602 MB, fixed 128-token window.</li></ul>";
+    } else if (area === "Vector search") {
+      method += "<h4>What ran</h4><p><strong>MiniLM-L6-v2</strong> embeddings, same checkpoint in every " +
+        "format. Ingest a fixed corpus of Enron email chunks, embed each chunk, index with cosine " +
+        "similarity, then one query. Reported: model load and embed ms per chunk.</p>";
+      method += "<h4>Devices</h4><p>Android measurements in this area are split between SM-S948B and " +
+        "SM-S938B; the device column is authoritative.</p>";
+    } else {
+      method += "<h4>What ran</h4><p><strong>Julia-1</strong> decision model: state text + typed question " +
+        "(<code>choice</code> / <code>score</code> / <code>noul</code>) + 2–20 options → one probability per " +
+        "option from a single forward pass. No streaming, no chat.</p>";
+      method += "<h4>iOS suite</h4><p>18 fixed prompts (8 multi-answer, 5 ordered score, 5 yes/no). " +
+        "Encoding is strict: a request that does not fit the window is rejected, never truncated.</p>";
+      method += "<h4>Formats</h4><ul>" +
+        "<li>LiteRT: <code>julia1_s512_fp32.tflite</code> + 196 MB fp16 token table (window 512).</li>" +
+        "<li>ONNX: <code>model.onnx</code> + external weights with the token table in-graph (window 1024).</li></ul>";
+    }
+    if (platforms.indexOf("iOS") >= 0) {
+      method += "<h4>iOS device</h4><p>Results are from iPhone SE 3 (vector search, earlier LLM runs) or " +
+        "iPhone 15 Pro (decision, later LLM runs); the device column is authoritative. Battery/energy " +
+        "figures are estimates, never meter readings.</p>";
+    }
+    if (platforms.indexOf("Android") >= 0) {
+      method += "<h4>Android device</h4><p>SM-S948B for the original tables and SM-S938B for the " +
+        "ONNX WebGPU/energy work and the decision suite. Power comes from the charge counter and " +
+        "batterystats; there is no root, so no direct current reading.</p>";
+    }
+    document.getElementById("method-body").innerHTML = method;
+
+    var relevant = QUIRKS.filter(function (q) {
+      if (platforms.indexOf(q.platform) < 0) return false;
+      if (q.area && q.area !== area) return false;
+      if (q.runtime && !runtimes.has(q.platform + ":" + area + ":" + q.runtime)) return false;
+      return true;
+    });
+    var html = "";
+    if (relevant.length) {
+      html += "<h4>Runtime and platform quirks</h4><ul>" +
+        relevant.map(function (q) { return "<li><strong>" + q.platform + " · " + (q.runtime || area) +
+          ":</strong> " + q.text + "</li>"; }).join("") + "</ul>";
+    }
+    var perRow = rows.filter(function (r) { return r.note; });
+    if (perRow.length) {
+      html += "<h4>This selection</h4><ul>" + perRow.map(function (r) {
+        return "<li><strong>" + r.runtime + " · " + r.backend + " · " + r.device + ":</strong> " + r.note + "</li>";
+      }).join("") + "</ul>";
+    }
+    if (!html) html = "<p>No notes for this selection.</p>";
+    document.getElementById("quirks-body").innerHTML = html;
+  }
+
   function renderAll() {
     renderPlatform();
     renderDevices();
@@ -592,6 +700,7 @@
     renderPickers();
     renderH2H();
     renderTable();
+    renderNotes();
   }
 
   // ---------- downloads ----------
