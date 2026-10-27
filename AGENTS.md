@@ -210,7 +210,10 @@ corrected number — update the dashboard in the **same change**:
 1. append or replace the row in the `<script id="bench-data" type="application/json">` block of
    `docs/benchmarks.html` (one object per measured row, device included);
 2. regenerate `docs/benchmarks-data.csv` from that block;
-3. re-render `docs/benchmarks-dashboard.png` (headless Chrome).
+3. re-render `docs/benchmarks-dashboard.png` (headless Chrome);
+4. regenerate `docs/standalone-benchmarks.html` with
+   `python3 docs/tools/standalone_benchmarks.py` (script-free single-file snapshot of the same
+   rows, used when the page must travel without its CSV/PNG siblings).
 
 Commands and the CSV snippet live in `docs/benchmarks-dashboard.md` → *Update the numbers*.
 A benchmark change that leaves the dashboard stale is incomplete.
