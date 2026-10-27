@@ -1,9 +1,10 @@
 # MyLeo — On-Device Vector Search + LLM Monorepo
 
-A monorepo of **on-device AI sample implementations** for iOS and Android, covering two problem areas across multiple inference runtimes:
+A monorepo of **on-device AI sample implementations** for iOS and Android, covering three problem areas across multiple inference runtimes:
 
 1. **vector-search** — on-device text embeddings + similarity search (the retrieval half of RAG).
 2. **llm** — on-device text generation / chat inference (the generation half of RAG).
+3. **decision** — on-device structured decisions: a state + typed question + candidate answers → probabilities (Julia-1; no text generation).
 
 Each `platform / area / runtime` combination is an independent, comparable variation. Same task, different technology — so you can compare integration effort, performance, model formats, and UX side by side.
 
@@ -29,14 +30,19 @@ Each `platform / area / runtime` combination is an independent, comparable varia
     │   ├── litert/        # LiteRT Text Embedder + vector search (Kotlin)
     │   ├── onnx/          # ONNX Runtime Mobile embedding model + vector search (Kotlin)
     │   └── dual/          # Runtime chooser: LiteRT or ONNX, lazy init, shared index (Kotlin)
-    └── llm/
-        ├── litert-lm/     # LiteRT-LM / MediaPipe LLM Inference API (Kotlin)
-        ├── onnx-genai/    # ONNX Runtime GenAI (Kotlin)
-        └── dual/          # Runtime chooser: LiteRT-LM or ONNX GenAI (Kotlin)
+    ├── llm/
+    │   ├── litert-lm/     # LiteRT-LM / MediaPipe LLM Inference API (Kotlin)
+    │   ├── onnx-genai/    # ONNX Runtime GenAI (Kotlin)
+    │   └── dual/          # Runtime chooser: LiteRT-LM or ONNX GenAI (Kotlin)
+    └── decision/
+        ├── litert/        # Julia-1 decision model (state + question + options → probabilities) (Kotlin)
+        ├── onnx/          # Same Julia-1 contract on ONNX Runtime (Kotlin)
+        └── dual/          # Runtime chooser: LiteRT or ONNX, per-runtime download + engine swap (Kotlin)
 ```
 
 > Naming: `litert-lm` and `onnx-genai` are the LLM-specific runtime SDKs (chat/generation).
-> Plain `litert` / `onnx` under `vector-search` are the embedding + retrieval SDKs.
+> Plain `litert` / `onnx` under `vector-search` and `decision` are the single-pass SDKs
+> (embeddings / classification), which never stream tokens.
 > `coreml` exists on iOS only — there is no Core ML on Android.
 
 ## Technology matrix
@@ -53,6 +59,9 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 | llm / Core ML | `ios/llm/coreml` — Apple Foundation Models (system-hosted, where available) with Core ML `.mlpackage` fallback | — (no Android equivalent) |
 | llm / Trio | `ios/llm/trio` — picker for LiteRT-LM, ONNX GenAI or Core ML (Phi-4-mini-instruct on the first two, MiniCPM5-1B on Core ML) | — (no Android equivalent) |
 | llm / Dual | — (no iOS equivalent) | `android/llm/dual` — picker for LiteRT-LM or ONNX GenAI at runtime, both Phi-4-mini-instruct |
+| decision / LiteRT | — (no iOS equivalent) | `android/decision/litert` — Julia-1 decision model (`litert-community/Julia-1-LiteRT`): state + typed question + 2–20 options → probabilities, GPU FP32 or CPU |
+| decision / ONNX | — (no iOS equivalent) | `android/decision/onnx` — the same Julia-1 contract on ONNX Runtime (`SupersonicLabs/Julia-1-ONNX`), CPU, ids in / per-option logits out |
+| decision / Dual | — (no iOS equivalent) | `android/decision/dual` — picker for LiteRT or ONNX with per-runtime download; switching releases the previous engine and keeps the edited question form |
 
 ## What each variation implements
 
@@ -97,6 +106,15 @@ The ONNX GenAI leaves are the mirror image. GenAI *can* be asked for `qnn` or `w
 accelerated Phi-4-mini exists in its model format and QNN context binaries are SoC-arch-locked, so
 they stay CPU-only. Details:
 [`android/llm/onnx-genai` → *Acceleration on Android*](android/llm/onnx-genai/README.md#acceleration-on-android).
+
+### decision (`*/decision/*`)
+
+Same contract, different runtime:
+
+- One forward pass per request: state text + typed question (`choice` / `score` / `noul`) + 2–20 options → one probability per option.
+- Strict encoding (reject, never truncate); answers reported as the winning option, the expected rubric index, or P(true).
+- Demo UI: state + question editor, presets, probability bars, per-stage timings.
+- **Suite mode**: 18 built-in prompts (8 multi-answer, 5 score, 5 yes/no) run in order, with a benchmark report — per-prompt and per-type timings, device, battery charge delta — exportable as Markdown/JSON. The `dual` leaf keeps one report per runtime and shows a comparison card.
 
 ## Datasets
 

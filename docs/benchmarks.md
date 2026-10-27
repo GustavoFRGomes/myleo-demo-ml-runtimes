@@ -469,3 +469,17 @@ Reading it:
 - **No memory column.** iOS has no `dumpsys meminfo` equivalent from the CLI; a footprint
   number needs Instruments' Activity Monitor during a run, and would still not be
   comparable to Android's PSS.
+
+## Decision leafs (`*/decision/*`)
+
+The structured-decision area (Julia-1: state + typed question → one probability per
+option) has its own benchmark format — the built-in 18-prompt suite (8 multi-answer,
+5 score, 5 yes/no; one forward pass per prompt) with per-prompt and per-type timings,
+model-load timings, download timings and battery sampling, plus a cross-runtime
+comparison card in the `dual` leaf.
+
+Measured run — `android/decision/dual` on `SM-S938B` (2026-10-25): LiteRT GPU FP32
+(window 512) vs ONNX Runtime CPU (window 1024), identical answers on all 18 prompts,
+ONNX ~1.8× faster per prompt (42 vs 76 ms average). Full tables, model download URLs
+and the procedure:
+[`docs/benchmarks-decision.md`](benchmarks-decision.md).
