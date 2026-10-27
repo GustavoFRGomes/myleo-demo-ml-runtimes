@@ -470,6 +470,50 @@ Reading it:
   number needs Instruments' Activity Monitor during a run, and would still not be
   comparable to Android's PSS.
 
+### Battery and energy (Power Profiler, 5 generations per cell)
+
+Cross-platform battery/energy page (Android + iOS, methods and limits):
+[`docs/benchmarks_batter.md`](benchmarks_batter.md).
+
+The app can read `UIDevice.batteryLevel`, but iOS quantises it (roughly 5%) and updates it
+late: a 77 s run once read **85% → 80%** while the power model accounted for only ~1.2% of
+the pack. Battery percentage alone therefore cannot resolve a single generation. Instead,
+`xctrace` **Power Profiler** was attached to the running process
+(`--attach MyLeoLLMTrio`) and its `SystemPowerLevel` table exported — one `power-usage`
+sample per second in **%/hour**, plus display brightness.
+
+Protocol: same prompt and params, **5 generations per runtime in one process**, screen held
+on (`isIdleTimerDisabled`), brightness ~20%, device unplugged, thermal state `fair` after the
+preceding runs — which is why `tok/s` here is lower than the cooled table above. Energy is
+converted with the SE 3 pack: **2018 mAh, 3.86 V nominal**.
+
+| Runtime | tok/s (this run) | mean %/hr | peak %/hr | ≈ power | 5-run energy | ≈ mJ/token |
+|---|---|---|---|---|---|---|
+| `onnx-genai` CPU | 43.5 | **78.0** | 100.0 | **6.1 W** | 331 J | 130 |
+| `litert-lm` GPU | 35.9 | **59.9** | 104.1 | **4.7 W** | 325 J | 122 |
+| `litert-lm` CPU | 29.2 | **48.0** | 82.9 | **3.7 W** | 185 J | 133 |
+
+Reading it:
+
+- **Energy per token is essentially flat (122–133 mJ) across all three.** ONNX is the
+  fastest and draws the most power; LiteRT CPU is the slowest and draws the least; per token
+  they land in the same place. On this phone, the runtime choice changes wall time far more
+  than energy per token.
+- **LiteRT GPU is nominally the most efficient per token** (~122 mJ), but its margin over
+  ONNX (130) is inside this measurement's accuracy — not a real win.
+- **Thermals move throughput more than power does.** These runs are `fair` (throttled):
+  LiteRT GPU reads 35.9 tok/s here versus 43.8 in the cooled table, while drawing ~4.7 W.
+- **These are power-model estimates, not a meter.** iOS gives apps no current/wattage API;
+  the samples include the display, and %/hr → watts assumes 2018 mAh at 3.86 V. Compare
+  runtimes on this phone, not across devices.
+- Attaching Power Profiler adds a little sampling overhead, applied equally to all rows.
+
+How to reproduce: `xctrace record --template 'Power Profiler' --device <udid> --attach
+MyLeoLLMTrio --time-limit 120s --output run.trace`, then
+`xctrace export --input run.trace --xpath '/trace-toc/run[@number="1"]/data/table[@schema="SystemPowerLevel"]'`.
+The app side is `--benchmark <id> --bench-repeats 5` (plus `--bench-wait-unplugged` when the
+cable cannot be removed during setup).
+
 ## Decision leafs (`*/decision/*`)
 
 The structured-decision area (Julia-1: state + typed question → one probability per
@@ -483,3 +527,4 @@ Measured run — `android/decision/dual` on `SM-S938B` (2026-10-25): LiteRT GPU 
 ONNX ~1.8× faster per prompt (42 vs 76 ms average). Full tables, model download URLs
 and the procedure:
 [`docs/benchmarks-decision.md`](benchmarks-decision.md).
+

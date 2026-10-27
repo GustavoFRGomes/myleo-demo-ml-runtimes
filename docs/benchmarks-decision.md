@@ -173,6 +173,8 @@ directly comparable.
 
 ## Battery and energy
 
+Cross-platform battery/energy page: [`docs/benchmarks_batter.md`](benchmarks_batter.md).
+
 From the reports (in-app `BatteryManager` sampling around each run):
 
 | Lane | Level | Charge Δ | Current at end |
