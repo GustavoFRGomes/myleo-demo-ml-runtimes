@@ -616,3 +616,55 @@ ONNX ~1.8× faster per prompt (42 vs 76 ms average). Full tables, model download
 and the procedure:
 [`docs/benchmarks-decision.md`](benchmarks-decision.md).
 
+
+## TCL NXTPaper 70 Pro — all three dual leaves (2026-10-27)
+
+First Android run of the `dual` leaves on a budget phone instead of a flagship. Same
+packages, prompts and parameters as the sections above; only the device changed.
+
+- Device: TCL `T807D` (NXTPaper 70 Pro), **Android 16 (SDK 36)**, 8 GB RAM, arm64, 216 GB.
+- Harness: one instrumented test per area (`app/src/androidTest/...BenchTest.kt`) that loads
+  the production engines, runs the fixed workload and writes a JSON row. Each runtime runs
+  in its own process; models are staged by hand, and a missing package skips the test.
+- Energy: device **unplugged**; `current_now` × `voltage_now` sampled from `adb` at 1 Hz and
+  integrated over the `BENCH|start` → `BENCH|done` window. The app cannot read sysfs
+  (SELinux), and `BATTERY_PROPERTY_CHARGE_COUNTER` moves in 1% steps (50.9 mAh here), so it
+  reads 0 for every lane shorter than a couple of minutes.
+
+### Vector search (MiniLM-L6-v2, 384-d, 600 chunks)
+
+| Runtime | Load ms | ms/chunk (median) | mean | min–max | ≈ power | ≈ energy/chunk |
+|---|---:|---:|---:|---|---:|---:|
+| LiteRT | **224** | **94.2** | 94.0 | 88.8–107.3 | 3.3 W | 305 mJ |
+| ONNX | 891 | **29.7** | 30.8 | 29.0–51.1 | 6.2 W | **191 mJ** |
+
+### Decision (Julia-1, 18 prompts × 10 repeats = 180 requests)
+
+| Runtime | Backend | Window | Load ms | ms/prompt | min–max | ≈ power | ≈ energy/prompt |
+|---|---|---|---:|---:|---|---:|---:|
+| LiteRT | **GPU FP32** | 512 | 6426 | **513.4** | 493.6–610.9 | 3.7 W | 1879 mJ |
+| ONNX | CPU | 1024 | **4934** | **67.3** | 50.4–102.7 | 5.8 W | **338 mJ** |
+
+Per type — LiteRT choice 514.2 / score 513.3 / noul 512.1 ms; ONNX 72.8 / 66.8 / 59.1 ms.
+The LiteRT tokenizer alone costs 4.5 s of the 6.4 s load.
+
+### LLM
+
+| Runtime | Model | Load ms | TTFT ms | tok/s (3 runs) | Tokens/run | ≈ power | ≈ energy/token |
+|---|---|---|---:|---|---:|---:|---:|
+| LiteRT-LM GPU | MiniCPM5-1B | **5011** | 1783 / 936 / 941 | 10.0 / 15.3 / 15.4 → **15.3** | 512 | 3.9 W | **394 mJ** |
+| ONNX GenAI CPU | Phi-4-mini int4 | 10215 | 853 / 1071 / 562 → **853** | 6.4 / 5.7 / 5.7 → **5.7** | 495–1525 | 4.6 W | 1082 mJ |
+
+Reading it:
+
+- **This is a budget SoC and it shows.** LiteRT is 3.2× slower per chunk than ONNX in vector
+  search, and the LiteRT decision lane's GPU FP32 path is **7.6× slower** than ONNX's CPU
+  path (513 vs 67 ms) — the delegate compiles but the GPU is the bottleneck, not a win.
+- **The LLM comparison is not a runtime verdict.** LiteRT runs the 793 MB MiniCPM5-1B while
+  ONNX runs the 4.9 GB Phi-4-mini int4, exactly as the leafs ship; the 2.7× decode gap
+  (15.3 vs 5.7 tok/s) reflects the model sizes as much as the runtime.
+- **ONNX LLM costs 2.7× more energy per token** (1082 vs 394 mJ), consistent with the larger
+  checkpoint and lower decode rate.
+- **The ONNX GenAI engine sets `max_length = maxTokens + 1024`**, so when EOS does not fire
+  it emits ~1525 tokens — 3× the LiteRT cap. Token counts are reported per run and not
+  normalised; throughput uses each run's own decode window.

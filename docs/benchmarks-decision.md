@@ -332,3 +332,30 @@ Both lanes answered `billing` with p = 0.999999; 45 tokens.
   for this graph — both lanes run CPU, as reported in the app.
 - Reports: `reports/julia-1-suite-ios-se3-litert.{md,json}` and
   `reports/julia-1-suite-ios-se3-onnx.{md,json}`.
+
+## Android — TCL NXTPaper 70 Pro (2026-10-27)
+
+Same dual leaf, same Julia-1 packages and the same 18 prompts, on a budget phone
+(TCL `T807D`, Android 16, 8 GB). Method: instrumented test, 10 suite repeats per lane
+(180 requests), device unplugged, energy from `current_now × voltage_now`.
+
+| Runtime | Backend | Window | Load ms | Avg | Min–max | ≈ energy/prompt |
+|---|---|---|---:|---:|---|---:|
+| LiteRT | **GPU FP32** | 512 | 6426 | **513.4 ms** | 493.6–610.9 | 1879 mJ |
+| ONNX | CPU | 1024 | 4934 | **67.3 ms** | 50.4–102.7 | **338 mJ** |
+
+| Type | Count | LiteRT avg | ONNX avg |
+|---|---:|---:|---:|
+| choice | 80 | 514.2 ms | 72.8 ms |
+| score | 50 | 513.3 ms | 66.8 ms |
+| noul | 50 | 512.1 ms | 59.1 ms |
+
+- **GPU FP32 does compile on this device** — unlike the iPhone 15 Pro, where both LiteRT
+  delegates failed — but it is **7.6× slower than ONNX's CPU path**. The accelerator label
+  says GPU; the numbers say the GPU is the bottleneck for this graph.
+- **The tokenizer dominates load on both lanes** (4.5 s of 6.4 s / 4.9 s), exactly as on
+  iOS: the graph is 65 ms (LiteRT, already compiled) vs 745 ms (ONNX).
+- Per-type ordering matches every other device: ONNX is cheapest on `noul`, LiteRT is flat
+  across types because the fixed marker-sequence forward pass dominates.
+- Answers were identical across lanes on every prompt (`billing`-style ties aside), as the
+  shared tokenizer and marker encoding predict.

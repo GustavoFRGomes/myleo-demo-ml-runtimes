@@ -195,3 +195,41 @@ xcrun xctrace export --input run.trace \
   cold-start numbers, and power draw does not rise to compensate.
 - **GPU attribution:** Android's per-UID mAh does not see GPU work; iOS exposes no per-process
   wattage at all. Use whole-device deltas or subsystem impact tables.
+
+## Android — TCL NXTPaper 70 Pro, dual leaves (2026-10-27)
+
+The TCL `T807D` (Android 16, 8 GB) is the first non-flagship Android device in these
+tables, and its battery plumbing forced a different method:
+
+- **The charge counter is quantised to 1%** — one step is 50.9 mAh (~196 J), so it read
+  **0 for every lane shorter than ~2 minutes**. It is only usable on the LLM runs.
+- **The app cannot read `/sys/class/power_supply/battery/*`** (SELinux denies `current_now`
+  and `voltage_now` to the sandbox), but `adb shell` can. So the host sampled both at 1 Hz
+  for the whole `BENCH|start` → `BENCH|done` window and integrated `|I| × V` (trapezoid).
+- Device unplugged throughout; screen behaviour unchanged from the app's own defaults.
+
+| Area | Runtime | Window | Mean power | Energy | Per operation |
+|---|---|---:|---:|---:|---:|
+| Vector | LiteRT | 55.5 s | 3.29 W | 182.7 J | **305 mJ/chunk** |
+| Vector | ONNX | 18.5 s | 6.18 W | 114.4 J | **191 mJ/chunk** |
+| Decision | LiteRT (GPU FP32) | 91.4 s | 3.70 W | 338 J | **1879 mJ/prompt** |
+| Decision | ONNX (CPU) | 10.6 s | 5.76 W | 61 J | **338 mJ/prompt** |
+| LLM | LiteRT-LM GPU | 157.4 s | 3.85 W | 606 J | **394 mJ/token** |
+| LLM | ONNX GenAI CPU | 115.6 s | 4.64 W | 536 J | **1082 mJ/token** |
+
+Decision and LLM rows exclude model load (steady-state windows); the vector rows include
+their sub-second/under-a-second loads, which is negligible at 600 chunks.
+
+Reading it:
+
+- **ONNX draws more power but wins the short jobs.** On vector search it uses nearly twice
+  the watts (6.18 vs 3.29) yet finishes each chunk 3.2× sooner, so energy per chunk is
+  lower (191 vs 305 mJ). Same shape for decisions: 5.8 W vs 3.7 W, 338 vs 1879 mJ.
+- **Decision's LiteRT lane is the outlier.** GPU FP32 compiles, but at 513 ms per prompt it
+  burns 1.9 J per decision — 5.6× the ONNX CPU lane. A weak mobile GPU doing one small
+  forward pass is worse than the CPU path here.
+- **The LLM rows compare different checkpoints** (793 MB MiniCPM5 vs 4.9 GB Phi-4 int4), so
+  the 2.7× per-token gap is mostly model size, not runtime overhead.
+- These are integrated current samples, not a meter: the rail voltage is read per sample,
+  but charger state, screen brightness and background radios are all inside the number.
+  Compare lanes on this device, not across devices with different battery packs.

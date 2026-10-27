@@ -567,6 +567,86 @@
     "powerW": 6.12,
     "mjPerToken": 252.2,
     "note": "2026-10-27 sustained 60x, battery 55->40, thermal serious; cold 35.7 tok/s; shortest run, widest error."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "TCL T807D",
+    "runtime": "LiteRT",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 224,
+    "msPerChunk": 94.2,
+    "powerW": 3.29,
+    "mjPerChunk": 304.6,
+    "note": "2026-10-27 dual leaf, 30x20 chunks; energy from current x voltage at 1 Hz."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "TCL T807D",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 891,
+    "msPerChunk": 29.7,
+    "powerW": 6.18,
+    "mjPerChunk": 190.6,
+    "note": "2026-10-27 dual leaf, 30x20 chunks; faster and lower energy per chunk than LiteRT."
+  },
+  {
+    "platform": "Android",
+    "area": "Decision",
+    "device": "TCL T807D",
+    "runtime": "LiteRT",
+    "backend": "GPU FP32",
+    "model": "Julia-1",
+    "loadMs": 6426,
+    "msPerPrompt": 513.4,
+    "powerW": 3.7,
+    "mjPerPrompt": 1878.9,
+    "note": "2026-10-27 dual leaf, 18-prompt suite x10; GPU compiles but is 7.6x slower than ONNX CPU."
+  },
+  {
+    "platform": "Android",
+    "area": "Decision",
+    "device": "TCL T807D",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "Julia-1",
+    "loadMs": 4934,
+    "msPerPrompt": 67.3,
+    "powerW": 5.76,
+    "mjPerPrompt": 338.2,
+    "note": "2026-10-27 dual leaf, 18-prompt suite x10; window 1024; 338 mJ per decision."
+  },
+  {
+    "platform": "Android",
+    "area": "LLM",
+    "device": "TCL T807D",
+    "runtime": "LiteRT-LM",
+    "backend": "GPU",
+    "model": "MiniCPM5-1B",
+    "loadMs": 5011,
+    "ttftMs": 941,
+    "tokPerSec": 15.3,
+    "powerW": 3.85,
+    "mjPerToken": 394.1,
+    "note": "2026-10-27 dual leaf, 3x512-token runs; cold run 10.0 tok/s, then 15.3/15.4."
+  },
+  {
+    "platform": "Android",
+    "area": "LLM",
+    "device": "TCL T807D",
+    "runtime": "ONNX GenAI",
+    "backend": "CPU",
+    "model": "Phi-4-mini int4",
+    "loadMs": 10215,
+    "ttftMs": 853,
+    "tokPerSec": 5.7,
+    "powerW": 4.64,
+    "mjPerToken": 1082.3,
+    "note": "2026-10-27 dual leaf, Phi-4 int4 (4.9 GB); runs 495-1525 tokens because max_length = maxTokens+1024."
   }
 ]
 </script>
@@ -885,9 +965,10 @@
         "meter readings.</p>";
     }
     if (platforms.indexOf("Android") >= 0) {
-      method += "<h4>Android device</h4><p>SM-S948B for the original tables and SM-S938B for the " +
-        "ONNX WebGPU/energy work and the decision suite. Power comes from the charge counter and " +
-        "batterystats; there is no root, so no direct current reading.</p>";
+      method += "<h4>Android device</h4><p>SM-S948B for the original tables, SM-S938B for the " +
+        "ONNX WebGPU/energy work and the decision suite, and TCL T807D for the 2026-10-27 " +
+        "dual-leaf runs (current sampled via adb, since the app cannot read the power-supply " +
+        "nodes).</p>";
     }
     document.getElementById("method-body").innerHTML = method;
 
