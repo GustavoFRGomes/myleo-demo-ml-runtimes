@@ -1,0 +1,332 @@
+diff --git a/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/MainActivity.kt b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/MainActivity.kt
+index 14392a0..1e38273 100644
+--- a/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/MainActivity.kt
++++ b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/MainActivity.kt
+@@ -30,6 +30,7 @@ import org.ggomes.myleo.vectorsearch.dual.data.AndroidSystemStatsProvider
+ import org.ggomes.myleo.vectorsearch.dual.data.DefaultEmbeddingRepository
+ import org.ggomes.myleo.vectorsearch.dual.data.DocumentRepository
+ import org.ggomes.myleo.vectorsearch.dual.data.LiteRtEmbedderFactory
++import org.ggomes.myleo.vectorsearch.dual.data.LiteRtExecutionProvider
+ import org.ggomes.myleo.vectorsearch.dual.data.LoadedRuntime
+ import org.ggomes.myleo.vectorsearch.dual.data.ObjectBoxDocumentRepository
+ import org.ggomes.myleo.vectorsearch.dual.data.OnnxEmbedderFactory
+@@ -159,8 +160,11 @@ class MainActivity : ComponentActivity() {
+         val ms = measureTimeMillis {
+             when (runtime) {
+                 InferenceRuntime.LITERT -> {
+-                    embedder = LiteRtEmbedderFactory.create(applicationContext)
+-                    name = LiteRtEmbedderFactory.DEFAULT_MODEL_ASSET_PATH.substringAfterLast("/")
++                    val provider = LiteRtExecutionProvider.fromExtra(intent.getStringExtra("litert_ep"))
++                    val created = LiteRtEmbedderFactory.create(applicationContext, provider = provider)
++                    embedder = created
++                    name = LiteRtEmbedderFactory.DEFAULT_MODEL_ASSET_PATH.substringAfterLast("/") +
++                        " · " + created.providerLabel
+                 }
+                 InferenceRuntime.ONNX -> {
+                     val provider = OnnxExecutionProvider.fromExtra(intent.getStringExtra("onnx_ep"))
+@@ -327,7 +331,11 @@ class MainActivity : ComponentActivity() {
+         if (seconds <= 0) return
+         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+         lifecycleScope.launch {
+-            val loaded = withContext(Dispatchers.Default) { runtimeManager.select(InferenceRuntime.ONNX) }
++            val runtime = when (intent.getStringExtra("bench_runtime")?.lowercase()) {
++                "litert" -> InferenceRuntime.LITERT
++                else -> InferenceRuntime.ONNX
++            }
++            val loaded = withContext(Dispatchers.Default) { runtimeManager.select(runtime) }
+                 .getOrElse { error ->
+                     Log.e(TAG, "MyLeo-Bench: model load failed: ${error.message}")
+                     return@launch
+diff --git a/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/CompiledModelRunner.kt b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/CompiledModelRunner.kt
+new file mode 100644
+index 0000000..f590882
+--- /dev/null
++++ b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/CompiledModelRunner.kt
+@@ -0,0 +1,142 @@
++package org.ggomes.myleo.vectorsearch.dual.data
++
++import android.content.Context
++import android.util.Log
++import com.google.ai.edge.litert.Accelerator
++import com.google.ai.edge.litert.CompiledModel
++
++/**
++ * [InferenceRunner] over LiteRT's `CompiledModel` API — the only path in
++ * `litert:2.2.0` that can use the GPU accelerator (`litert-api` ships
++ * `GpuOptions`; the legacy `Interpreter` in the same AAR has no delegate
++ * classes). The AAR also ships `libLiteRtClGlAccelerator.so`, i.e. OpenCL/GL.
++ *
++ * The graph is the same MiniLM `.tflite` as the CPU path: INT32
++ * `[1 x seqLen]` ids/mask/segment in, float `[1 x seqLen x dim]` out,
++ * mean-pooled here. Tensor *names* are probed rather than assumed, because
++ * order and naming vary per converter; the output width is derived from the
++ * buffer length and the known sequence length (`TensorType` exposes no shape).
++ */
++class CompiledModelRunner private constructor(
++    private val model: CompiledModel,
++    private val idsName: String,
++    private val maskName: String,
++    private val segmentName: String,
++    private val outputName: String,
++    private val seqLen: Int,
++) : InferenceRunner {
++
++    private val idsBuffer = model.createInputBuffer(idsName, "")
++    private val maskBuffer = model.createInputBuffer(maskName, "")
++    private val segmentBuffer = model.createInputBuffer(segmentName, "")
++    private val outputBuffer = model.createOutputBuffer(outputName, "")
++
++    override fun runEmbedding(ids: IntArray, mask: IntArray, segmentIds: IntArray): FloatArray {
++        idsBuffer.writeInt(ids)
++        maskBuffer.writeInt(mask)
++        segmentBuffer.writeInt(segmentIds)
++        model.run(
++            mapOf(idsName to idsBuffer, maskName to maskBuffer, segmentName to segmentBuffer),
++            mapOf(outputName to outputBuffer),
++            "",
++        )
++        val flat = outputBuffer.readFloat()
++        require(flat.size % seqLen == 0) {
++            "unexpected output size ${flat.size} for seqLen $seqLen"
++        }
++        val dim = flat.size / seqLen
++        return meanPool(flat, seqLen, dim, mask)
++    }
++
++    override fun close() {
++        idsBuffer.close()
++        maskBuffer.close()
++        segmentBuffer.close()
++        outputBuffer.close()
++        model.close()
++    }
++
++    companion object {
++        private const val TAG = "MyLeo-LiteRt"
++
++        private val ID_NAMES = listOf("input_ids", "ids", "input_word_ids")
++        private val MASK_NAMES = listOf("attention_mask", "mask", "input_mask")
++        private val SEGMENT_NAMES = listOf("token_type_ids", "segment_ids", "input_type_ids")
++        private val OUTPUT_NAMES = listOf("last_hidden_state", "Identity", "output", "embedding")
++
++        /**
++         * Builds a GPU-backed runner. Throws on any failure so the factory can fall
++         * back to the CPU `Interpreter` path — a `CompiledModel` with a GPU
++         * accelerator either initialises or it does not, and a partially delegated
++         * graph still runs on whatever the accelerator keeps.
++         */
++        fun createGpu(context: Context, assetPath: String, seqLen: Int): CompiledModelRunner {
++            runCatching {
++                val env = com.google.ai.edge.litert.Environment.create(context)
++                Log.i(TAG, "available accelerators: ${env.getAvailableAccelerators()}")
++            }.onFailure { Log.w(TAG, "environment probe failed: ${it.message}") }
++
++            val variants = listOf(
++                "fp16" to CompiledModel.GpuOptions.Precision.FP16,
++                "default" to CompiledModel.GpuOptions.Precision.DEFAULT,
++                "fp32" to CompiledModel.GpuOptions.Precision.FP32,
++            )
++            // Assets are opened by fd; also try a cache copy so an fd/offset quirk
++            // cannot masquerade as a compile failure.
++            val cacheCopy = runCatching {
++                val file = java.io.File(context.cacheDir, "embedding-gpu.tflite")
++                if (!file.exists() || file.length() == 0L) {
++                    context.assets.open(assetPath).use { input ->
++                        file.outputStream().use { output -> input.copyTo(output) }
++                    }
++                }
++                file.absolutePath
++            }.getOrNull()
++            var lastError: Exception? = null
++            for ((label, precision) in variants) {
++                val options = CompiledModel.Options(Accelerator.GPU).apply {
++                    gpuOptions = CompiledModel.GpuOptions(precision = precision)
++                }
++                val model = try {
++                    if (cacheCopy != null) {
++                        CompiledModel.create(cacheCopy, options)
++                    } else {
++                        CompiledModel.create(context.assets, assetPath, options)
++                    }
++                } catch (e: Exception) {
++                    Log.w(TAG, "GPU create ($label) failed: ${e.message}")
++                    lastError = e
++                    continue
++                }
++                try {
++                    val ids = probe(model, ID_NAMES, input = true)
++                    val mask = probe(model, MASK_NAMES, input = true)
++                    val segment = probe(model, SEGMENT_NAMES, input = true)
++                    val output = probe(model, OUTPUT_NAMES, input = false)
++                    Log.i(TAG, "GPU model compiled ($label): in=$ids/$mask/$segment out=$output")
++                    return CompiledModelRunner(model, ids, mask, segment, output, seqLen)
++                } catch (e: Exception) {
++                    model.close()
++                    throw IllegalStateException("GPU model prepared but unusable: ${e.message}", e)
++                }
++            }
++            throw IllegalStateException(
++                "GPU CompiledModel create failed for all precisions: ${lastError?.message}",
++                lastError,
++            )
++        }
++
++        /** First candidate name the model actually declares, else a clear error. */
++        private fun probe(model: CompiledModel, names: List<String>, input: Boolean): String {
++            for (name in names) {
++                val type = runCatching {
++                    if (input) model.getInputTensorType(name, "") else model.getOutputTensorType(name, "")
++                }.getOrNull()
++                if (type != null) return name
++            }
++            throw IllegalStateException(
++                "${if (input) "input" else "output"} not found; tried ${names.joinToString(", ")}",
++            )
++        }
++    }
++}
+diff --git a/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtEmbedder.kt b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtEmbedder.kt
+index bf599e8..78612c6 100644
+--- a/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtEmbedder.kt
++++ b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtEmbedder.kt
+@@ -22,6 +22,8 @@ class LiteRtEmbedder(
+     private val runner: InferenceRunner,
+     private val tokenizer: TextTokenizer,
+     private val maxSeqLen: Int = DEFAULT_MAX_SEQ_LEN,
++    /** Which accelerator actually built the session (`cpu`, `gpu`). */
++    val providerLabel: String = "cpu",
+ ) : Embedder, AutoCloseable {
+ 
+     override fun embed(text: String): List<Float> {
+diff --git a/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtEmbedderFactory.kt b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtEmbedderFactory.kt
+index 0f1d965..0a7de07 100644
+--- a/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtEmbedderFactory.kt
++++ b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtEmbedderFactory.kt
+@@ -1,6 +1,7 @@
+ package org.ggomes.myleo.vectorsearch.dual.data
+ 
+ import android.content.Context
++import android.util.Log
+ import org.ggomes.myleo.vectorsearch.dual.domain.Embedder
+ import org.tensorflow.lite.Interpreter
+ import java.io.FileInputStream
+@@ -16,19 +17,45 @@ import java.nio.channels.FileChannel
+  *   located by tensor name, float `[1 x seqLen x dim]` sequence out,
+  *   mean-pooled in the runner).
+  * - `models/litert/vocab.txt` — one WordPiece token per line.
++ *
++ * [provider] defaults to CPU. `GPU` uses LiteRT's `CompiledModel` API (the only
++ * one in `litert:2.2.0` with an accelerator hook) and validates the result with
++ * a warmup inference; any failure falls back to the CPU `Interpreter` path and
++ * the label on the returned embedder reports which one ran.
+  */
+ object LiteRtEmbedderFactory {
+ 
+     const val DEFAULT_MODEL_ASSET_PATH = "models/litert/embedding.tflite"
+     const val DEFAULT_VOCAB_ASSET_PATH = "models/litert/vocab.txt"
+ 
++    private const val TAG = "MyLeo-LiteRt"
++
+     fun create(
+         context: Context,
+         modelAssetPath: String = DEFAULT_MODEL_ASSET_PATH,
+         vocabAssetPath: String = DEFAULT_VOCAB_ASSET_PATH,
+         maxSeqLen: Int = LiteRtEmbedder.DEFAULT_MAX_SEQ_LEN,
+         numThreads: Int? = null,
++        provider: LiteRtExecutionProvider = LiteRtExecutionProvider.CPU,
+     ): LiteRtEmbedder {
++        val vocab = try {
++            context.assets.open(vocabAssetPath).bufferedReader().use { it.readLines() }
++        } catch (e: Exception) {
++            throw IllegalStateException("missing vocab asset: $vocabAssetPath", e)
++        }
++
++        if (provider == LiteRtExecutionProvider.GPU) {
++            runCatching {
++                val runner = CompiledModelRunner.createGpu(context, modelAssetPath, maxSeqLen)
++                val embedder = LiteRtEmbedder(runner, WordpieceTokenizer(vocab), maxSeqLen, provider.label)
++                // A compiled model can build yet fail at invoke (unsupported op on
++                // the accelerator, cache miss): prove it runs before returning it.
++                embedder.embed("warmup")
++                Log.i(TAG, "session EP=gpu")
++                return embedder
++            }.onFailure { Log.w(TAG, "gpu unavailable, falling back to CPU: ${it.message}") }
++        }
++
+         val options = Interpreter.Options().apply {
+             if (numThreads != null) setNumThreads(numThreads)
+         }
+@@ -37,13 +64,13 @@ object LiteRtEmbedderFactory {
+         } catch (e: Exception) {
+             throw IllegalStateException("cannot load LiteRT model asset: $modelAssetPath", e)
+         }
+-        val vocab = try {
+-            context.assets.open(vocabAssetPath).bufferedReader().use { it.readLines() }
+-        } catch (e: Exception) {
+-            interpreter.close()
+-            throw IllegalStateException("missing vocab asset: $vocabAssetPath", e)
+-        }
+-        return LiteRtEmbedder(InterpreterRunner(interpreter), WordpieceTokenizer(vocab), maxSeqLen)
++        Log.i(TAG, "session EP=cpu")
++        return LiteRtEmbedder(
++            InterpreterRunner(interpreter),
++            WordpieceTokenizer(vocab),
++            maxSeqLen,
++            LiteRtExecutionProvider.CPU.label,
++        )
+     }
+ 
+     private fun loadModelFile(context: Context, assetPath: String): MappedByteBuffer {
+diff --git a/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtExecutionProvider.kt b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtExecutionProvider.kt
+new file mode 100644
+index 0000000..c225e90
+--- /dev/null
++++ b/android/vector-search/dual/app/src/main/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtExecutionProvider.kt
+@@ -0,0 +1,13 @@
++package org.ggomes.myleo.vectorsearch.dual.data
++
++/** Execution provider requested for the LiteRT session. */
++enum class LiteRtExecutionProvider(val label: String) {
++    CPU("cpu"),
++    GPU("gpu");
++
++    companion object {
++        /** `--es litert_ep gpu` on the launch intent; anything else is CPU. */
++        fun fromExtra(value: String?): LiteRtExecutionProvider =
++            entries.firstOrNull { it.label == value?.trim()?.lowercase() } ?: CPU
++    }
++}
+diff --git a/android/vector-search/dual/app/src/test/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtExecutionProviderTest.kt b/android/vector-search/dual/app/src/test/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtExecutionProviderTest.kt
+new file mode 100644
+index 0000000..0cd2156
+--- /dev/null
++++ b/android/vector-search/dual/app/src/test/java/org/ggomes/myleo/vectorsearch/dual/data/LiteRtExecutionProviderTest.kt
+@@ -0,0 +1,28 @@
++package org.ggomes.myleo.vectorsearch.dual.data
++
++import org.assertj.core.api.Assertions.assertThat
++import org.junit.Test
++
++/** Pure mapping from the launch-extra to the requested LiteRT execution provider. */
++class LiteRtExecutionProviderTest {
++
++    @Test
++    fun fromExtra_gpu_isGpu() {
++        assertThat(LiteRtExecutionProvider.fromExtra("gpu")).isEqualTo(LiteRtExecutionProvider.GPU)
++    }
++
++    @Test
++    fun fromExtra_mixedCaseAndSpaces_isGpu() {
++        assertThat(LiteRtExecutionProvider.fromExtra(" GPU ")).isEqualTo(LiteRtExecutionProvider.GPU)
++    }
++
++    @Test
++    fun fromExtra_null_isCpu() {
++        assertThat(LiteRtExecutionProvider.fromExtra(null)).isEqualTo(LiteRtExecutionProvider.CPU)
++    }
++
++    @Test
++    fun fromExtra_unknown_isCpu() {
++        assertThat(LiteRtExecutionProvider.fromExtra("npu")).isEqualTo(LiteRtExecutionProvider.CPU)
++    }
++}

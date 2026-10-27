@@ -180,6 +180,23 @@ Parity notes: Julia-1 ships per runtime (`.tflite` + host token table for LiteRT
 - **Request validation per feature/bugfix.** After implementing, stop and ask: summarize what changed, how to verify (commands / manual steps), and test results. Wait for explicit approval before committing or moving to the next feature.
 - One feature/bugfix = one validation round. Do not batch unrelated changes into a single confirmation.
 
+## Parked work (patches)
+
+Experiments that are not ready to land stay as patch files under `patches/` and are
+committed for continuity. They are not built by any module, are not covered by the area
+contracts, and must not be applied without a validation round.
+
+- `patches/android-vector-search-dual-litert-gpu.patch` — LiteRT GPU attempt for
+  `android/vector-search/dual`: `CompiledModel` + `GpuOptions` (FP16), a
+  `--es litert_ep gpu` switch with warmup validation and CPU fallback, a
+  `--es bench_runtime litert` option for the sustained power loop, and
+  `LiteRtExecutionProvider` tests. Blocked by the model, not the device: the MiniLM
+  `.tflite` export uses `GATHER` with 2-D indices, which the GPU delegate rejects
+  (`GATHER: Only support 1D indices`), leaving two partitions that `CompiledModel`
+  refuses to compile (`Failed to compile model`). Resume after re-exporting the model
+  with 1-D gather indices.
+  Apply with `git apply patches/android-vector-search-dual-litert-gpu.patch`.
+
 ## Adding a new variation (when asked)
 
 1. Create exactly one folder: `<platform>/<area>/<runtime>/` (e.g. `android/vector-search/coreml` is invalid — stop and ask).

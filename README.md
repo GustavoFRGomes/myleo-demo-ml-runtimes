@@ -14,6 +14,7 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 .
 ├── README.md
 ├── AGENTS.md
+├── patches/             # Parked experiments as .patch files (not built)
 ├── ios/
 │   ├── vector-search/
 │   │   ├── litert/        # LiteRT embedding model + cosine/HNSW search (Swift)
