@@ -257,3 +257,35 @@ Reading it:
 - Android's suite remains the richer benchmark (18 prompts, per-type timings). Porting it to
   iOS — plus the battery/thermal sampling used by the Android report — is the next step for
   like-for-like numbers.
+
+## iOS — 18-prompt suite (iPhone 15 Pro, 2026-10-27)
+
+The same 18 built-in prompts as the Android suite (8 multi-answer, 5 ordered score, 5 yes/no),
+run in order on both iOS lanes in one process. Raw exports:
+[`docs/reports/julia-1-suite-ios-litert.md`](reports/julia-1-suite-ios-litert.md) ·
+[`docs/reports/julia-1-suite-ios-onnx.md`](reports/julia-1-suite-ios-onnx.md) (JSON next to each).
+
+- Device: iPhone 15 Pro, iOS 27.0.1. LiteRT window 512, ONNX window 1024. Both CPU.
+- Load: LiteRT **2670 ms**, ONNX **3032 ms** (tokenizer-dominated, as on the single request).
+- Overall: LiteRT **476.4 ms** prompt average (451.5–488.8), wall **8.58 s**;
+  ONNX **36.8 ms** (26.7–53.8), wall **0.66 s**.
+
+| Type | Count | LiteRT avg | LiteRT min–max | ONNX avg | ONNX min–max |
+|---|---:|---:|---|---:|---|
+| choice | 8 | 467.6 ms | 451.5–480.6 | 41.7 ms | 26.7–53.8 |
+| score | 5 | 480.8 ms | 477.1–483.7 | 36.2 ms | 31.2–42.6 |
+| noul | 5 | 486.0 ms | 482.6–488.8 | 29.6 ms | 26.8–31.5 |
+
+Reading it:
+
+- **Same decisions, tiny numeric drift.** All 8 choice ids and all 5 yes/no calls match across
+  lanes. The only differences are score/probability roundings: `score-review-tone` 0.298 vs
+  0.299, `score-complexity-migration` 1.944 vs 1.945, `score-risk-drop-table` 0.221 vs 0.222,
+  `noul-deadline` 0.659 vs 0.658, `noul-account-access` 0.188 vs 0.189 — well inside
+  quantisation, not a semantic disagreement.
+- **ONNX is ~13× faster on the suite**, consistent with the single request (36.8 vs 476.4 ms).
+- **Battery is flat (80% → 80%)** because the whole suite is ~0.7–8.6 s; the iOS gauge cannot
+  resolve that. Thermal state was `nominal` throughout. For power numbers, the repeat-based
+  Power Profiler method in `docs/benchmarks_batter.md` is the right tool.
+- The suite is deliberately the same 18 prompts as Android, so the per-prompt answers can be
+  diffed directly from the JSON exports.

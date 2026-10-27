@@ -1,0 +1,20 @@
+{
+  "schema": "myleo.julia1.suite/1",
+  "runtime": "ONNX Runtime",
+  "backend": "CPU",
+  "window": 1024,
+  "device": {"model": "iPhone", "osVersion": "27.0.1"},
+  "loadMs": 3031.77,
+  "tokenizerLoadMs": 2712.28,
+  "graphLoadMs": 319.49,
+  "performance": {
+    "promptMs": 662.84,
+    "wallMs": 664.10,
+    "averageMs": 36.82,
+    "minMs": 26.71,
+    "maxMs": 53.77,
+    "byType": [    {"type": "choice", "count": 8, "promptMs": 333.71, "averageMs": 41.71, "minMs": 26.71, "maxMs": 53.77},    {"type": "score", "count": 5, "promptMs": 180.92, "averageMs": 36.18, "minMs": 31.23, "maxMs": 42.62},    {"type": "noul", "count": 5, "promptMs": 148.20, "averageMs": 29.64, "minMs": 26.78, "maxMs": 31.48}]
+  },
+  "battery": {"startPct": 80.00, "endPct": 80.00, "state": "unplugged", "thermal": "nominal"},
+  "prompts": [    {"id": "route-billing", "type": "choice", "tokens": 62, "window": 1024, "totalMs": 44.72, "answer": "→ returns"},    {"id": "agent-supervisor", "type": "choice", "tokens": 80, "window": 1024, "totalMs": 53.77, "answer": "→ stop"},    {"id": "review-sentiment", "type": "choice", "tokens": 57, "window": 1024, "totalMs": 44.53, "answer": "→ mixed"},    {"id": "language-french", "type": "choice", "tokens": 39, "window": 1024, "totalMs": 26.71, "answer": "→ spanish"},    {"id": "queue-escalation", "type": "choice", "tokens": 57, "window": 1024, "totalMs": 42.86, "answer": "→ normal"},    {"id": "resolution-damaged", "type": "choice", "tokens": 53, "window": 1024, "totalMs": 37.66, "answer": "→ refund"},    {"id": "intent-account", "type": "choice", "tokens": 58, "window": 1024, "totalMs": 42.09, "answer": "→ account_change"},    {"id": "area-battery", "type": "choice", "tokens": 57, "window": 1024, "totalMs": 41.37, "answer": "→ battery"},    {"id": "score-urgency-outage", "type": "score", "tokens": 59, "window": 1024, "totalMs": 42.62, "answer": "→ score 2.983"},    {"id": "score-review-tone", "type": "score", "tokens": 41, "window": 1024, "totalMs": 31.23, "answer": "→ score 0.299"},    {"id": "score-complexity-migration", "type": "score", "tokens": 48, "window": 1024, "totalMs": 32.17, "answer": "→ score 1.945"},    {"id": "score-risk-drop-table", "type": "score", "tokens": 55, "window": 1024, "totalMs": 37.41, "answer": "→ score 0.222"},    {"id": "score-confidence-session", "type": "score", "tokens": 54, "window": 1024, "totalMs": 37.50, "answer": "→ score 0.003"},    {"id": "noul-refund", "type": "noul", "tokens": 46, "window": 1024, "totalMs": 31.41, "answer": "→ P(true) 0.919"},    {"id": "noul-deadline", "type": "noul", "tokens": 40, "window": 1024, "totalMs": 26.78, "answer": "→ P(true) 0.658"},    {"id": "noul-production-change", "type": "noul", "tokens": 41, "window": 1024, "totalMs": 31.48, "answer": "→ P(true) 1.000"},    {"id": "noul-seller-answered", "type": "noul", "tokens": 41, "window": 1024, "totalMs": 30.97, "answer": "→ P(true) 0.122"},    {"id": "noul-account-access", "type": "noul", "tokens": 40, "window": 1024, "totalMs": 27.57, "answer": "→ P(true) 0.189"}]
+}
