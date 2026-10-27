@@ -1,5 +1,9 @@
 # Benchmarks — Vector Search + LLM Runtimes
 
+Interactive version of these tables (platform/metric pickers, head-to-head):
+[`docs/benchmarks.html`](benchmarks.html) · how to embed it in Confluence:
+[`docs/benchmarks-dashboard.md`](benchmarks-dashboard.md).
+
 Reference devices: **Samsung Galaxy S25 Ultra (`SM_S948B`)** for Android,
 **iPhone SE 3rd gen** for iOS (vector-search Trio leaf, same MiniLM weights in all
 three files; LLM leaves differ per platform — see the LLM section).

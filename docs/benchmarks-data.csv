@@ -1,0 +1,18 @@
+platform,area,device,runtime,backend,model,loadMs,ttftMs,tokPerSec,powerW,mjPerToken,msPerChunk,mjPerChunk,msPerPrompt,pssMb,note
+iOS,LLM,iPhone SE 3,LiteRT-LM,GPU (Metal),MiniCPM5-1B,1158,360,43.8,4.7,122,,,,,Graphs delegated to Metal; sampler on CPU. 533 tokens/run.
+iOS,LLM,iPhone SE 3,LiteRT-LM,CPU (XNNPACK),MiniCPM5-1B,433,1252,35.7,3.7,133,,,,,278 tokens/run (EOS).
+iOS,LLM,iPhone SE 3,ONNX GenAI,CPU,MiniCPM5-1B int4,635,207,46.6,6.1,130,,,,,Same package as the Android ONNX leaf. 392-533 tokens/run.
+iOS,LLM,iPhone SE 3,Core ML,ANE/GPU/CPU,MiniCPM5-1B 4-bit,1480,3386,2.0,,,,,,,"128-token stateless window, no KV cache; 30 s first-launch compile, 1480 ms afterwards. Not a fair race."
+Android,LLM,SM-S948B,LiteRT-LM,GPU (OpenCL),MiniCPM5-1B,2902,436,71.0,,,,,,1800,Also 1.37 GB GL mtrack. load includes GPU copy.
+Android,LLM,SM-S948B,LiteRT-LM,CPU (XNNPACK),MiniCPM5-1B,317,591,72.6,,,,,,918,GPU and CPU decode at parity on this bundle.
+Android,LLM,SM-S948B,ONNX GenAI,CPU,MiniCPM5-1B int4,890,90,91.3,,,,,,834,Fastest decode on this phone; 361-544 tokens/run.
+iOS,Vector search,iPhone SE 3,LiteRT,CPU,MiniLM-L6-v2,39,,,,,53,,,,"Interpreter mmap; fastest load, slowest per chunk."
+iOS,Vector search,iPhone SE 3,ONNX,CPU,MiniLM-L6-v2,209,,,,,28,,,,Session build parses/optimizes the graph.
+iOS,Vector search,iPhone SE 3,Core ML,CPU,MiniLM-L6-v2,452,,,,,14,,,,Execution plan compiled at load; fastest steady state.
+Android,Vector search,SM-S948B,LiteRT (dual),CPU,MiniLM-L6-v2,131,,,,,9.0,,,,TFLite converted from the same checkpoint as the ONNX file.
+Android,Vector search,SM-S948B,ONNX (dual),CPU,MiniLM-L6-v2,489,,,,,14.4,,,,readBytes + session build.
+Android,Vector search,SM-S948B,ONNX (leaf),CPU,MiniLM-L6-v2,428,,,,,14.0,,,,417-439 ms load across runs.
+Android,Vector search,SM-S938B,ONNX,CPU (XNNPACK),MiniLM-L6-v2,504,,,7.9,,19.2,170,,,120 s sustained loop; charge counter 64.0 mAh.
+Android,Vector search,SM-S938B,ONNX,WebGPU,MiniLM-L6-v2,785,,,5.1,,13.4,60,,,Dawn/Vulkan; 1.7x faster and 2-3x less energy per chunk.
+Android,Decision,SM-S938B,LiteRT,GPU (FP32),Julia-1,3093,,,,,,,76,,First load after process start; window 512. 18-prompt suite.
+Android,Decision,SM-S938B,ONNX,CPU (4 threads),Julia-1,1973,,,,,,,42,,Warm reload after lane switch; window 1024. Identical answers on all 18 prompts.

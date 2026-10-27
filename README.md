@@ -95,6 +95,7 @@ Exact download URLs, file lists and sizes per runtime: [`docs/minicpm5-1b.md`](d
 iOS build, provisioning, packaging and accelerator caveats (Metal vs ANE, Core ML EP, context limits):
 [`docs/ios-llm-hurdles.md`](docs/ios-llm-hurdles.md).
 Battery and energy across demos: [`docs/benchmarks_batter.md`](docs/benchmarks_batter.md).
+Interactive head-to-head dashboard (self-contained HTML): [`docs/benchmarks.html`](docs/benchmarks.html) — see [`docs/benchmarks-dashboard.md`](docs/benchmarks-dashboard.md) for Confluence embedding.
 
 On Android, the LiteRT-LM leaves default to the **GPU** backend but skip it on a device already
 known to be unable to hold it — total RAM below `2 × model + 1.5 GiB`, or a GPU load that previously

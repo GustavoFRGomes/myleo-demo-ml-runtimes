@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyLEO benchmarks — head to head</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1b1f24; --muted: #5b6673; --line: #d8dee4;
+    --android: #3ddc84; --ios: #4a90e2; --bar-bg: #eef2f6; --accent: #1f6feb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0d1117; --fg:#e6edf3; --muted:#9aa7b4; --line:#30363d;
+            --bar-bg:#161b22; --accent:#58a6ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  header { padding: 28px 24px 8px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 24px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0; font-size: 14px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 12px 24px 48px; }
+  section { margin-top: 22px; }
+  .controls { display:flex; flex-wrap:wrap; gap:14px 20px; align-items:flex-end;
+              padding:14px; border:1px solid var(--line); border-radius:10px; }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field > span { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  select, button { font: inherit; color: var(--fg); background: var(--bg);
+                   border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
+  button { cursor:pointer; }
+  button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight:600; }
+  .seg { display:flex; gap:6px; }
+  .seg button { min-width: 38px; }
+  .spacer { flex:1; }
+  .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  .chart-wrap { border:1px solid var(--line); border-radius:10px; padding:14px; overflow:auto; }
+  svg { width: 100%; height: auto; display:block; }
+  .bar-label { font-size: 12px; fill: var(--fg); }
+  .bar-value { font-size: 12px; font-weight: 600; fill: var(--fg); }
+  .bar-track { fill: var(--bar-bg); }
+  .axis { stroke: var(--line); stroke-width: 1; }
+  .legend { display:flex; gap:16px; margin-top:10px; color:var(--muted); font-size:12px; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:baseline; }
+  .h2h { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  @media (max-width: 760px) { .h2h { grid-template-columns: 1fr; } }
+  .card { border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .card h3 { margin:0 0 8px; font-size:14px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .big { font-size:28px; font-weight:700; }
+  .delta { font-size:14px; color:var(--muted); }
+  .win { color: var(--accent); font-weight:600; }
+  table { width:100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color: var(--muted); font-weight:600; position: sticky; top:0; background: var(--bg); }
+  td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  .table-wrap { max-height: 460px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+  .note { color: var(--muted); font-size:12px; }
+  .foot { color: var(--muted); font-size: 12px; margin-top: 26px; }
+  .empty { color: var(--muted); padding: 18px; }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>MyLEO benchmarks — head to head</h1>
+  <p class="sub">On-device AI runtimes, measured on real phones. Pick a platform, an area and a metric;
+  the chart and the comparison cards follow. Data: <code>docs/benchmarks.md</code>,
+  <code>docs/benchmarks_batter.md</code>, <code>docs/benchmarks-decision.md</code>.</p>
+</header>
+
+<main>
+  <section class="controls" aria-label="Filters">
+    <div class="field">
+      <span>Platform</span>
+      <div class="seg" id="platform" role="group" aria-label="Platform">
+        <button data-v="All" aria-pressed="true">All</button>
+        <button data-v="Android" aria-pressed="false">Android</button>
+        <button data-v="iOS" aria-pressed="false">iOS</button>
+      </div>
+    </div>
+    <label class="field"><span>Area</span>
+      <select id="area">
+        <option>LLM</option>
+        <option>Vector search</option>
+        <option>Decision</option>
+      </select>
+    </label>
+    <label class="field"><span>Device</span>
+      <select id="device"><option>All</option></select>
+    </label>
+    <label class="field"><span>Metric</span>
+      <select id="metric"></select>
+    </label>
+    <label class="field"><span>Order</span>
+      <select id="order">
+        <option value="best">Best first</option>
+        <option value="worst">Worst first</option>
+        <option value="name">By name</option>
+      </select>
+    </label>
+    <div class="spacer"></div>
+    <div class="actions">
+      <button id="csv">Download CSV</button>
+      <button id="svg">Download SVG</button>
+    </div>
+  </section>
+
+  <p class="hint" id="hint" aria-live="polite"></p>
+
+  <section class="chart-wrap" aria-label="Bar chart">
+    <svg id="chart" role="img" aria-labelledby="chart-title"></svg>
+    <div class="legend"><span><i class="dot" style="background:var(--android)"></i>Android</span>
+      <span><i class="dot" style="background:var(--ios)"></i>iOS</span></div>
+  </section>
+
+  <section>
+    <h2 style="font-size:18px;margin:0 0 10px">Head to head</h2>
+    <div class="h2h">
+      <div class="card">
+        <h3><select id="pickA" aria-label="Comparison A"></select></h3>
+        <div class="big" id="valueA">—</div>
+        <div class="delta" id="metaA"></div>
+      </div>
+      <div class="card">
+        <h3><select id="pickB" aria-label="Comparison B"></select></h3>
+        <div class="big" id="valueB">—</div>
+        <div class="delta" id="metaB"></div>
+      </div>
+    </div>
+    <p class="hint" id="verdict"></p>
+  </section>
+
+  <section>
+    <h2 style="font-size:18px;margin:0 0 10px">All matching rows</h2>
+    <div class="table-wrap"><table id="table"></table></div>
+  </section>
+
+  <p class="foot">Values are single-median or representative runs from the pages above; ranges and
+  caveats (thermal state, quantised battery gauge, model-based power estimates) live in the
+  Markdown sources. This page is self-contained: no network calls, no external scripts.</p>
+</main>
+
+<script id="bench-data" type="application/json">
+[
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT-LM",
+    "backend": "GPU (Metal)",
+    "model": "MiniCPM5-1B",
+    "loadMs": 1158,
+    "ttftMs": 360,
+    "tokPerSec": 43.8,
+    "powerW": 4.7,
+    "mjPerToken": 122,
+    "note": "Graphs delegated to Metal; sampler on CPU. 533 tokens/run."
+  },
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT-LM",
+    "backend": "CPU (XNNPACK)",
+    "model": "MiniCPM5-1B",
+    "loadMs": 433,
+    "ttftMs": 1252,
+    "tokPerSec": 35.7,
+    "powerW": 3.7,
+    "mjPerToken": 133,
+    "note": "278 tokens/run (EOS)."
+  },
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone SE 3",
+    "runtime": "ONNX GenAI",
+    "backend": "CPU",
+    "model": "MiniCPM5-1B int4",
+    "loadMs": 635,
+    "ttftMs": 207,
+    "tokPerSec": 46.6,
+    "powerW": 6.1,
+    "mjPerToken": 130,
+    "note": "Same package as the Android ONNX leaf. 392-533 tokens/run."
+  },
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone SE 3",
+    "runtime": "Core ML",
+    "backend": "ANE/GPU/CPU",
+    "model": "MiniCPM5-1B 4-bit",
+    "loadMs": 1480,
+    "ttftMs": 3386,
+    "tokPerSec": 2.0,
+    "note": "128-token stateless window, no KV cache; 30 s first-launch compile, 1480 ms afterwards. Not a fair race."
+  },
+  {
+    "platform": "Android",
+    "area": "LLM",
+    "device": "SM-S948B",
+    "runtime": "LiteRT-LM",
+    "backend": "GPU (OpenCL)",
+    "model": "MiniCPM5-1B",
+    "loadMs": 2902,
+    "ttftMs": 436,
+    "tokPerSec": 71.0,
+    "pssMb": 1800,
+    "note": "Also 1.37 GB GL mtrack. load includes GPU copy."
+  },
+  {
+    "platform": "Android",
+    "area": "LLM",
+    "device": "SM-S948B",
+    "runtime": "LiteRT-LM",
+    "backend": "CPU (XNNPACK)",
+    "model": "MiniCPM5-1B",
+    "loadMs": 317,
+    "ttftMs": 591,
+    "tokPerSec": 72.6,
+    "pssMb": 918,
+    "note": "GPU and CPU decode at parity on this bundle."
+  },
+  {
+    "platform": "Android",
+    "area": "LLM",
+    "device": "SM-S948B",
+    "runtime": "ONNX GenAI",
+    "backend": "CPU",
+    "model": "MiniCPM5-1B int4",
+    "loadMs": 890,
+    "ttftMs": 90,
+    "tokPerSec": 91.3,
+    "pssMb": 834,
+    "note": "Fastest decode on this phone; 361-544 tokens/run."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 39,
+    "msPerChunk": 53,
+    "note": "Interpreter mmap; fastest load, slowest per chunk."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 209,
+    "msPerChunk": 28,
+    "note": "Session build parses/optimizes the graph."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "Core ML",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 452,
+    "msPerChunk": 14,
+    "note": "Execution plan compiled at load; fastest steady state."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "SM-S948B",
+    "runtime": "LiteRT (dual)",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 131,
+    "msPerChunk": 9.0,
+    "note": "TFLite converted from the same checkpoint as the ONNX file."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "SM-S948B",
+    "runtime": "ONNX (dual)",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 489,
+    "msPerChunk": 14.4,
+    "note": "readBytes + session build."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "SM-S948B",
+    "runtime": "ONNX (leaf)",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 428,
+    "msPerChunk": 14.0,
+    "note": "417-439 ms load across runs."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "SM-S938B",
+    "runtime": "ONNX",
+    "backend": "CPU (XNNPACK)",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 504,
+    "msPerChunk": 19.2,
+    "powerW": 7.9,
+    "mjPerChunk": 170,
+    "note": "120 s sustained loop; charge counter 64.0 mAh."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "SM-S938B",
+    "runtime": "ONNX",
+    "backend": "WebGPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 785,
+    "msPerChunk": 13.4,
+    "powerW": 5.1,
+    "mjPerChunk": 60,
+    "note": "Dawn/Vulkan; 1.7x faster and 2-3x less energy per chunk."
+  },
+  {
+    "platform": "Android",
+    "area": "Decision",
+    "device": "SM-S938B",
+    "runtime": "LiteRT",
+    "backend": "GPU (FP32)",
+    "model": "Julia-1",
+    "loadMs": 3093,
+    "msPerPrompt": 76,
+    "note": "First load after process start; window 512. 18-prompt suite."
+  },
+  {
+    "platform": "Android",
+    "area": "Decision",
+    "device": "SM-S938B",
+    "runtime": "ONNX",
+    "backend": "CPU (4 threads)",
+    "model": "Julia-1",
+    "loadMs": 1973,
+    "msPerPrompt": 42,
+    "note": "Warm reload after lane switch; window 1024. Identical answers on all 18 prompts."
+  }
+]
+
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("bench-data").textContent);
+
+  var METRICS = [
+    { key: "tokPerSec",  label: "Decode speed",             unit: "tok/s", better: "higher" },
+    { key: "ttftMs",     label: "Time to first token",      unit: "ms",    better: "lower" },
+    { key: "loadMs",     label: "Model load",               unit: "ms",    better: "lower" },
+    { key: "powerW",     label: "Average power",            unit: "W",     better: "lower" },
+    { key: "mjPerToken", label: "Energy per token",         unit: "mJ",    better: "lower" },
+    { key: "msPerChunk", label: "Embedding per chunk",      unit: "ms",    better: "lower" },
+    { key: "mjPerChunk", label: "Energy per chunk",         unit: "mJ",    better: "lower" },
+    { key: "msPerPrompt",label: "Decision per prompt",      unit: "ms",    better: "lower" },
+    { key: "pssMb",      label: "Memory (PSS)",             unit: "MB",    better: "lower" }
+  ];
+  var METRIC_BY_KEY = {};
+  METRICS.forEach(function (m) { METRIC_BY_KEY[m.key] = m; });
+
+  var state = { platform: "All", area: "LLM", device: "All", metric: "tokPerSec", order: "best" };
+
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+  function fmt(v) {
+    if (v == null || isNaN(v)) return "—";
+    if (Math.abs(v) >= 1000) return Math.round(v).toLocaleString();
+    if (Math.abs(v) >= 100) return String(Math.round(v));
+    return (Math.round(v * 10) / 10).toString();
+  }
+  function rowsForPlatform() {
+    return DATA.filter(function (r) {
+      return (state.platform === "All" || r.platform === state.platform) && r.area === state.area;
+    });
+  }
+  function devices() {
+    var set = {};
+    rowsForPlatform().forEach(function (r) { set[r.device] = true; });
+    return Object.keys(set).sort();
+  }
+  function filtered() {
+    return rowsForPlatform().filter(function (r) {
+      return state.device === "All" || r.device === state.device;
+    });
+  }
+  function withMetric(rows, key) {
+    return rows.filter(function (r) { return typeof r[key] === "number"; });
+  }
+  function rowsForMetric() {
+    return withMetric(filtered(), state.metric);
+  }
+  function labelOf(r) {
+    return r.runtime + " · " + r.backend + " · " + r.device;
+  }
+
+  // ---------- controls ----------
+  function renderPlatform() {
+    Array.prototype.forEach.call($("platform").children, function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === state.platform));
+    });
+  }
+  function renderDevices() {
+    var list = devices();
+    var sel = $("device");
+    var keep = state.device;
+    sel.innerHTML = '<option>All</option>' + list.map(function (d) {
+      return '<option' + (d === keep ? " selected" : "") + ">" + esc(d) + "</option>";
+    }).join("");
+    if (list.indexOf(keep) < 0 && keep !== "All") { state.device = "All"; sel.value = "All"; }
+  }
+  function renderMetrics() {
+    var present = filtered();
+    var sel = $("metric");
+    sel.innerHTML = METRICS.map(function (m) {
+      var has = present.some(function (r) { return typeof r[m.key] === "number"; });
+      return '<option value="' + m.key + '"' + (m.key === state.metric ? " selected" : "") +
+        (has ? "" : " disabled") + ">" + esc(m.label) + " (" + esc(m.unit) + ")</option>";
+    }).join("");
+    if (!present.some(function (r) { return typeof r[state.metric] === "number"; })) {
+      var first = METRICS.filter(function (m) {
+        return present.some(function (r) { return typeof r[m.key] === "number"; });
+      })[0];
+      if (first) { state.metric = first.key; sel.value = first.key; }
+    }
+  }
+
+  // ---------- chart ----------
+  function sortedRows() {
+    var rows = rowsForMetric().slice();
+    var metric = METRIC_BY_KEY[state.metric];
+    rows.sort(function (a, b) {
+      if (state.order === "name") return labelOf(a).localeCompare(labelOf(b));
+      var d = a[state.metric] - b[state.metric];
+      var better = metric.better === "lower" ? d : -d;
+      return state.order === "best" ? better : -better;
+    });
+    return rows;
+  }
+
+  function renderChart() {
+    var svg = $("chart");
+    var rows = sortedRows();
+    var metric = METRIC_BY_KEY[state.metric];
+    var hint = $("hint");
+    if (!rows.length) {
+      svg.innerHTML = "";
+      svg.setAttribute("height", "80");
+      hint.textContent = "No measurement for " + metric.label + " in this selection.";
+      return;
+    }
+    var max = Math.max.apply(null, rows.map(function (r) { return r[state.metric]; })) || 1;
+    var rowH = 34, top = 8, labelW = 300, valueW = 80;
+    var width = 1000, barMax = width - labelW - valueW - 12;
+    var height = top + rows.length * rowH + 6;
+
+    var parts = ['<title id="chart-title">' + esc(metric.label) + " by runtime</title>"];
+    rows.forEach(function (r, i) {
+      var y = top + i * rowH;
+      var w = Math.max(2, (r[state.metric] / max) * barMax);
+      var color = r.platform === "Android" ? "var(--android)" : "var(--ios)";
+      var label = labelOf(r);
+      parts.push('<g><title>' + esc(label + " — " + metric.label + ": " +
+        fmt(r[state.metric]) + " " + metric.unit + (r.note ? " — " + r.note : "")) + "</title>");
+      parts.push('<rect class="bar-track" x="' + labelW + '" y="' + (y + 6) + '" width="' + barMax +
+        '" height="18" rx="4"></rect>');
+      parts.push('<rect x="' + labelW + '" y="' + (y + 6) + '" width="' + w + '" height="18" rx="4" fill="' +
+        color + '"></rect>');
+      parts.push('<text class="bar-label" x="0" y="' + (y + 19) + '">' + esc(label) + "</text>");
+      parts.push('<text class="bar-value" x="' + (labelW + w + 8) + '" y="' + (y + 19) + '">' +
+        fmt(r[state.metric]) + " " + esc(metric.unit) + "</text></g>");
+    });
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.setAttribute("height", String(height));
+    svg.innerHTML = parts.join("");
+
+    var unit = metric.better === "lower" ? "lower is better" : "higher is better";
+    hint.textContent = rows.length + " row" + (rows.length === 1 ? "" : "s") +
+      " · " + metric.label + " (" + metric.unit + ", " + unit + ")" +
+      (rows.length < filtered().length ? " · " + (filtered().length - rows.length) +
+        " without this metric" : "");
+  }
+
+  // ---------- head to head ----------
+  function renderPickers() {
+    var rows = rowsForMetric();
+    ["pickA", "pickB"].forEach(function (id, idx) {
+      var sel = $(id);
+      var prev = sel.value;
+      sel.innerHTML = rows.map(function (r, i) {
+        return '<option value="' + i + '">' + esc(labelOf(r)) + "</option>";
+      }).join("");
+      if (rows.length > idx) sel.value = rows[idx] ? String(idx) : "0";
+      if (prev && rows[Number(prev)]) sel.value = prev;
+    });
+  }
+  function renderH2H() {
+    var rows = rowsForMetric();
+    var metric = METRIC_BY_KEY[state.metric];
+    var a = rows[Number($("pickA").value)];
+    var b = rows[Number($("pickB").value)];
+    function show(cardValue, cardMeta, r) {
+      if (!r) { $(cardValue).textContent = "—"; $(cardMeta).textContent = ""; return; }
+      $(cardValue).textContent = fmt(r[state.metric]) + " " + metric.unit;
+      $(cardMeta).textContent = r.platform + " · " + r.device + (r.note ? " — " + r.note : "");
+    }
+    show("valueA", "metaA", a);
+    show("valueB", "metaB", b);
+    var verdict = $("verdict");
+    if (!a || !b || a === b) { verdict.textContent = "Pick two different rows to compare."; return; }
+    var low = Math.min(a[state.metric], b[state.metric]);
+    var high = Math.max(a[state.metric], b[state.metric]);
+    var pct = low > 0 ? Math.round((high / low - 1) * 100) : 0;
+    var winner = a[state.metric] === low ? (metric.better === "lower" ? a : b)
+                                         : (metric.better === "lower" ? b : a);
+    verdict.innerHTML = "<span class='win'>" + esc(labelOf(winner)) + "</span> is better by " +
+      pct + "% on " + esc(metric.label.toLowerCase()) + ".";
+  }
+
+  // ---------- table ----------
+  function renderTable() {
+    var rows = filtered();
+    var cols = [
+      ["platform", "Platform"], ["area", "Area"], ["device", "Device"],
+      ["runtime", "Runtime"], ["backend", "Backend"], ["model", "Model"]
+    ];
+    var head = "<thead><tr>" + cols.map(function (c) { return "<th>" + c[1] + "</th>"; }).join("") +
+      METRICS.map(function (m) {
+        var has = rows.some(function (r) { return typeof r[m.key] === "number"; });
+        return has ? "<th style='text-align:right'>" + esc(m.label) + " (" + esc(m.unit) + ")</th>" : "";
+      }).join("") + "<th>Note</th></tr></thead>";
+    var body = rows.map(function (r) {
+      return "<tr>" + cols.map(function (c) {
+        return "<td>" + esc(r[c[0]]) + "</td>";
+      }).join("") + METRICS.map(function (m) {
+        var has = rows.some(function (x) { return typeof x[m.key] === "number"; });
+        return has ? "<td class='num'>" + (typeof r[m.key] === "number" ? fmt(r[m.key]) : "—") + "</td>" : "";
+      }).join("") + "<td class='note'>" + esc(r.note || "") + "</td></tr>";
+    }).join("");
+    $("table").innerHTML = head + "<tbody>" + body + "</tbody>";
+    if (!rows.length) $("table").innerHTML = "<tbody><tr><td class='empty'>No rows.</td></tr></tbody>";
+  }
+
+  function renderAll() {
+    renderPlatform();
+    renderDevices();
+    renderMetrics();
+    renderChart();
+    renderPickers();
+    renderH2H();
+    renderTable();
+  }
+
+  // ---------- downloads ----------
+  function download(name, mime, text) {
+    var blob = new Blob([text], { type: mime });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+  function csv() {
+    var keys = ["platform", "area", "device", "runtime", "backend", "model", "loadMs", "ttftMs",
+      "tokPerSec", "powerW", "mjPerToken", "msPerChunk", "mjPerChunk", "msPerPrompt", "pssMb", "note"];
+    var lines = [keys.join(",")];
+    DATA.forEach(function (r) {
+      lines.push(keys.map(function (k) {
+        var v = r[k];
+        if (v == null) return "";
+        var s = String(v);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(","));
+    });
+    download("myleo-benchmarks.csv", "text/csv", lines.join("\n") + "\n");
+  }
+  function svg() {
+    var node = $("chart").cloneNode(true);
+    node.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    node.setAttribute("width", "1000");
+    download("myleo-" + state.metric + ".svg", "image/svg+xml",
+      new XMLSerializer().serializeToString(node));
+  }
+
+  // ---------- events ----------
+  $("platform").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-v]");
+    if (!b) return;
+    state.platform = b.getAttribute("data-v");
+    state.device = "All";
+    renderAll();
+  });
+  $("area").addEventListener("change", function (e) {
+    state.area = e.target.value; state.device = "All"; renderAll();
+  });
+  $("device").addEventListener("change", function (e) { state.device = e.target.value; renderAll(); });
+  $("metric").addEventListener("change", function (e) { state.metric = e.target.value; renderAll(); });
+  $("order").addEventListener("change", function (e) {
+    state.order = e.target.value; renderChart();
+  });
+  $("pickA").addEventListener("change", renderH2H);
+  $("pickB").addEventListener("change", renderH2H);
+  $("csv").addEventListener("click", csv);
+  $("svg").addEventListener("click", svg);
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

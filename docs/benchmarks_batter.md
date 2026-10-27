@@ -5,6 +5,8 @@ Companion to [`docs/benchmarks.md`](benchmarks.md) (speed) and
 what each demo actually draws, how it was measured, and where the numbers stop being
 trustworthy.
 
+Interactive view of all of these numbers: [`benchmarks.html`](benchmarks.html).
+
 Reference devices: **Samsung `SM-S938B`** (Android 17, 12 GB) and **iPhone SE 3rd gen**
 (iOS 27.0.1). Every measurement below was taken **unplugged** — a charging phone cannot
 discharge, so any battery/energy number taken on power is meaningless.
