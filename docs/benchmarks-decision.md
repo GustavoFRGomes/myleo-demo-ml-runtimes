@@ -201,3 +201,59 @@ per-prompt energy difference at these speeds is in the microamp-hour range eithe
   old code and pass on the fix; the numbers above are from the fixed build.
 - The LiteRT lane answered `language-french` with "Spanish" — that is the model's own decision
   on this prompt, reported as-is; both lanes agree.
+
+## iOS — first device run (iPhone 15 Pro, 2026-10-27)
+
+> The 18-prompt suite is not ported to iOS yet; this is the **single-request** benchmark both
+> iOS lanes already support, with the identical request used in the Android session below.
+> Hurdles behind these numbers (Metal refusal, bool tensor, signature-prefixed names):
+> [`docs/ios-decision-hurdles.md`](ios-decision-hurdles.md).
+
+Device: **iPhone 15 Pro (`iPhone16,1`), iOS 27.0.1**. Three cold processes per lane, same prompt:
+
+- state: *"My invoice shows a charge I did not authorise for a subscription I cancelled."*
+- question `choice`: **Which department should handle this ticket?**
+  - `billing` — Billing and invoice questions
+  - `tech` — Technical problem with the product
+  - `returns` — Returns and refunds
+- strict encoding: 45 tokens; LiteRT window **512**, ONNX window **1024**
+
+### iOS LiteRT runtime versions
+
+Both generations were measured on the same request, same phone; the **2.17 pod remains the
+default** because it is faster for this graph, and the 2.3 lane is opt-in (`--litert23`).
+
+| LiteRT runtime | Lane | Graph ms | Total ms | Notes |
+|---|---|---|---|---|
+| 2.17 (`TensorFlowLiteSwift` pod) | CPU, 4 threads, XNNPACK on | **452** | **473** | default; Metal delegate cannot compile the graph at any precision |
+| 2.3 (`CLiteRT` + Metal accelerator) | CPU | 709 | 728 | modern kernels, slower here |
+| 2.3, GPU requested | "GPU" → actually CPU | 697 | 717 | accelerator framework embedded but **not registered**; LiteRT logs `GPU accelerator could not be loaded`, so this is not a GPU result |
+| 2.17, Core ML delegate requested | "Core ML" → actually CPU | 455 | 477 | `CoreMLDelegate` (devices `.all`) fails `Failed to create the interpreter.` |
+
+The iOS LiteRT bench therefore keeps the 2.17 figures as its LiteRT row; the 2.3 experiment is
+recorded so the comparison is not lost.
+
+| Lane | Load ms | Prepare ms | Graph ms | Total ms | Answer |
+|---|---|---|---|---|---|
+| LiteRT (TFLite 2.17, CPU fallback) | 2631 / 2686 / 2737 → **2686** | 4.4–4.6 | 446 / 452 / 454 → **452** | 466 / 473 / 474 → **473** | `billing` |
+| **ONNX (ORT 1.30, C API, CPU)** | 3089 / 2947 / 2916 → **2947** | 4.7 | 34 / 32 / 27 → **32** | 39 / 37 / 32 → **37** | `billing` |
+
+Reading it:
+
+- **ONNX is ~14× faster per decision on iOS** (32 vs 452 ms graph; 37 vs 473 ms total). This is
+  the inverse of the iOS LLM result, where ONNX was only ~1.1× ahead — there both runtimes used
+  their modern stacks, while here LiteRT runs on the older TFLite pod and ONNX on ORT 1.30.
+- **LiteRT's GPU lane does not exist on iOS.** `MetalDelegate` with precision loss disabled
+  (FP32, as the contract requires) fails to create an interpreter for this graph, so every
+  "GPU" run reports `ran=CPU`. The GPU/CPU comparison is therefore CPU vs CPU, with
+  `sameChoice=true` and `maxProbDiff=0.000000`.
+- **Load is dominated by the tokenizer**, not the graph: 2.6–3.1 s for parsing the 34 MB
+  `tokenizer.json` plus session/table setup. Android reports 3.1 s (LiteRT) and 2.0 s (ONNX) on
+  the same Claude-adjacent contract, so this is consistent.
+- The **Trio app reproduces these numbers end-to-end** (`--bench-decision`): LiteRT graph
+  438–452 ms, ONNX 24.5–24.7 ms, in one process on the same phone.
+- Answers and probabilities are identical across lanes and runs:
+  `billing`, `0.999999 / 0.000001 / 0.000000`.
+- Android's suite remains the richer benchmark (18 prompts, per-type timings). Porting it to
+  iOS — plus the battery/thermal sampling used by the Android report — is the next step for
+  like-for-like numbers.

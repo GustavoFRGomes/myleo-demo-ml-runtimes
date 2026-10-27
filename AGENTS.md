@@ -88,6 +88,9 @@ iOS leafs are clones of it with identifiers renamed.
 | `ios/llm/onnx-genai/` | `MyLeoLLMOnnxGenAI` | `org.ggomes.myleo.llm.onnxgenai` | `MyLeo LLM ONNX-GenAI` |
 | `ios/llm/coreml/` | `MyLeoLLMCoreML` | `org.ggomes.myleo.llm.coreml` | `MyLeo LLM Core ML` |
 | `ios/llm/trio/` | `MyLeoLLMTrio` | `org.ggomes.myleo.llm.trio` | `MyLeo LLM Trio` |
+| `ios/decision/litert/` | `MyLeoDecisionLiteRT` | `org.ggomes.myleo.decision.litert` | `MyLeo Decision LiteRT` |
+| `ios/decision/onnx/` | `MyLeoDecisionOnnx` | `org.ggomes.myleo.decision.onnx` | `MyLeo Decision ONNX` |
+| `ios/decision/trio/` | `MyLeoDecisionTrio` | `org.ggomes.myleo.decision.trio` | `MyLeo Decision Trio` |
 
 - When cloning the template to a new iOS variant: copy `project.yml`,
   `Info.plist`, `Sources/`, `Tests/`. **Never copy** `*.xcodeproj/`, `build/`,

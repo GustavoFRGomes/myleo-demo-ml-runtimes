@@ -1,0 +1,47 @@
+PODS:
+  - onnxruntime-c (1.30.0)
+  - onnxruntime-objc (1.30.0):
+    - onnxruntime-objc/Core (= 1.30.0)
+  - onnxruntime-objc/Core (1.30.0):
+    - onnxruntime-c (= 1.30.0)
+  - TensorFlowLiteC (2.17.0):
+    - TensorFlowLiteC/Core (= 2.17.0)
+  - TensorFlowLiteC/Core (2.17.0)
+  - TensorFlowLiteC/CoreML (2.17.0):
+    - TensorFlowLiteC/Core
+  - TensorFlowLiteC/Metal (2.17.0):
+    - TensorFlowLiteC/Core
+  - TensorFlowLiteSwift/Core (2.17.0):
+    - TensorFlowLiteC (= 2.17.0)
+    - TensorFlowLiteSwift/Privacy (= 2.17.0)
+  - TensorFlowLiteSwift/CoreML (2.17.0):
+    - TensorFlowLiteC/CoreML (= 2.17.0)
+    - TensorFlowLiteSwift/Core (= 2.17.0)
+    - TensorFlowLiteSwift/Privacy (= 2.17.0)
+  - TensorFlowLiteSwift/Metal (2.17.0):
+    - TensorFlowLiteC/Metal (= 2.17.0)
+    - TensorFlowLiteSwift/Core (= 2.17.0)
+    - TensorFlowLiteSwift/Privacy (= 2.17.0)
+  - TensorFlowLiteSwift/Privacy (2.17.0)
+
+DEPENDENCIES:
+  - onnxruntime-objc (~> 1.30.0)
+  - TensorFlowLiteSwift/CoreML (~> 2.17.0)
+  - TensorFlowLiteSwift/Metal (~> 2.17.0)
+
+SPEC REPOS:
+  trunk:
+    - onnxruntime-c
+    - onnxruntime-objc
+    - TensorFlowLiteC
+    - TensorFlowLiteSwift
+
+SPEC CHECKSUMS:
+  onnxruntime-c: 36ca0f2cdbc89c6b330ec5287c3faf5ca6ed394d
+  onnxruntime-objc: b5edf18cf57daebe2ee59a7866aab12c8eeff940
+  TensorFlowLiteC: eac6d689a8d391d1b202dc59e3d9165ba64aaf73
+  TensorFlowLiteSwift: 723fe42222815e72490c79feeff05305530de393
+
+PODFILE CHECKSUM: de506cb224e91c21023d7207ced43c63fd4dc510
+
+COCOAPODS: 1.17.0

@@ -26,6 +26,10 @@ Each `platform / area / runtime` combination is an independent, comparable varia
 │       ├── onnx-genai/    # ONNX Runtime GenAI (Phi / Llama / SmolLM) (Swift)
 │       ├── coreml/        # Core ML / Apple Foundation Models inference (Swift)
 │       └── trio/          # Runtime chooser: LiteRT-LM, ONNX GenAI or Core ML (Swift)
+│   └── decision/
+│       ├── litert/       # Julia-1 decision model (state + question + options → probabilities) (Swift)
+│       ├── onnx/         # Same Julia-1 contract on ONNX Runtime (Swift)
+│       └── trio/         # Runtime chooser: LiteRT, ONNX or Core ML (Swift)
 └── android/
     ├── vector-search/
     │   ├── litert/        # LiteRT Text Embedder + vector search (Kotlin)
