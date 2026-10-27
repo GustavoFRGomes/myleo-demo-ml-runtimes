@@ -287,11 +287,11 @@ Reading it:
 - **Battery is flat (80% → 80%)** because the whole suite is ~0.7–8.6 s; the iOS gauge cannot
   resolve that. Thermal state was `nominal` throughout. For power numbers, the repeat-based
   Power Profiler method in `docs/benchmarks_batter.md` is the right tool.
-- **Battery level does not move measurably.** 4× the suite is 36 s (LiteRT) / 3 s (ONNX) and
-  the gauge read **80% → 80%** both times; iOS gives apps no current or wattage API, so a
-  percentage delta is the only battery-level signal and it is quantised in ~5% steps. Energy was
-  therefore measured with `xctrace` Power Profiler (model-based): LiteRT ≈ 4.6 W / **2033 mJ per
-  prompt**, ONNX ≈ 5.3 W / **136 mJ per prompt** (the ONNX window is ~2 s, so indicative).
-  Detail and caveats: [`docs/benchmarks_batter.md`](benchmarks_batter.md#decision-suite-ios-iphone-15-pro).
+- **Battery level does not move measurably.** iOS gives apps no current or wattage API, and
+  the ~5% gauge cannot resolve a 3–36 s workload (it read 80% → 80% in every run). Energy comes
+  from `xctrace` Power Profiler instead. The suite must be repeated to get a usable sampling
+  window: ONNX at 4× is only ~2 s of samples (indicative), 40× gives ~28 s — **~186 mJ per
+  decision**, versus LiteRT's 4× (~32 s window) **~2033 mJ per decision**. Details:
+  [`docs/benchmarks_batter.md`](benchmarks_batter.md#decision-suite-ios-iphone-15-pro).
 - The suite is deliberately the same 18 prompts as Android, so the per-prompt answers can be
   diffed directly from the JSON exports.

@@ -85,23 +85,29 @@ Energy converted with the SE 3 pack: **2018 mAh, 3.86 V nominal**.
 
 ## Decision suite (iOS, iPhone 15 Pro)
 
-The 18-prompt decision suite is far too short to move the iOS battery gauge: 4× the suite is
-36 s on LiteRT and 3 s on ONNX, and the in-app reading stayed **80% → 80%** in both cases.
-iOS does not expose battery current or wattage to apps, so a percentage delta is the only
-battery-level signal available — and it is quantised in ~5% steps, i.e. useless at this length.
+The 18-prompt decision suite is short — 4× is 36 s on LiteRT but only 3 s on ONNX — and the
+in-app battery reading stayed **80% → 80%** in every run. iOS does not expose battery current or
+wattage to apps, so the percentage is the only battery-level signal available, and it is
+quantised in ~5% steps: it cannot resolve a workload of seconds.
 
-The energy figures below come from `xctrace` **Power Profiler** attached to the run
-(`SystemPowerLevel`, mean %/hour), converted with the SE/15 Pro-class pack assumption
-(2018 mAh, 3.86 V). They are model-based, not a meter.
+Energy therefore comes from `xctrace` **Power Profiler** (`SystemPowerLevel`, ~1 sample/second,
+mean %/hour), converted with the 2018 mAh / 3.86 V pack assumption. The sampling rate is the
+catch: a run must last **tens of seconds** before the window means anything.
 
-| Lane (4× suite = 72 prompts) | Wall | mean %/hr | ≈ power | Energy | ≈ per prompt |
-|---|---:|---:|---:|---:|---:|
-| LiteRT CPU (window 512) | 36.4 s | 58.9 | 4.6 W | 146 J | **2033 mJ** |
-| ONNX CPU (window 1024) | 3.0 s | 67.6 | 5.3 W | 10 J | **136 mJ** |
+| Lane | Repeats | Prompts | Wall | Sampling window | mean %/hr | ≈ power | Energy | ≈ per prompt |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| LiteRT | 4× | 72 | 36.4 s | ~32 s | 58.9 | 4.6 W | 146 J | **2033 mJ** |
+| ONNX | 4× | 72 | 3.0 s | **~2 s** | 67.6 | 5.3 W | 10 J | 136 mJ — *indicative* |
+| ONNX | 10× | 180 | 6.6 s | **~3 s** | 73.9 | 5.8 W | 17 J | 94 mJ — *indicative* |
+| ONNX | 40× | 720 | 28.6 s | **~28 s** | 61.5 | 4.8 W | 134 J | **186 mJ** |
 
-Caveats: the ONNX window is only ~2 s of samples (three points), so its figure is indicative;
-LiteRT's is the more reliable of the two. The per-prompt energy tracks the 13× speed gap almost
-exactly — the runtimes draw similar power but ONNX spends far less time doing it.
+- **The 4× ONNX figure was not a measurement.** With ~2 s of samples the mean is dominated by
+  attach timing and the clock ramp; 10× (3 s) is barely better. Only the 40× run gives a window
+  comparable to LiteRT's.
+- With a proper window, ONNX costs **~186 mJ per decision** versus LiteRT's **~2033 mJ** — the
+  ~11× gap is mostly the 13× difference in time, since both lanes draw roughly 4.5–5 W.
+- **Battery level is unusable here on iOS**: no current/wattage API, ~5% gauge steps, and the
+  runs last seconds to a minute. That is a platform limitation, not a missing measurement.
 
 ## Reproduce
 
