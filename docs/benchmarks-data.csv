@@ -20,3 +20,4 @@ iOS,Decision,iPhone 15 Pro,LiteRT,CPU,Julia-1,2670,,,4.59,,,,476.4,2033.3,,18-pr
 iOS,Decision,iPhone 15 Pro,ONNX,CPU,Julia-1,3032,,,4.79,,,,36.8,186.0,,"18-prompt suite (40x, 28 s sampling window); window 1024; energy via Power Profiler."
 iOS,Vector search,iPhone 15 Pro,LiteRT,CPU (Core ML delegate attempted),MiniLM-L6-v2,688.4,,,3.69,,44.3,161.0,,,,40x20 chunks; battery 80->80; load includes delegate setup.
 iOS,Vector search,iPhone 15 Pro,ONNX,CPU (Core ML EP attempted),MiniLM-L6-v2,405.3,,,4.22,,20.5,81.5,,,,80x20 chunks; Core ML EP attempted then CPU; battery 80->80.
+iOS,Vector search,iPhone 15 Pro,Core ML,CPU,MiniLM-L6-v2,31.3,,,4.77,,8.8,34.4,,,,180x20 chunks; locally converted fp32 package; warm load 31 ms (175 first). Battery 75->75.

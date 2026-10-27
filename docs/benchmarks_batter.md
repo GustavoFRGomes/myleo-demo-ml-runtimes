@@ -120,9 +120,11 @@ gauge cannot resolve this workload and iOS exposes no current API.
 |---|---:|---:|---:|---:|---:|---:|
 | LiteRT | 800 | 44.3 | 47.3 | 3.7 W | 129 J | **161 mJ** |
 | ONNX | 1600 | 20.5 | 54.2 | 4.2 W | 130 J | **82 mJ** |
+| Core ML | 3600 | 8.8 | 61.3 | 4.8 W | 124 J | **34 mJ** |
 
-ONNX runs at about twice the speed for roughly the same wall power, so it costs about half the
-energy per chunk. Load timings include the Core ML delegate/EP attempt that falls back to CPU.
+ONNX runs at about twice LiteRT's speed for roughly the same wall power; Core ML is faster still
+and cheapest per chunk. Load timings for LiteRT/ONNX include the Core ML delegate/EP attempt that
+falls back to CPU; Core ML loads its compiled `mlmodelc` directly.
 
 ## Reproduce
 

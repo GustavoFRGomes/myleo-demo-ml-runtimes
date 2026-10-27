@@ -50,11 +50,15 @@ ONNX is that attempt falling back), so load includes the provider setup.
 |---|---:|---:|---:|---|
 | LiteRT | **688** | **44.3** | 44.0 | 39.8–54.9 |
 | ONNX | **405** | **20.5** | 20.8 | 19.1–40.5 |
-| Core ML | — | — | — | no `.mlpackage` on this machine; see the leaf README for the local conversion |
+| Core ML | **31** warm (175 first) | **8.3** | 8.4 | 8.1–13.5 |
 
-Battery stayed **80% → 80%** in both lanes; energy came from Power Profiler:
-LiteRT 3.7 W / **161 mJ per chunk**, ONNX 4.2 W / **82 mJ per chunk** (see
-[`benchmarks_batter.md`](benchmarks_batter.md#embedding-ios-iphone-15-pro)).
+Battery stayed flat in every lane (80% → 80% for LiteRT/ONNX, 75% → 75% for Core ML); energy
+came from Power Profiler: LiteRT 3.7 W / **161 mJ per chunk**, ONNX 4.2 W / **82 mJ**, Core ML
+4.8 W / **34 mJ** (see [`benchmarks_batter.md`](benchmarks_batter.md#embedding-ios-iphone-15-pro)).
+
+Core ML package: converted locally with the README's recipe (coremltools 9.0, transformers
+4.36.2, fp32, iOS 17) and verified against PyTorch — pooled vectors agree to **cosine 1.000000,
+max |diff| 1.7e-07** on three probe texts.
 
 ## Android (`android/vector-search/*`)
 

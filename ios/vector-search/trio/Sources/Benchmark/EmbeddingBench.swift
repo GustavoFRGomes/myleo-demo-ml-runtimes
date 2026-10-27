@@ -83,6 +83,7 @@ enum EmbeddingBench {
     enum RuntimeKind: String, CaseIterable {
         case litert
         case onnx
+        case coreml
     }
 
     private static func make(_ runtime: RuntimeKind) throws -> (embedder: Embedder, loadMs: Double) {
@@ -91,6 +92,7 @@ enum EmbeddingBench {
         switch runtime {
         case .litert: embedder = try LiteRTEmbedderFactory.create()
         case .onnx: embedder = try OnnxEmbedderFactory.create()
+        case .coreml: embedder = try CoreMLEmbedderFactory.create()
         }
         return (embedder, Date().timeIntervalSince(start) * 1000)
     }
