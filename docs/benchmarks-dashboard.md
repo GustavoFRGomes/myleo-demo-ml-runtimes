@@ -9,6 +9,11 @@ Each area opens on the metric that answers “which runtime is faster?” — de
 LLM, embed ms/chunk for vector search, decision ms/prompt for the Julia-1 suite. It does not
 default to *load* (ONNX loads ~0.3 s slower on the decision lane yet is ~13× faster per prompt).
 
+The head-to-head cards are followed by a **side-by-side table** covering every metric both rows
+have — decode speed, TTFT, model load, average power, energy per token/chunk/decision and memory.
+Power and energy are the battery proxies (iOS has no current API); the better cell is highlighted
+and the last column is B relative to A.
+
 Two collapsible panels sit above and below the chart:
 
 - **Methodology — what ran** (open by default): the model, prompt/corpus/suite and parameters for

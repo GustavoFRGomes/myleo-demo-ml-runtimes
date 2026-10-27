@@ -59,6 +59,15 @@
   .actions { display:flex; gap:10px; flex-wrap:wrap; }
   a { color: var(--accent); }
 
+  .h2h-table { margin-top:12px; border:1px solid var(--line); border-radius:10px; padding:8px 14px; }
+  .h2h-table table { width:100%; border-collapse:collapse; font-size:13px; }
+  .h2h-table th, .h2h-table td { padding:6px 8px; border-bottom:1px solid var(--line); text-align:right; }
+  .h2h-table th:first-child, .h2h-table td:first-child { text-align:left; }
+  .h2h-table th { color:var(--muted); font-weight:600; }
+  .h2h-table td.better { color: var(--accent); font-weight:600; }
+  .h2h-table td.missing { color: var(--muted); }
+  .h2h-table caption { text-align:left; color:var(--muted); font-size:12px; padding-bottom:6px; }
+
   details.panel { border:1px solid var(--line); border-radius:10px; margin-top:14px; padding:0 12px; }
   details.panel > summary { cursor:pointer; padding:10px 0; font-weight:600; font-size:14px; }
   details.panel[open] > summary { border-bottom:1px solid var(--line); margin-bottom:10px; }
@@ -146,6 +155,7 @@
         <div class="delta" id="metaB"></div>
       </div>
     </div>
+    <div class="h2h-table" id="h2h-table"></div>
     <p class="hint" id="verdict"></p>
   </section>
 
@@ -596,6 +606,7 @@
     }
     show("valueA", "metaA", a);
     show("valueB", "metaB", b);
+    renderH2HTable(a, b);
     var verdict = $("verdict");
     if (!a || !b || a === b) { verdict.textContent = "Pick two different rows to compare."; return; }
     var low = Math.min(a[state.metric], b[state.metric]);
@@ -605,6 +616,43 @@
                                          : (metric.better === "lower" ? b : a);
     verdict.innerHTML = "<span class='win'>" + esc(labelOf(winner)) + "</span> is better by " +
       pct + "% on " + esc(metric.label.toLowerCase()) + ".";
+  }
+
+
+  function renderH2HTable(a, b) {
+    var host = document.getElementById("h2h-table");
+    if (!a || !b || a === b) { host.innerHTML = ""; return; }
+    var rows = [];
+    METRICS.forEach(function (m) {
+      var av = typeof a[m.key] === "number" ? a[m.key] : null;
+      var bv = typeof b[m.key] === "number" ? b[m.key] : null;
+      if (av === null && bv === null) return;
+      var delta = null;
+      if (av !== null && bv !== null && av !== 0) delta = (bv - av) / av * 100;
+      rows.push({ m: m, av: av, bv: bv, delta: delta });
+    });
+    if (!rows.length) { host.innerHTML = ""; return; }
+
+    var html = "<table><caption>All metrics present for the two selected rows — " +
+      "power and energy are the battery proxies (iOS has no current API).</caption>" +
+      "<thead><tr><th>Metric</th><th>" + esc(a.runtime) + " · " + esc(a.backend) + " · " + esc(a.device) +
+      "</th><th>" + esc(b.runtime) + " · " + esc(b.backend) + " · " + esc(b.device) + "</th><th>Δ (B vs A)</th></tr></thead><tbody>";
+    rows.forEach(function (row) {
+      var m = row.m;
+      var aBetter = row.av !== null && row.bv !== null
+        ? (m.better === "lower" ? row.av < row.bv : row.av > row.bv) : null;
+      var bBetter = aBetter === null ? null : !aBetter;
+      var deltaText = row.delta === null ? "—"
+        : (row.delta > 0 ? "+" : "") + row.delta.toFixed(1) + "%";
+      html += "<tr><td>" + esc(m.label) + " (" + esc(m.unit) + ")</td>" +
+        "<td class='" + (aBetter ? "better" : "") + "'>" +
+          (row.av === null ? "—" : fmt(row.av)) + "</td>" +
+        "<td class='" + (bBetter ? "better" : "") + "'>" +
+          (row.bv === null ? "—" : fmt(row.bv)) + "</td>" +
+        "<td>" + deltaText + "</td></tr>";
+    });
+    html += "</tbody></table>";
+    host.innerHTML = html;
   }
 
   // ---------- table ----------
