@@ -5,6 +5,10 @@ search / Decision), device filter, metric selector (tok/s, TTFT, load, power, en
 token/chunk, embed ms, decision ms, PSS), a sorted bar chart, a head-to-head card and the full
 table. No network calls, no CDN, no build step.
 
+Each area opens on the metric that answers “which runtime is faster?” — decode tok/s for
+LLM, embed ms/chunk for vector search, decision ms/prompt for the Julia-1 suite. It does not
+default to *load* (ONNX loads ~0.3 s slower on the decision lane yet is ~13× faster per prompt).
+
 Two collapsible panels sit above and below the chart:
 
 - **Methodology — what ran** (open by default): the model, prompt/corpus/suite and parameters for

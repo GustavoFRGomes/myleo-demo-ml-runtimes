@@ -418,6 +418,10 @@
   METRICS.forEach(function (m) { METRIC_BY_KEY[m.key] = m; });
 
   var state = { platform: "All", area: "LLM", device: "All", metric: "tokPerSec", order: "best" };
+  // Each area opens on the metric that answers "which runtime is faster?", not on load
+  // (ONNX loads slightly slower on decision but is ~13x faster per prompt).
+  var PREFERRED = { "LLM": "tokPerSec", "Vector search": "msPerChunk", "Decision": "msPerPrompt" };
+  function preferredFor(area) { return PREFERRED[area] || "loadMs"; }
 
   // Selection-aware notes. `runtime` is optional: a note without it applies to the whole
   // platform/area; one with it appears only when that runtime is in the filtered rows.
@@ -500,9 +504,13 @@
         (has ? "" : " disabled") + ">" + esc(m.label) + " (" + esc(m.unit) + ")</option>";
     }).join("");
     if (!present.some(function (r) { return typeof r[state.metric] === "number"; })) {
-      var first = METRICS.filter(function (m) {
-        return present.some(function (r) { return typeof r[m.key] === "number"; });
-      })[0];
+      var preferred = preferredFor(state.area);
+      var prefAvailable = present.some(function (r) { return typeof r[preferred] === "number"; });
+      var first = prefAvailable
+        ? METRICS.filter(function (m) { return m.key === preferred; })[0]
+        : METRICS.filter(function (m) {
+            return present.some(function (r) { return typeof r[m.key] === "number"; });
+          })[0];
       if (first) { state.metric = first.key; sel.value = first.key; }
     }
   }
@@ -744,7 +752,13 @@
     renderAll();
   });
   $("area").addEventListener("change", function (e) {
-    state.area = e.target.value; state.device = "All"; renderAll();
+    state.area = e.target.value;
+    state.device = "All";
+    var preferred = preferredFor(state.area);
+    if (rowsForPlatform().some(function (r) { return r.area === state.area && typeof r[preferred] === "number"; })) {
+      state.metric = preferred;
+    }
+    renderAll();
   });
   $("device").addEventListener("change", function (e) { state.device = e.target.value; renderAll(); });
   $("metric").addEventListener("change", function (e) { state.metric = e.target.value; renderAll(); });
