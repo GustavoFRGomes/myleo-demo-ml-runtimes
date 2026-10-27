@@ -60,6 +60,22 @@ Core ML package: converted locally with the README's recipe (coremltools 9.0, tr
 4.36.2, fp32, iOS 17) and verified against PyTorch — pooled vectors agree to **cosine 1.000000,
 max |diff| 1.7e-07** on three probe texts.
 
+### iPhone SE 3rd gen — embedding re-run (2026-10-27)
+
+Same app and corpus on the SE 3, 15 warm repetitions (300 chunks per runtime), **one runtime
+per process**: loading all three in one launch made iOS kill the app (Jetsam) during the ONNX
+lane on this 4 GB phone. Load is cold-cache — the first launch after install paid compilation.
+
+| Runtime | Load ms | Embed ms/chunk (median) | mean | min–max |
+|---|---:|---:|---:|---|
+| LiteRT | **905** | **56.1** | 56.1 | 52.3–123.5 |
+| ONNX | **541** | **23.1** | 23.1 | 21.2–29.0 |
+| Core ML | **347** | **10.8** | 10.9 | 10.2–39.5 |
+
+The LiteRT lane logs 26 `Mean op is only supported for 4D input` lines — the Core ML delegate
+is attempted, refuses the pooling op and falls back to CPU for it, so these timings are the
+CPU path with a delegate setup cost, exactly as on the 15 Pro.
+
 ## Android (`android/vector-search/*`)
 
 | Leaf | Runtime (dep size) | Model (size, dims) | Load ms | Embed ms/chunk | Notes |
@@ -559,6 +575,32 @@ MyLeoLLMTrio --time-limit 120s --output run.trace`, then
 `xctrace export --input run.trace --xpath '/trace-toc/run[@number="1"]/data/table[@schema="SystemPowerLevel"]'`.
 The app side is `--benchmark <id> --bench-repeats 5` (plus `--bench-wait-unplugged` when the
 cable cannot be removed during setup).
+
+### iPhone SE 3rd gen — sustained battery run (2026-10-27)
+
+The same phone, re-measured **unplugged for 60 generations per lane** so the ~5% gauge can
+move (Power Profiler needs the cable, and reads 0 %/hr while the phone charges). Cold load and
+TTFT come from the first generation of each batch; energy is derived from the gauge delta with
+the SE 3 pack (2018 mAh, 3.86 V).
+
+| Runtime | Load ms | TTFT ms | Sustained tok/s | Wall | Battery | Thermal | ≈ power | ≈ per token |
+|---|---:|---:|---:|---:|---|---:|---:|---:|
+| `litert-lm` GPU | 6274 (first Metal compile) | 949 | **32.4** | 1044.5 s | **95% → 80%** | serious | ~4.0 W | ~132 mJ |
+| `onnx-genai` CPU | 1261 | 399 | **30.8** | 1052.1 s | **80% → 60%** | serious | ~5.3 W | ~180 mJ |
+| `litert-lm` CPU | 316 | 948 | **27.3** | 687.2 s | **55% → 40%** | serious | ~6.1 W | ~252 mJ |
+
+Reading it:
+
+- **The cooled table above (43.8 / 46.6 / 35.7 tok/s) does not survive 17 minutes of load.**
+  Every lane lands at 27–32 tok/s with thermal state `serious`; the SE has no vapour chamber.
+- **Ordering is preserved:** ONNX stays slightly ahead of LiteRT GPU over the long haul, and
+  both stay well ahead of LiteRT CPU.
+- **Per-token energy from a 5% gauge step carries ±50%.** GPU (132) and ONNX (180) land near
+  the Power Profiler figures above (122 and 130 mJ at higher throughput, so slightly higher
+  per token when throttled); the CPU row's 252 mJ is the least reliable because its run is
+  shortest. Treat the percentages as the measurement and the mJ column as an estimate.
+- The 60-run wall times include ~1 s of TTFT per generation on the CPU lane, so they read
+  slower than the decode-only tok/s column; they are not apples-to-apples with the 3-run table.
 
 ## Decision leafs (`*/decision/*`)
 

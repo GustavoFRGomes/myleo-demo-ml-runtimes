@@ -23,3 +23,11 @@ iOS,Vector search,iPhone 15 Pro,ONNX,CPU (Core ML EP attempted),MiniLM-L6-v2,405
 iOS,Vector search,iPhone 15 Pro,Core ML,CPU,MiniLM-L6-v2,31.3,,,4.77,,8.8,34.4,,,,180x20 chunks; locally converted fp32 package; warm load 31 ms (175 first). Battery 75->75.
 iOS,LLM,iPhone 15 Pro,LiteRT-LM,GPU (Metal),MiniCPM5-1B,932,220,45.4,1.87,43.8,,,,,,"Sustained 60x run, battery 70->65, thermal critical; cold run 63.3 tok/s."
 iOS,LLM,iPhone 15 Pro,ONNX GenAI,CPU,MiniCPM5-1B int4,467,136,47.5,4.16,97.4,,,,,,"Sustained 60x run, battery 60->50, thermal serious; cold run 67.4 tok/s."
+iOS,Vector search,iPhone SE 3,LiteRT,CPU (Core ML delegate attempted),MiniLM-L6-v2,905,,,,,56.1,,,,,"2026-10-27 re-run: 15x20 chunks, one runtime per process; 26 Mean-op delegate fallbacks; battery flat."
+iOS,Vector search,iPhone SE 3,ONNX,CPU (Core ML EP attempted),MiniLM-L6-v2,541,,,,,23.1,,,,,2026-10-27 re-run: 15x20 chunks; Core ML EP attempted then CPU.
+iOS,Vector search,iPhone SE 3,Core ML,CPU,MiniLM-L6-v2,347,,,,,10.8,,,,,2026-10-27 re-run: 15x20 chunks; locally converted fp32 package.
+iOS,Decision,iPhone SE 3,LiteRT,CPU,Julia-1,3657,,,,,,,660.5,,,"2026-10-27 18-prompt suite, window 512; tokenizer load 3.59 s; single request 598-627 ms; battery 94->94."
+iOS,Decision,iPhone SE 3,ONNX,CPU,Julia-1,4543,,,,,,,51.0,,,"2026-10-27 18-prompt suite, window 1024; tokenizer load 3.86 s; single request 35-47 ms."
+iOS,LLM,iPhone SE 3,LiteRT-LM,GPU (Metal),MiniCPM5-1B,6274,949,32.4,4.03,131.5,,,,,,"2026-10-27 sustained 60x, battery 95->80, thermal serious; cold 43.8 tok/s (3-run table)."
+iOS,LLM,iPhone SE 3,ONNX GenAI,CPU,MiniCPM5-1B int4,1261,399,30.8,5.33,179.6,,,,,,"2026-10-27 sustained 60x, battery 80->60, thermal serious; cold 46.6 tok/s."
+iOS,LLM,iPhone SE 3,LiteRT-LM,CPU (XNNPACK),MiniCPM5-1B,316,948,27.3,6.12,252.2,,,,,,"2026-10-27 sustained 60x, battery 55->40, thermal serious; cold 35.7 tok/s; shortest run, widest error."

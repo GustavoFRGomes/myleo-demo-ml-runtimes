@@ -470,6 +470,103 @@
     "powerW": 4.16,
     "mjPerToken": 97.4,
     "note": "Sustained 60x run, battery 60->50, thermal serious; cold run 67.4 tok/s."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT",
+    "backend": "CPU (Core ML delegate attempted)",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 905,
+    "msPerChunk": 56.1,
+    "note": "2026-10-27 re-run: 15x20 chunks, one runtime per process; 26 Mean-op delegate fallbacks; battery flat."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "ONNX",
+    "backend": "CPU (Core ML EP attempted)",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 541,
+    "msPerChunk": 23.1,
+    "note": "2026-10-27 re-run: 15x20 chunks; Core ML EP attempted then CPU."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "Core ML",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 347,
+    "msPerChunk": 10.8,
+    "note": "2026-10-27 re-run: 15x20 chunks; locally converted fp32 package."
+  },
+  {
+    "platform": "iOS",
+    "area": "Decision",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT",
+    "backend": "CPU",
+    "model": "Julia-1",
+    "loadMs": 3657,
+    "msPerPrompt": 660.5,
+    "note": "2026-10-27 18-prompt suite, window 512; tokenizer load 3.59 s; single request 598-627 ms; battery 94->94."
+  },
+  {
+    "platform": "iOS",
+    "area": "Decision",
+    "device": "iPhone SE 3",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "Julia-1",
+    "loadMs": 4543,
+    "msPerPrompt": 51.0,
+    "note": "2026-10-27 18-prompt suite, window 1024; tokenizer load 3.86 s; single request 35-47 ms."
+  },
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT-LM",
+    "backend": "GPU (Metal)",
+    "model": "MiniCPM5-1B",
+    "loadMs": 6274,
+    "ttftMs": 949,
+    "tokPerSec": 32.4,
+    "powerW": 4.03,
+    "mjPerToken": 131.5,
+    "note": "2026-10-27 sustained 60x, battery 95->80, thermal serious; cold 43.8 tok/s (3-run table)."
+  },
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone SE 3",
+    "runtime": "ONNX GenAI",
+    "backend": "CPU",
+    "model": "MiniCPM5-1B int4",
+    "loadMs": 1261,
+    "ttftMs": 399,
+    "tokPerSec": 30.8,
+    "powerW": 5.33,
+    "mjPerToken": 179.6,
+    "note": "2026-10-27 sustained 60x, battery 80->60, thermal serious; cold 46.6 tok/s."
+  },
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT-LM",
+    "backend": "CPU (XNNPACK)",
+    "model": "MiniCPM5-1B",
+    "loadMs": 316,
+    "ttftMs": 948,
+    "tokPerSec": 27.3,
+    "powerW": 6.12,
+    "mjPerToken": 252.2,
+    "note": "2026-10-27 sustained 60x, battery 55->40, thermal serious; cold 35.7 tok/s; shortest run, widest error."
   }
 ]
 </script>
@@ -782,9 +879,10 @@
         "<li>ONNX: <code>model.onnx</code> + external weights with the token table in-graph (window 1024).</li></ul>";
     }
     if (platforms.indexOf("iOS") >= 0) {
-      method += "<h4>iOS device</h4><p>Results are from iPhone SE 3 (vector search, earlier LLM runs) or " +
-        "iPhone 15 Pro (decision, later LLM runs); the device column is authoritative. Battery/energy " +
-        "figures are estimates, never meter readings.</p>";
+      method += "<h4>iOS device</h4><p>Results are from iPhone SE 3 and iPhone 15 Pro across all " +
+        "three areas; the device column is authoritative, and same-device rows marked 2026-10-27 are " +
+        "sustained 60-run re-measurements on battery. Battery/energy figures are estimates, never " +
+        "meter readings.</p>";
     }
     if (platforms.indexOf("Android") >= 0) {
       method += "<h4>Android device</h4><p>SM-S948B for the original tables and SM-S938B for the " +

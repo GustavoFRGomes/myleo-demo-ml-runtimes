@@ -295,3 +295,40 @@ Reading it:
   [`docs/benchmarks_batter.md`](benchmarks_batter.md#decision-suite-ios-iphone-15-pro).
 - The suite is deliberately the same 18 prompts as Android, so the per-prompt answers can be
   diffed directly from the JSON exports.
+
+## iOS — iPhone SE 3rd gen (2026-10-27)
+
+Same Trio app and Julia-1 packages as the 15 Pro section, on the SE 3 (`iPhone14,6`, A15),
+iOS 27.0.1. Unplugged; the gauge read 94% → 94% across the suite, thermal `fair`.
+
+### Single request (`--bench-decision`, 3 timed iterations)
+
+| Runtime | Load ms | Prepare ms | Lookup ms | Graph ms | Decode ms | Total ms |
+|---|---:|---:|---:|---:|---:|---:|
+| LiteRT (window 512) | 3944.9 | 6.2–8.0 | 22.8–24.0 | **565.3–596.6** | 0.01–1.44 | **598.1–627.2** |
+| ONNX (window 1024) | 4332.1 | 5.5–6.0 | 0.0 | **29.4–41.1** | 0.01 | **35.3–46.8** |
+
+Both lanes answered `billing` with p = 0.999999; 45 tokens.
+
+### 18-prompt suite (`--suite-decision`)
+
+| Runtime | Suite load ms | Avg | Min–max | Wall |
+|---|---:|---:|---|---:|
+| LiteRT | 3657.0 (tokenizer 3590.6 / graph 65.4) | **660.5 ms** | 611.5–680.7 | 11891 ms |
+| ONNX | 4543.1 (tokenizer 3862.4 / graph 680.7) | **51.0 ms** | 37.9–72.3 | 920 ms |
+
+| Type | Count | LiteRT avg | LiteRT min–max | ONNX avg | ONNX min–max |
+|---|---:|---:|---|---:|---|
+| choice | 8 | 644.9 ms | 611.5–660.3 | 57.4 ms | 37.9–72.3 |
+| score | 5 | 668.1 ms | 661.2–675.3 | 50.3 ms | 44.6–58.7 |
+| noul | 5 | 677.7 ms | 675.1–680.7 | 41.6 ms | 38.3–44.1 |
+
+- **ONNX is ~13× faster here too** (51.0 vs 660.5 ms per prompt), and the per-type ordering
+  matches the 15 Pro: `noul` is the cheapest ONNX call, the most expensive LiteRT one.
+- **Tokenizer load dominates the first call** on this phone: 3.59 s of the 3.66 s LiteRT load
+  and 3.86 s of the 4.54 s ONNX load is the Swift tokenizer reading the 34 MB
+  `tokenizer.json`, not the graph. The graph itself is 65 ms (LiteRT) / 681 ms (ONNX).
+- The LiteRT absolute numbers are ~1.4× the 15 Pro's (476 ms) because the A15 has no GPU path
+  for this graph — both lanes run CPU, as reported in the app.
+- Reports: `reports/julia-1-suite-ios-se3-litert.{md,json}` and
+  `reports/julia-1-suite-ios-se3-onnx.{md,json}`.

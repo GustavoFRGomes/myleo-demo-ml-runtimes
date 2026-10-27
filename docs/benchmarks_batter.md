@@ -83,6 +83,21 @@ Energy converted with the SE 3 pack: **2018 mAh, 3.86 V nominal**.
 - `%`-based battery deltas are not usable at this run length; the in-app fields are still
   recorded (`batteryStartPct`, `batteryDeltaPct`, `energyMWhEstimate`) for long runs.
 
+### Sustained battery runs (60 generations per lane)
+
+Because Power Profiler needs the cable and reads zero while charging, the long-run checks use
+the gauge instead: 60 back-to-back generations unplugged, ~11–17 minutes per lane.
+
+| Runtime | Wall | Battery | Thermal | Sustained tok/s | ≈ power | ≈ per token |
+|---|---:|---|---:|---:|---:|---:|
+| LiteRT-LM GPU | 1044.5 s | 95% → 80% | serious | 32.4 | 4.0 W | 132 mJ |
+| ONNX GenAI CPU | 1052.1 s | 80% → 60% | serious | 30.8 | 5.3 W | 180 mJ |
+| LiteRT-LM CPU | 687.2 s | 55% → 40% | serious | 27.3 | 6.1 W | 252 mJ |
+
+The Power Profiler table above remains the better per-token reference (122–133 mJ at `fair`);
+these runs show what ten-plus minutes of heat does instead — every lane throttles to 27–32
+tok/s and the gauge step makes the mJ column an estimate, not a measurement. CPU's run is the
+shortest and therefore the least reliable.
 
 ## LLM (iOS, iPhone 15 Pro, battery runs)
 
