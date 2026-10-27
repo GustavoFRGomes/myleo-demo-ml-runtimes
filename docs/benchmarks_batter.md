@@ -83,6 +83,21 @@ Energy converted with the SE 3 pack: **2018 mAh, 3.86 V nominal**.
 - `%`-based battery deltas are not usable at this run length; the in-app fields are still
   recorded (`batteryStartPct`, `batteryDeltaPct`, `energyMWhEstimate`) for long runs.
 
+
+## LLM (iOS, iPhone 15 Pro, battery runs)
+
+Ten-minute runs on battery (60 generations each), because the gauge cannot resolve the usual
+3-run cells. Deltas are 5%-quantised; the ranges below are derived from that step, not noise.
+
+| Runtime | Wall | Battery | Thermal | ≈ power | ≈ per token |
+|---|---:|---|---:|---:|---:|
+| LiteRT-LM GPU | 750.8 s | 70% → 65% | critical | 1.9 W (1.9–3.7) | 44 mJ (44–88) |
+| ONNX GenAI CPU | 674.7 s | 60% → 50% | serious | 4.2 W (2.1–6.2) | 97 mJ (49–146) |
+
+Both lanes throttle from ~65 tok/s cold to ~46–48 tok/s sustained. iOS offers no current/wattage
+API and Power Profiler reports zero while charging, so battery percentage over long runs is the
+only unplugged signal available.
+
 ## Decision suite (iOS, iPhone 15 Pro)
 
 The 18-prompt decision suite is short — 4× is 36 s on LiteRT but only 3 s on ONNX — and the

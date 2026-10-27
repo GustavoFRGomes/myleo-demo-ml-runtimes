@@ -151,6 +151,27 @@ Reading it:
 - **Thermals favour WebGPU under sustained load:** the second CPU run throttled to
   25.2 ms/chunk (from 19.2), while WebGPU held 13.4 in both runs.
 
+
+### iPhone 15 Pro — LLM, sustained battery run (2026-10-27)
+
+Same MiniCPM5-1B packages as the SE 3 table, but measured for **10–12 minutes** per lane on
+battery so the iOS gauge can move. Single cold runs are shown first; the sustained columns come
+from 60 back-to-back generations. Battery deltas are 5%-quantised, so energy estimates carry a
+wide band; thermal state is reported because it dominates the sustained rate.
+
+| Runtime | Cold load / TTFT / tok/s | 60-run tok/s | Wall | Battery | Thermal | ≈ power | ≈ per token |
+|---|---|---|---|---|---|---|---|
+| LiteRT-LM GPU | 932 ms / 220 ms / 63.3 | **45.4** | 750.8 s | **70% → 65%** | critical | ~1.9 W (1.9–3.7) | ~44 mJ (44–88) |
+| ONNX GenAI CPU | 467 ms / 136 ms / 67.4 | **47.5** | 674.7 s | **60% → 50%** | serious | ~4.2 W (2.1–6.2) | ~97 mJ (49–146) |
+
+- **Thermals are the story on the 15 Pro.** Both lanes drop from ~65 tok/s cold to ~46–48 tok/s
+  after ten minutes; LiteRT reached `critical`, ONNX `serious`. The SE 3 numbers above were
+  three-run bursts and do not show this.
+- **The battery gauge is too coarse for energy comparisons.** A 5% step over ~11 minutes is
+  100 mAh (±50), so the watt/mJ bands above are honest ranges, not precision. Power Profiler
+  would be better but reads zero while the phone charges, and it needs the cable.
+- ONNX remains the faster lane and the one with the larger measured draw per token here.
+
 ## Accelerated runs — iOS ANE (separate from the CPU baselines above)
 Measured on the Trio app on the iPhone SE 3rd gen, 50 Enron email chunks,
 with ANE acceleration requested on all three runtimes. Same models, same

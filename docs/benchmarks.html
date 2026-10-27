@@ -442,6 +442,34 @@
     "powerW": 4.77,
     "mjPerChunk": 34.4,
     "note": "180x20 chunks; locally converted fp32 package; warm load 31 ms (175 first). Battery 75->75."
+  },
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone 15 Pro",
+    "runtime": "LiteRT-LM",
+    "backend": "GPU (Metal)",
+    "model": "MiniCPM5-1B",
+    "loadMs": 932,
+    "ttftMs": 220,
+    "tokPerSec": 45.4,
+    "powerW": 1.87,
+    "mjPerToken": 43.8,
+    "note": "Sustained 60x run, battery 70->65, thermal critical; cold run 63.3 tok/s."
+  },
+  {
+    "platform": "iOS",
+    "area": "LLM",
+    "device": "iPhone 15 Pro",
+    "runtime": "ONNX GenAI",
+    "backend": "CPU",
+    "model": "MiniCPM5-1B int4",
+    "loadMs": 467,
+    "ttftMs": 136,
+    "tokPerSec": 47.5,
+    "powerW": 4.16,
+    "mjPerToken": 97.4,
+    "note": "Sustained 60x run, battery 60->50, thermal serious; cold run 67.4 tok/s."
   }
 ]
 </script>
