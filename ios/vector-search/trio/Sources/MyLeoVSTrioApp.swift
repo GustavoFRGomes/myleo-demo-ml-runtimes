@@ -19,11 +19,16 @@ struct MyLeoVSTrioApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AppRootView(
-                session: session,
-                systemStats: systemStats,
-                appLabel: "MyLeo Trio"
-            )
+            if EmbeddingBench.requested {
+                ProgressView("Benchmarking embeddings…")
+                    .task { await EmbeddingBench.run() }
+            } else {
+                AppRootView(
+                    session: session,
+                    systemStats: systemStats,
+                    appLabel: "MyLeo Trio"
+                )
+            }
         }
     }
 }

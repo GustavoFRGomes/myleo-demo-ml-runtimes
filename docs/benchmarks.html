@@ -403,6 +403,32 @@
     "note": "18-prompt suite (40x, 28 s sampling window); window 1024; energy via Power Profiler.",
     "powerW": 4.79,
     "mjPerPrompt": 186.0
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone 15 Pro",
+    "runtime": "LiteRT",
+    "backend": "CPU (Core ML delegate attempted)",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 688.4,
+    "msPerChunk": 44.3,
+    "powerW": 3.69,
+    "mjPerChunk": 161.0,
+    "note": "40x20 chunks; battery 80->80; load includes delegate setup."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone 15 Pro",
+    "runtime": "ONNX",
+    "backend": "CPU (Core ML EP attempted)",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 405.3,
+    "msPerChunk": 20.5,
+    "powerW": 4.22,
+    "mjPerChunk": 81.5,
+    "note": "80x20 chunks; Core ML EP attempted then CPU; battery 80->80."
   }
 ]
 </script>

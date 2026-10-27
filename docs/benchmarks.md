@@ -39,6 +39,23 @@ run rather than guessing.
 
 Debug `.app` totals (measured): litert ~95 MB, onnx ~127 MB, coreml ~91 MB, trio ~310 MB (estimate).
 
+
+### iPhone 15 Pro — embedding (`ios/vector-search/trio`, 2026-10-27)
+
+Same MiniLM-L6-v2 files as the SE 3 table above, same 20-chunk corpus, 3 warm repetitions after
+one cold run. The trio's factories attempt the Core ML delegate/EP first (the error logged for
+ONNX is that attempt falling back), so load includes the provider setup.
+
+| Runtime | Load ms | Embed ms/chunk (median) | mean | min–max |
+|---|---:|---:|---:|---|
+| LiteRT | **688** | **44.3** | 44.0 | 39.8–54.9 |
+| ONNX | **405** | **20.5** | 20.8 | 19.1–40.5 |
+| Core ML | — | — | — | no `.mlpackage` on this machine; see the leaf README for the local conversion |
+
+Battery stayed **80% → 80%** in both lanes; energy came from Power Profiler:
+LiteRT 3.7 W / **161 mJ per chunk**, ONNX 4.2 W / **82 mJ per chunk** (see
+[`benchmarks_batter.md`](benchmarks_batter.md#embedding-ios-iphone-15-pro)).
+
 ## Android (`android/vector-search/*`)
 
 | Leaf | Runtime (dep size) | Model (size, dims) | Load ms | Embed ms/chunk | Notes |

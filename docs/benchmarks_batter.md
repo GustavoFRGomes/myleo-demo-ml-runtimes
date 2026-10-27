@@ -109,6 +109,21 @@ catch: a run must last **tens of seconds** before the window means anything.
 - **Battery level is unusable here on iOS**: no current/wattage API, ~5% gauge steps, and the
   runs last seconds to a minute. That is a platform limitation, not a missing measurement.
 
+
+## Embedding (iOS, iPhone 15 Pro)
+
+Run through `ios/vector-search/trio --bench-embedding`, 20-chunk corpus repeated 40× (LiteRT) and
+80× (ONNX) to give Power Profiler a ~31–35 s window. Battery read 80% → 80% in both lanes — the
+gauge cannot resolve this workload and iOS exposes no current API.
+
+| Runtime | Chunks | Median ms/chunk | mean %/hr | ≈ power | Energy | ≈ per chunk |
+|---|---:|---:|---:|---:|---:|---:|
+| LiteRT | 800 | 44.3 | 47.3 | 3.7 W | 129 J | **161 mJ** |
+| ONNX | 1600 | 20.5 | 54.2 | 4.2 W | 130 J | **82 mJ** |
+
+ONNX runs at about twice the speed for roughly the same wall power, so it costs about half the
+energy per chunk. Load timings include the Core ML delegate/EP attempt that falls back to CPU.
+
 ## Reproduce
 
 Android vector search:
