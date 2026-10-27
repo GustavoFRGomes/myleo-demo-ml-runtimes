@@ -5,6 +5,10 @@ search / Decision), device filter, metric selector (tok/s, TTFT, load, power, en
 token/chunk, embed ms, decision ms, PSS), a sorted bar chart, a head-to-head card and the full
 table. No network calls, no CDN, no build step.
 
+Current contents: **19 rows** across Android and iOS, covering LLM, vector search and the
+Julia-1 decision suite. The dashboard is the interactive view of the Markdown tables and must
+be updated whenever a benchmark is documented.
+
 Files:
 
 | File | Purpose |
@@ -48,6 +52,17 @@ PY
 
 Fields are optional per row: a metric the runtime doesn't have (e.g. `powerW` for Core ML) is
 simply omitted, and the chart says how many rows were excluded.
+
+3. Re-render the static preview (also the Confluence fallback):
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+  --hide-scrollbars --window-size=1200,1500 \
+  --screenshot="$PWD/docs/benchmarks-dashboard.png" "file://$PWD/docs/benchmarks.html"
+```
+
+**Rule:** a benchmark change is not finished until `benchmarks.html`, `benchmarks-data.csv` and
+`benchmarks-dashboard.png` reflect it. This is enforced in `AGENTS.md` → *Benchmarks dashboard*.
 
 ## Confluence
 

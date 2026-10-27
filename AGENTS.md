@@ -200,6 +200,21 @@ contracts, and must not be applied without a validation round.
   with 1-D gather indices.
   Apply with `git apply patches/android-vector-search-dual-litert-gpu.patch`.
 
+
+## Benchmarks dashboard (must stay in sync)
+
+`docs/benchmarks.html` is the interactive view of every benchmark in `docs/benchmarks*.md`.
+Whenever a benchmark is documented — a new leaf, a new runtime, a new measurement, or a
+corrected number — update the dashboard in the **same change**:
+
+1. append or replace the row in the `<script id="bench-data" type="application/json">` block of
+   `docs/benchmarks.html` (one object per measured row, device included);
+2. regenerate `docs/benchmarks-data.csv` from that block;
+3. re-render `docs/benchmarks-dashboard.png` (headless Chrome).
+
+Commands and the CSV snippet live in `docs/benchmarks-dashboard.md` → *Update the numbers*.
+A benchmark change that leaves the dashboard stale is incomplete.
+
 ## Adding a new variation (when asked)
 
 1. Create exactly one folder: `<platform>/<area>/<runtime>/` (e.g. `android/vector-search/coreml` is invalid — stop and ask).

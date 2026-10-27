@@ -348,9 +348,30 @@
     "loadMs": 1973,
     "msPerPrompt": 42,
     "note": "Warm reload after lane switch; window 1024. Identical answers on all 18 prompts."
+  },
+  {
+    "platform": "iOS",
+    "area": "Decision",
+    "device": "iPhone 15 Pro",
+    "runtime": "LiteRT",
+    "backend": "CPU",
+    "model": "Julia-1",
+    "loadMs": 2670,
+    "msPerPrompt": 476.4,
+    "note": "18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX."
+  },
+  {
+    "platform": "iOS",
+    "area": "Decision",
+    "device": "iPhone 15 Pro",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "Julia-1",
+    "loadMs": 3032,
+    "msPerPrompt": 36.8,
+    "note": "18-prompt suite; window 1024; 26.7-53.8 ms; ~13x faster than LiteRT."
   }
 ]
-
 </script>
 
 <script>
