@@ -6,6 +6,7 @@ The page is interactive (area tabs, platform/device filters, search, sortable
 tables, chart metric switch, row dialog, CSV export) and falls back to static
 tables in <noscript>.
 """
+import datetime
 import html
 import json
 import re
@@ -62,7 +63,10 @@ AREAS = {
 }
 
 PLATFORM_ORDER = {"iOS": 0, "Android": 1}
-DEVICE_ORDER = {"iPhone SE 3": 0, "iPhone 15 Pro": 1, "SM-S948B": 2, "SM-S938B": 3, "TCL T807D": 4}
+DEVICE_ORDER = {
+    "iPhone SE 3": 0, "iPhone 15 Pro": 1, "Galaxy S26 Ultra": 2,
+    "Galaxy S25 Ultra": 3, "TCL NXTPaper 70 Pro": 4,
+}
 
 
 def esc(value):
@@ -139,6 +143,7 @@ def build():
     rows = load_rows()
     data_json = json.dumps(rows, indent=1)
     area_meta = json.dumps({k: {kk: vv for kk, vv in v.items()} for k, v in AREAS.items()}, indent=1)
+    today = datetime.date.today().isoformat()
     tabs = "".join(
         f'<button type="button" role="tab" data-area="{esc(area)}" '
         f'aria-selected="{"true" if index == 0 else "false"}">{esc(area)}</button>'
@@ -280,6 +285,22 @@ def build():
   </div>
 
   <details>
+    <summary>Device specs — SoC, RAM, OS</summary>
+    <div class="table-wrap" style="margin:10px 0">
+      <table>
+        <thead><tr><th>Device</th><th>Model code</th><th>SoC</th><th>RAM</th><th>OS</th></tr></thead>
+        <tbody>
+          <tr><td>iPhone SE 3</td><td>iPhone14,6</td><td>Apple A15 Bionic</td><td>4 GB</td><td>iOS 27.0.1 (24A446)</td></tr>
+          <tr><td>iPhone 15 Pro</td><td>iPhone16,1</td><td>Apple A17 Pro</td><td>8 GB</td><td>iOS 27.0.1 (24A446)</td></tr>
+          <tr><td>Galaxy S26 Ultra</td><td>SM-S948B</td><td>Snapdragon 8 Elite Gen 5 for Galaxy</td><td>12 GB</td><td>Android 17</td></tr>
+          <tr><td>Galaxy S25 Ultra</td><td>SM-S938B</td><td>Snapdragon 8 Elite (SM8750)</td><td>12 GB</td><td>Android 17</td></tr>
+          <tr><td>TCL NXTPaper 70 Pro</td><td>T807D</td><td>MediaTek Dimensity 7300 (MT6878)</td><td>8 GB</td><td>Android 16</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>RAM is nominal; kernels report less (11.4 GB usable on the S25 Ultra, 7.3 GB on the TCL).</p>
+  </details>
+  <details>
     <summary>Methodology</summary>
     <p>LLM: MiniCPM5-1B or Phi-4-mini int4, one turn, temperature 0.8, top-k 40, top-p 0.95,
     512-token cap (the ONNX GenAI engine allows up to 1536 total when EOS does not fire).
@@ -303,7 +324,7 @@ def build():
     {noscript_sections(rows)}
   </noscript>
 
-  <p class="foot" id="foot">Generated 2026-10-27 from the <code>bench-data</code> block of
+  <p class="foot" id="foot">Generated {today} from the <code>bench-data</code> block of
   <code>benchmarks.html</code> ({len(rows)} rows). Single file, no external assets.</p>
 </main>
 

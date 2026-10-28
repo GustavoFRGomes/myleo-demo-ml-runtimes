@@ -141,6 +141,25 @@
     <div id="quirks-body"></div>
   </details>
 
+  <details class="panel" id="specs">
+    <summary>Device specs — SoC, RAM, OS</summary>
+    <div class="table-wrap" style="margin-bottom:12px">
+      <table>
+        <thead><tr><th>Device</th><th>Model code</th><th>SoC</th><th>RAM</th><th>OS</th></tr></thead>
+        <tbody>
+          <tr><td>iPhone SE 3</td><td>iPhone14,6</td><td>Apple A15 Bionic</td><td>4 GB</td><td>iOS 27.0.1 (24A446)</td></tr>
+          <tr><td>iPhone 15 Pro</td><td>iPhone16,1</td><td>Apple A17 Pro</td><td>8 GB</td><td>iOS 27.0.1 (24A446)</td></tr>
+          <tr><td>Galaxy S26 Ultra</td><td>SM-S948B</td><td>Snapdragon 8 Elite Gen 5 for Galaxy</td><td>12 GB</td><td>Android 17</td></tr>
+          <tr><td>Galaxy S25 Ultra</td><td>SM-S938B</td><td>Snapdragon 8 Elite (SM8750)</td><td>12 GB</td><td>Android 17</td></tr>
+          <tr><td>TCL NXTPaper 70 Pro</td><td>T807D</td><td>MediaTek Dimensity 7300 (MT6878)</td><td>8 GB</td><td>Android 16</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">RAM is the nominal figure; the kernel reports less (e.g. 11.4 GB usable on the
+    S25 Ultra, 7.3 GB on the TCL). SoC names come from <code>ro.soc.model</code> / the vendor spec
+    sheet.</p>
+  </details>
+
   <section>
     <h2 style="font-size:18px;margin:0 0 10px">Head to head</h2>
     <div class="h2h">
@@ -228,7 +247,7 @@
   {
     "platform": "Android",
     "area": "LLM",
-    "device": "SM-S948B",
+    "device": "Galaxy S26 Ultra",
     "runtime": "LiteRT-LM",
     "backend": "GPU (OpenCL)",
     "model": "MiniCPM5-1B",
@@ -241,7 +260,7 @@
   {
     "platform": "Android",
     "area": "LLM",
-    "device": "SM-S948B",
+    "device": "Galaxy S26 Ultra",
     "runtime": "LiteRT-LM",
     "backend": "CPU (XNNPACK)",
     "model": "MiniCPM5-1B",
@@ -254,7 +273,7 @@
   {
     "platform": "Android",
     "area": "LLM",
-    "device": "SM-S948B",
+    "device": "Galaxy S26 Ultra",
     "runtime": "ONNX GenAI",
     "backend": "CPU",
     "model": "MiniCPM5-1B int4",
@@ -300,7 +319,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "SM-S948B",
+    "device": "Galaxy S26 Ultra",
     "runtime": "LiteRT (dual)",
     "backend": "CPU",
     "model": "MiniLM-L6-v2",
@@ -311,7 +330,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "SM-S948B",
+    "device": "Galaxy S26 Ultra",
     "runtime": "ONNX (dual)",
     "backend": "CPU",
     "model": "MiniLM-L6-v2",
@@ -322,7 +341,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "SM-S948B",
+    "device": "Galaxy S26 Ultra",
     "runtime": "ONNX (leaf)",
     "backend": "CPU",
     "model": "MiniLM-L6-v2",
@@ -333,7 +352,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "ONNX",
     "backend": "CPU (XNNPACK)",
     "model": "MiniLM-L6-v2",
@@ -346,7 +365,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "ONNX",
     "backend": "WebGPU",
     "model": "MiniLM-L6-v2",
@@ -359,7 +378,7 @@
   {
     "platform": "Android",
     "area": "Decision",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "LiteRT",
     "backend": "GPU (FP32)",
     "model": "Julia-1",
@@ -370,7 +389,7 @@
   {
     "platform": "Android",
     "area": "Decision",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "ONNX",
     "backend": "CPU (4 threads)",
     "model": "Julia-1",
@@ -571,7 +590,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "TCL T807D",
+    "device": "TCL NXTPaper 70 Pro",
     "runtime": "LiteRT",
     "backend": "CPU",
     "model": "MiniLM-L6-v2",
@@ -584,7 +603,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "TCL T807D",
+    "device": "TCL NXTPaper 70 Pro",
     "runtime": "ONNX",
     "backend": "CPU",
     "model": "MiniLM-L6-v2",
@@ -597,7 +616,7 @@
   {
     "platform": "Android",
     "area": "Decision",
-    "device": "TCL T807D",
+    "device": "TCL NXTPaper 70 Pro",
     "runtime": "LiteRT",
     "backend": "GPU FP32",
     "model": "Julia-1",
@@ -610,7 +629,7 @@
   {
     "platform": "Android",
     "area": "Decision",
-    "device": "TCL T807D",
+    "device": "TCL NXTPaper 70 Pro",
     "runtime": "ONNX",
     "backend": "CPU",
     "model": "Julia-1",
@@ -623,7 +642,7 @@
   {
     "platform": "Android",
     "area": "LLM",
-    "device": "TCL T807D",
+    "device": "TCL NXTPaper 70 Pro",
     "runtime": "LiteRT-LM",
     "backend": "GPU",
     "model": "MiniCPM5-1B",
@@ -637,7 +656,7 @@
   {
     "platform": "Android",
     "area": "LLM",
-    "device": "TCL T807D",
+    "device": "TCL NXTPaper 70 Pro",
     "runtime": "ONNX GenAI",
     "backend": "CPU",
     "model": "Phi-4-mini int4",
@@ -651,7 +670,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "LiteRT",
     "backend": "CPU",
     "model": "MiniLM-L6-v2",
@@ -664,7 +683,7 @@
   {
     "platform": "Android",
     "area": "Vector search",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "ONNX",
     "backend": "CPU",
     "model": "MiniLM-L6-v2",
@@ -677,7 +696,7 @@
   {
     "platform": "Android",
     "area": "Decision",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "LiteRT",
     "backend": "GPU FP32",
     "model": "Julia-1",
@@ -690,7 +709,7 @@
   {
     "platform": "Android",
     "area": "Decision",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "ONNX",
     "backend": "CPU",
     "model": "Julia-1",
@@ -703,7 +722,7 @@
   {
     "platform": "Android",
     "area": "LLM",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "LiteRT-LM",
     "backend": "GPU",
     "model": "MiniCPM5-1B",
@@ -717,7 +736,7 @@
   {
     "platform": "Android",
     "area": "LLM",
-    "device": "SM-S938B",
+    "device": "Galaxy S25 Ultra",
     "runtime": "ONNX GenAI",
     "backend": "CPU",
     "model": "Phi-4-mini int4",
@@ -1026,8 +1045,9 @@
       method += "<h4>What ran</h4><p><strong>MiniLM-L6-v2</strong> embeddings, same checkpoint in every " +
         "format. Ingest a fixed corpus of Enron email chunks, embed each chunk, index with cosine " +
         "similarity, then one query. Reported: model load and embed ms per chunk.</p>";
-      method += "<h4>Devices</h4><p>Android measurements in this area are split between SM-S948B and " +
-        "SM-S938B; the device column is authoritative.</p>";
+      method += "<h4>Devices</h4><p>Android measurements in this area are split between the " +
+        "Galaxy S26 Ultra (SM-S948B) and the Galaxy S25 Ultra (SM-S938B); the device column is " +
+        "authoritative.</p>";
     } else {
       method += "<h4>What ran</h4><p><strong>Julia-1</strong> decision model: state text + typed question " +
         "(<code>choice</code> / <code>score</code> / <code>noul</code>) + 2–20 options → one probability per " +
@@ -1045,10 +1065,10 @@
         "meter readings.</p>";
     }
     if (platforms.indexOf("Android") >= 0) {
-      method += "<h4>Android device</h4><p>SM-S948B for the original tables, SM-S938B for the " +
-        "ONNX WebGPU/energy work and the decision suite, and TCL T807D for the 2026-10-27 " +
-        "dual-leaf runs (current sampled via adb, since the app cannot read the power-supply " +
-        "nodes).</p>";
+      method += "<h4>Android device</h4><p>Galaxy S26 Ultra (SM-S948B) for the original tables, " +
+        "Galaxy S25 Ultra (SM-S938B) for the ONNX WebGPU/energy work, the decision suite and the " +
+        "2026-10-28 dual-leaf runs, and TCL NXTPaper 70 Pro (T807D) for the 2026-10-27 dual-leaf " +
+        "runs (current sampled via adb, since the app cannot read the power-supply nodes).</p>";
     }
     document.getElementById("method-body").innerHTML = method;
 

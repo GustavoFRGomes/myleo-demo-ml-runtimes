@@ -3,19 +3,19 @@ iOS,LLM,iPhone SE 3,LiteRT-LM,GPU (Metal),MiniCPM5-1B,1158,360,43.8,4.7,122,,,,,
 iOS,LLM,iPhone SE 3,LiteRT-LM,CPU (XNNPACK),MiniCPM5-1B,433,1252,35.7,3.7,133,,,,,,278 tokens/run (EOS).
 iOS,LLM,iPhone SE 3,ONNX GenAI,CPU,MiniCPM5-1B int4,635,207,46.6,6.1,130,,,,,,Same package as the Android ONNX leaf. 392-533 tokens/run.
 iOS,LLM,iPhone SE 3,Core ML,ANE/GPU/CPU,MiniCPM5-1B 4-bit,1480,3386,2.0,,,,,,,,"128-token stateless window, no KV cache; 30 s first-launch compile, 1480 ms afterwards. Not a fair race."
-Android,LLM,SM-S948B,LiteRT-LM,GPU (OpenCL),MiniCPM5-1B,2902,436,71.0,,,,,,,1800,Also 1.37 GB GL mtrack. load includes GPU copy.
-Android,LLM,SM-S948B,LiteRT-LM,CPU (XNNPACK),MiniCPM5-1B,317,591,72.6,,,,,,,918,GPU and CPU decode at parity on this bundle.
-Android,LLM,SM-S948B,ONNX GenAI,CPU,MiniCPM5-1B int4,890,90,91.3,,,,,,,834,Fastest decode on this phone; 361-544 tokens/run.
+Android,LLM,Galaxy S26 Ultra,LiteRT-LM,GPU (OpenCL),MiniCPM5-1B,2902,436,71.0,,,,,,,1800,Also 1.37 GB GL mtrack. load includes GPU copy.
+Android,LLM,Galaxy S26 Ultra,LiteRT-LM,CPU (XNNPACK),MiniCPM5-1B,317,591,72.6,,,,,,,918,GPU and CPU decode at parity on this bundle.
+Android,LLM,Galaxy S26 Ultra,ONNX GenAI,CPU,MiniCPM5-1B int4,890,90,91.3,,,,,,,834,Fastest decode on this phone; 361-544 tokens/run.
 iOS,Vector search,iPhone SE 3,LiteRT,CPU,MiniLM-L6-v2,39,,,,,53,,,,,"Interpreter mmap; fastest load, slowest per chunk."
 iOS,Vector search,iPhone SE 3,ONNX,CPU,MiniLM-L6-v2,209,,,,,28,,,,,Session build parses/optimizes the graph.
 iOS,Vector search,iPhone SE 3,Core ML,CPU,MiniLM-L6-v2,452,,,,,14,,,,,Execution plan compiled at load; fastest steady state.
-Android,Vector search,SM-S948B,LiteRT (dual),CPU,MiniLM-L6-v2,131,,,,,9.0,,,,,TFLite converted from the same checkpoint as the ONNX file.
-Android,Vector search,SM-S948B,ONNX (dual),CPU,MiniLM-L6-v2,489,,,,,14.4,,,,,readBytes + session build.
-Android,Vector search,SM-S948B,ONNX (leaf),CPU,MiniLM-L6-v2,428,,,,,14.0,,,,,417-439 ms load across runs.
-Android,Vector search,SM-S938B,ONNX,CPU (XNNPACK),MiniLM-L6-v2,504,,,7.9,,19.2,170,,,,120 s sustained loop; charge counter 64.0 mAh.
-Android,Vector search,SM-S938B,ONNX,WebGPU,MiniLM-L6-v2,785,,,5.1,,13.4,60,,,,Dawn/Vulkan; 1.7x faster and 2-3x less energy per chunk.
-Android,Decision,SM-S938B,LiteRT,GPU (FP32),Julia-1,3093,,,,,,,76,,,First load after process start; window 512. 18-prompt suite.
-Android,Decision,SM-S938B,ONNX,CPU (4 threads),Julia-1,1973,,,,,,,42,,,Warm reload after lane switch; window 1024. Identical answers on all 18 prompts.
+Android,Vector search,Galaxy S26 Ultra,LiteRT (dual),CPU,MiniLM-L6-v2,131,,,,,9.0,,,,,TFLite converted from the same checkpoint as the ONNX file.
+Android,Vector search,Galaxy S26 Ultra,ONNX (dual),CPU,MiniLM-L6-v2,489,,,,,14.4,,,,,readBytes + session build.
+Android,Vector search,Galaxy S26 Ultra,ONNX (leaf),CPU,MiniLM-L6-v2,428,,,,,14.0,,,,,417-439 ms load across runs.
+Android,Vector search,Galaxy S25 Ultra,ONNX,CPU (XNNPACK),MiniLM-L6-v2,504,,,7.9,,19.2,170,,,,120 s sustained loop; charge counter 64.0 mAh.
+Android,Vector search,Galaxy S25 Ultra,ONNX,WebGPU,MiniLM-L6-v2,785,,,5.1,,13.4,60,,,,Dawn/Vulkan; 1.7x faster and 2-3x less energy per chunk.
+Android,Decision,Galaxy S25 Ultra,LiteRT,GPU (FP32),Julia-1,3093,,,,,,,76,,,First load after process start; window 512. 18-prompt suite.
+Android,Decision,Galaxy S25 Ultra,ONNX,CPU (4 threads),Julia-1,1973,,,,,,,42,,,Warm reload after lane switch; window 1024. Identical answers on all 18 prompts.
 iOS,Decision,iPhone 15 Pro,LiteRT,CPU,Julia-1,2670,,,4.59,,,,476.4,2033.3,,18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX.
 iOS,Decision,iPhone 15 Pro,ONNX,CPU,Julia-1,3032,,,4.79,,,,36.8,186.0,,"18-prompt suite (40x, 28 s sampling window); window 1024; energy via Power Profiler."
 iOS,Vector search,iPhone 15 Pro,LiteRT,CPU (Core ML delegate attempted),MiniLM-L6-v2,688.4,,,3.69,,44.3,161.0,,,,40x20 chunks; battery 80->80; load includes delegate setup.
@@ -31,15 +31,15 @@ iOS,Decision,iPhone SE 3,ONNX,CPU,Julia-1,4543,,,,,,,51.0,,,"2026-10-27 18-promp
 iOS,LLM,iPhone SE 3,LiteRT-LM,GPU (Metal),MiniCPM5-1B,6274,949,32.4,4.03,131.5,,,,,,"2026-10-27 sustained 60x, battery 95->80, thermal serious; cold 43.8 tok/s (3-run table)."
 iOS,LLM,iPhone SE 3,ONNX GenAI,CPU,MiniCPM5-1B int4,1261,399,30.8,5.33,179.6,,,,,,"2026-10-27 sustained 60x, battery 80->60, thermal serious; cold 46.6 tok/s."
 iOS,LLM,iPhone SE 3,LiteRT-LM,CPU (XNNPACK),MiniCPM5-1B,316,948,27.3,6.12,252.2,,,,,,"2026-10-27 sustained 60x, battery 55->40, thermal serious; cold 35.7 tok/s; shortest run, widest error."
-Android,Vector search,TCL T807D,LiteRT,CPU,MiniLM-L6-v2,224,,,3.29,,94.2,304.6,,,,"2026-10-27 dual leaf, 30x20 chunks; energy from current x voltage at 1 Hz."
-Android,Vector search,TCL T807D,ONNX,CPU,MiniLM-L6-v2,891,,,6.18,,29.7,190.6,,,,"2026-10-27 dual leaf, 30x20 chunks; faster and lower energy per chunk than LiteRT."
-Android,Decision,TCL T807D,LiteRT,GPU FP32,Julia-1,6426,,,3.7,,,,513.4,1878.9,,"2026-10-27 dual leaf, 18-prompt suite x10; GPU compiles but is 7.6x slower than ONNX CPU."
-Android,Decision,TCL T807D,ONNX,CPU,Julia-1,4934,,,5.76,,,,67.3,338.2,,"2026-10-27 dual leaf, 18-prompt suite x10; window 1024; 338 mJ per decision."
-Android,LLM,TCL T807D,LiteRT-LM,GPU,MiniCPM5-1B,5011,941,15.3,3.85,394.1,,,,,,"2026-10-27 dual leaf, 3x512-token runs; cold run 10.0 tok/s, then 15.3/15.4."
-Android,LLM,TCL T807D,ONNX GenAI,CPU,Phi-4-mini int4,10215,853,5.7,4.64,1082.3,,,,,,"2026-10-27 dual leaf, Phi-4 int4 (4.9 GB); runs 495-1525 tokens because max_length = maxTokens+1024."
-Android,Vector search,SM-S938B,LiteRT,CPU,MiniLM-L6-v2,140,,,3.45,,58.8,203.2,,,,"2026-10-28 dual leaf, 150x20 chunks; single-thread XNNPACK; energy from 0.1% charge-counter steps."
-Android,Vector search,SM-S938B,ONNX,CPU,MiniLM-L6-v2,660,,,2.77,,19.6,67.7,,,,"2026-10-28 dual leaf, 150x20 chunks; multithreaded; 3x less energy per chunk than LiteRT."
-Android,Decision,SM-S938B,LiteRT,GPU FP32,Julia-1,4557,,,1.96,,,,89.8,188.1,,"2026-10-28 dual leaf, 18-prompt suite x40; slower than ONNX but 2.5x less energy per decision."
-Android,Decision,SM-S938B,ONNX,CPU,Julia-1,3304,,,9.43,,,,49.0,470.3,,"2026-10-28 dual leaf, 18-prompt suite x200; all cores pinned at 9.4 W during bursts."
-Android,LLM,SM-S938B,LiteRT-LM,GPU,MiniCPM5-1B,5674,133,59.5,4.2,88.2,,,,,,"2026-10-28 dual leaf, 3x512-token runs; cold run 60.4 tok/s then 59.5/59.2."
-Android,LLM,SM-S938B,ONNX GenAI,CPU,Phi-4-mini int4,6201,505,14.0,7.11,523.3,,,,,,"2026-10-28 dual leaf, Phi-4 int4; 1525/1525/574 tokens because max_length = maxTokens+1024."
+Android,Vector search,TCL NXTPaper 70 Pro,LiteRT,CPU,MiniLM-L6-v2,224,,,3.29,,94.2,304.6,,,,"2026-10-27 dual leaf, 30x20 chunks; energy from current x voltage at 1 Hz."
+Android,Vector search,TCL NXTPaper 70 Pro,ONNX,CPU,MiniLM-L6-v2,891,,,6.18,,29.7,190.6,,,,"2026-10-27 dual leaf, 30x20 chunks; faster and lower energy per chunk than LiteRT."
+Android,Decision,TCL NXTPaper 70 Pro,LiteRT,GPU FP32,Julia-1,6426,,,3.7,,,,513.4,1878.9,,"2026-10-27 dual leaf, 18-prompt suite x10; GPU compiles but is 7.6x slower than ONNX CPU."
+Android,Decision,TCL NXTPaper 70 Pro,ONNX,CPU,Julia-1,4934,,,5.76,,,,67.3,338.2,,"2026-10-27 dual leaf, 18-prompt suite x10; window 1024; 338 mJ per decision."
+Android,LLM,TCL NXTPaper 70 Pro,LiteRT-LM,GPU,MiniCPM5-1B,5011,941,15.3,3.85,394.1,,,,,,"2026-10-27 dual leaf, 3x512-token runs; cold run 10.0 tok/s, then 15.3/15.4."
+Android,LLM,TCL NXTPaper 70 Pro,ONNX GenAI,CPU,Phi-4-mini int4,10215,853,5.7,4.64,1082.3,,,,,,"2026-10-27 dual leaf, Phi-4 int4 (4.9 GB); runs 495-1525 tokens because max_length = maxTokens+1024."
+Android,Vector search,Galaxy S25 Ultra,LiteRT,CPU,MiniLM-L6-v2,140,,,3.45,,58.8,203.2,,,,"2026-10-28 dual leaf, 150x20 chunks; single-thread XNNPACK; energy from 0.1% charge-counter steps."
+Android,Vector search,Galaxy S25 Ultra,ONNX,CPU,MiniLM-L6-v2,660,,,2.77,,19.6,67.7,,,,"2026-10-28 dual leaf, 150x20 chunks; multithreaded; 3x less energy per chunk than LiteRT."
+Android,Decision,Galaxy S25 Ultra,LiteRT,GPU FP32,Julia-1,4557,,,1.96,,,,89.8,188.1,,"2026-10-28 dual leaf, 18-prompt suite x40; slower than ONNX but 2.5x less energy per decision."
+Android,Decision,Galaxy S25 Ultra,ONNX,CPU,Julia-1,3304,,,9.43,,,,49.0,470.3,,"2026-10-28 dual leaf, 18-prompt suite x200; all cores pinned at 9.4 W during bursts."
+Android,LLM,Galaxy S25 Ultra,LiteRT-LM,GPU,MiniCPM5-1B,5674,133,59.5,4.2,88.2,,,,,,"2026-10-28 dual leaf, 3x512-token runs; cold run 60.4 tok/s then 59.5/59.2."
+Android,LLM,Galaxy S25 Ultra,ONNX GenAI,CPU,Phi-4-mini int4,6201,505,14.0,7.11,523.3,,,,,,"2026-10-28 dual leaf, Phi-4 int4; 1525/1525/574 tokens because max_length = maxTokens+1024."

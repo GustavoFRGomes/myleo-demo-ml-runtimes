@@ -4,7 +4,7 @@ Interactive version of these tables (platform/metric pickers, head-to-head):
 [`docs/benchmarks.html`](benchmarks.html) · how to embed it in Confluence:
 [`docs/benchmarks-dashboard.md`](benchmarks-dashboard.md).
 
-Reference devices: **Samsung Galaxy S25 Ultra (`SM_S948B`)** for Android,
+Reference devices: **Samsung Galaxy S26 Ultra (`SM_S948B`)** for Android,
 **iPhone SE 3rd gen** for iOS (vector-search Trio leaf, same MiniLM weights in all
 three files; LLM leaves differ per platform — see the LLM section).
 
@@ -350,7 +350,7 @@ LiteRT-LM and ONNX GenAI share the Phi-4-mini checkpoint but use different preci
 
 Protocol — same device, same prompt, same params, fresh launch per run:
 
-- Device: Galaxy S25 Ultra (`SM_S948B`), 11,350,972 kB RAM, Android 17 (SDK 37),
+- Device: Galaxy S26 Ultra (`SM_S948B`), 11,350,972 kB RAM, Android 17 (SDK 37),
   4 KB pages, on charger, no throttling (`Thermal Status: 0`; skin 37.9 °C, battery
   26.5 → 36 °C over the whole session).
 - Prompt: *"Explain how a refrigerator works in detail."* — one turn, no system prompt.

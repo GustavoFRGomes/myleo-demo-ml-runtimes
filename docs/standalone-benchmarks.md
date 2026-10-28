@@ -15,6 +15,7 @@ It is generated, never hand-edited. The source of truth is the
 ## What it contains
 
 - 6 summary cards: best lane per area × platform.
+- **Device specs** (collapsible): model code, SoC, RAM and OS for every device in the data.
 - Three sections — **LLM** (tok/s), **Vector search** (ms/chunk), **Decision** (ms/prompt) —
   each with a bar chart and a full table including load, power (W) and energy (mJ per
   op) where measured.
@@ -31,7 +32,7 @@ It is generated, never hand-edited. The source of truth is the
 | Chart bar or table row | Opens a native `<dialog>` with every field of that row, human-labelled |
 | Table header | Sorts by that column; numeric columns default to best-first |
 | Download CSV | Exports the current filtered rows (same column set as `benchmarks-data.csv`) |
-| Methodology / Notes | `<details>` panels |
+| Device specs / Methodology / Notes | `<details>` panels (specs are static, so they also work without JS) |
 | `<noscript>` | Hides the interactive shell and renders all rows as three static tables |
 
 ## Regenerate
