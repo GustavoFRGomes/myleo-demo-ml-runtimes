@@ -647,6 +647,86 @@
     "powerW": 4.64,
     "mjPerToken": 1082.3,
     "note": "2026-10-27 dual leaf, Phi-4 int4 (4.9 GB); runs 495-1525 tokens because max_length = maxTokens+1024."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "SM-S938B",
+    "runtime": "LiteRT",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 140,
+    "msPerChunk": 58.8,
+    "powerW": 3.45,
+    "mjPerChunk": 203.2,
+    "note": "2026-10-28 dual leaf, 150x20 chunks; single-thread XNNPACK; energy from 0.1% charge-counter steps."
+  },
+  {
+    "platform": "Android",
+    "area": "Vector search",
+    "device": "SM-S938B",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 660,
+    "msPerChunk": 19.6,
+    "powerW": 2.77,
+    "mjPerChunk": 67.7,
+    "note": "2026-10-28 dual leaf, 150x20 chunks; multithreaded; 3x less energy per chunk than LiteRT."
+  },
+  {
+    "platform": "Android",
+    "area": "Decision",
+    "device": "SM-S938B",
+    "runtime": "LiteRT",
+    "backend": "GPU FP32",
+    "model": "Julia-1",
+    "loadMs": 4557,
+    "msPerPrompt": 89.8,
+    "powerW": 1.96,
+    "mjPerPrompt": 188.1,
+    "note": "2026-10-28 dual leaf, 18-prompt suite x40; slower than ONNX but 2.5x less energy per decision."
+  },
+  {
+    "platform": "Android",
+    "area": "Decision",
+    "device": "SM-S938B",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "Julia-1",
+    "loadMs": 3304,
+    "msPerPrompt": 49.0,
+    "powerW": 9.43,
+    "mjPerPrompt": 470.3,
+    "note": "2026-10-28 dual leaf, 18-prompt suite x200; all cores pinned at 9.4 W during bursts."
+  },
+  {
+    "platform": "Android",
+    "area": "LLM",
+    "device": "SM-S938B",
+    "runtime": "LiteRT-LM",
+    "backend": "GPU",
+    "model": "MiniCPM5-1B",
+    "loadMs": 5674,
+    "ttftMs": 133,
+    "tokPerSec": 59.5,
+    "powerW": 4.2,
+    "mjPerToken": 88.2,
+    "note": "2026-10-28 dual leaf, 3x512-token runs; cold run 60.4 tok/s then 59.5/59.2."
+  },
+  {
+    "platform": "Android",
+    "area": "LLM",
+    "device": "SM-S938B",
+    "runtime": "ONNX GenAI",
+    "backend": "CPU",
+    "model": "Phi-4-mini int4",
+    "loadMs": 6201,
+    "ttftMs": 505,
+    "tokPerSec": 14.0,
+    "powerW": 7.11,
+    "mjPerToken": 523.3,
+    "note": "2026-10-28 dual leaf, Phi-4 int4; 1525/1525/574 tokens because max_length = maxTokens+1024."
   }
 ]
 </script>

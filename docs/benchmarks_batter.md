@@ -233,3 +233,32 @@ Reading it:
 - These are integrated current samples, not a meter: the rail voltage is read per sample,
   but charger state, screen brightness and background radios are all inside the number.
   Compare lanes on this device, not across devices with different battery packs.
+
+## Android — Samsung S25 Ultra, dual leaves (2026-10-28)
+
+Samsung blocks `/sys/class/power_supply/*` even from `adb shell`, and its
+`dumpsys battery` → `current now` value is heavily smoothed (plateaus lasting many seconds),
+so short lanes read idle. The usable signal is the **charge counter**, which on this phone
+moves in **0.1% steps (4.925 mAh ≈ 67.7 J)**. Each lane was sized to cross at least one
+step; the table uses whole-step deltas, so treat the per-op column as ±34 J.
+
+| Area | Runtime | Workload | Charge | Energy | Per operation | ≈ power |
+|---|---|---|---:|---:|---:|---:|
+| Vector | LiteRT | 3000 chunks | 44.3 mAh | 610 J | **203 mJ/chunk** | 3.45 W |
+| Vector | ONNX | 3000 chunks | 14.8 mAh | 203 J | **68 mJ/chunk** | 2.77 W |
+| Decision | LiteRT (GPU FP32) | 720 prompts | 9.9 mAh | 135 J | **188 mJ/prompt** | 1.96 W |
+| Decision | ONNX (CPU) | 3600 prompts | 123.1 mAh | 1693 J | 470 mJ/prompt | 9.43 W |
+| LLM | LiteRT-LM GPU | 1536 tokens | 9.9 mAh | 135 J | **88 mJ/token** | 4.20 W |
+| LLM | ONNX GenAI CPU | 3624 tokens | 137.9 mAh | 1896 J | 523 mJ/token | 7.11 W |
+
+Converted at the measured 3.82 V; the window includes model load.
+
+Reading it:
+
+- **ONNX is the efficient short-job runtime here**: half the power of LiteRT on vector
+  search and 3× less energy per chunk. On decisions it flips — ONNX burns 9.4 W to answer in
+  49 ms, while LiteRT's GPU path takes 90 ms at 2 W and 2.5× less energy.
+- **Flagship power is not free.** The S25's decision ONNX lane draws roughly 5× the TCL's
+  (9.4 vs 5.8 W) to go 1.4× faster, and the LLM ONNX lane draws 7.1 W.
+- The counter step is the dominant uncertainty for the two smallest lanes (LiteRT decision
+  and LLM: one step each, ±25%).

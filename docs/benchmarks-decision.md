@@ -359,3 +359,27 @@ Same dual leaf, same Julia-1 packages and the same 18 prompts, on a budget phone
   across types because the fixed marker-sequence forward pass dominates.
 - Answers were identical across lanes on every prompt (`billing`-style ties aside), as the
   shared tokenizer and marker encoding predict.
+
+## Android — Samsung S25 Ultra (2026-10-28)
+
+Same dual leaf and Julia-1 packages, on `SM-S938B` (Android 17, 11.4 GB), unplugged.
+Workloads were lengthened so the battery counter could resolve each lane: 40 suite
+repeats for LiteRT (720 requests) and 200 for ONNX (3600 requests).
+
+| Runtime | Backend | Window | Load ms | Avg | Min–max | ≈ energy/prompt |
+|---|---|---|---:|---:|---|---:|
+| LiteRT | **GPU FP32** | 512 | 4557 | **89.8 ms** | 71.0–158.2 | **188 mJ** |
+| ONNX | CPU | 1024 | 3304 | **49.0 ms** | 27.7–178.9 | 470 mJ |
+
+| Type | Count | LiteRT avg | ONNX avg |
+|---|---:|---:|---:|
+| choice | 320 / 1600 | 89.8 ms | 54.3 ms |
+| score | 200 / 1000 | 90.0 ms | 48.4 ms |
+| noul | 200 / 1000 | 89.7 ms | 41.0 ms |
+
+- **GPU FP32 is slower per prompt but far cheaper.** LiteRT averages 89.8 ms at 2.0 W;
+  ONNX answers in 49.0 ms but pins all cores at 9.4 W — 2.5× the energy per decision.
+- The 0.1%-step charge counter puts ±34 J on each row; the LiteRT row is one step, so its
+  per-decision figure carries roughly ±25%.
+- Per-type ordering matches every other runtime: `noul` is the cheapest ONNX call and the
+  LiteRT lane is flat because the fixed marker pass dominates.

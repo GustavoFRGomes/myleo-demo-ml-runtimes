@@ -668,3 +668,53 @@ Reading it:
 - **The ONNX GenAI engine sets `max_length = maxTokens + 1024`**, so when EOS does not fire
   it emits ~1525 tokens — 3× the LiteRT cap. Token counts are reported per run and not
   normalised; throughput uses each run's own decode window.
+
+## Samsung Galaxy S25 Ultra — dual leaves (2026-10-28)
+
+Second Android device for the `dual` leaves, this time a flagship (`SM938B`, Snapdragon 8
+Elite) rather than the TCL. Same instrumented harness, packages and prompts.
+
+- Device: Samsung **SM-S938B** (Galaxy S25 Ultra), **Android 17**, 11.4 GB RAM, 5000 mAh.
+- Runs were unplugged; the phone was **not** in power saving and thermal status was 0.
+- The harness runs as an instrumentation process (no foreground activity). On this phone
+  that lands it in the 0–5 CPU set; starting the app's activity (0–7) did not change the
+  vector timing, so the rows below are the harness numbers, not UI-interactive ones.
+
+### Vector search (MiniLM-L6-v2, 384-d, 3000 chunks)
+
+| Runtime | Load ms | ms/chunk (median) | min–max | ≈ power | ≈ energy/chunk |
+|---|---:|---:|---|---:|---:|
+| LiteRT | **140** | **58.8** | 57.2–67.9 | 3.45 W | 203 mJ |
+| ONNX | 660 | **19.6** | 17.7–42.6 | 2.77 W | **68 mJ** |
+
+LiteRT is single-threaded here (XNNPACK delegates 272/276 nodes but keeps one thread),
+while ONNX uses its default pool — that is the 3× gap, not silicon.
+
+### Decision (Julia-1)
+
+| Runtime | Backend | Window | Requests | Load ms | ms/prompt | ≈ power | ≈ energy/prompt |
+|---|---|---|---:|---:|---:|---:|---:|
+| LiteRT | **GPU FP32** | 512 | 720 | 4557 | **89.8** | 1.96 W | **188 mJ** |
+| ONNX | CPU | 1024 | 3600 | 3304 | **49.0** | 9.43 W | 470 mJ |
+
+- GPU FP32 compiles and works, unlike on the iPhone; it is 1.8× slower per prompt than
+  ONNX CPU but uses **4.8× less power** and 2.5× less energy per decision.
+- The ONNX lane's 9.4 W is the cost of pinning all cores for 49 ms bursts.
+
+### LLM
+
+| Runtime | Model | Load ms | TTFT ms | tok/s (3 runs) | Tokens/run | ≈ power | ≈ energy/token |
+|---|---|---|---:|---|---:|---:|---:|
+| LiteRT-LM GPU | MiniCPM5-1B | **5674** | 561 / 131 / 133 | 60.4 / 59.5 / 59.2 → **59.5** | 512 | 4.20 W | **88 mJ** |
+| ONNX GenAI CPU | Phi-4-mini int4 | 6201 | 331 / 505 / 519 → **505** | 14.0 / 13.7 / 15.0 → **14.0** | 574–1525 | 7.11 W | 523 mJ |
+
+Reading it:
+
+- **The flagship is 4× faster than the TCL at both ends** (LiteRT LLM 59.5 vs 15.3 tok/s;
+  ONNX vector 19.6 vs 29.7 ms — the TCL's ONNX is actually slower per chunk than its LiteRT).
+- **LiteRT wins LLM decode 4.2× and energy 5.9× per token**, but again on different
+  checkpoints (793 MB MiniCPM5 vs 4.9 GB Phi-4 int4).
+- **ONNX is the efficient vector lane** (68 vs 203 mJ/chunk) and the fast decision lane,
+  at the cost of drawing 9.4 W during decision bursts.
+- The ONNX GenAI engine still allows up to 1536 tokens (`max_length = maxTokens + 1024`);
+  two of the three runs hit 1525 before EOS, the third stopped at 574.
