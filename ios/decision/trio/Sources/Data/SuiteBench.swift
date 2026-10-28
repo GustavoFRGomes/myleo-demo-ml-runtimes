@@ -18,6 +18,7 @@ enum SuiteBench {
     }
 
     static func run() async {
+        UIApplication.shared.isIdleTimerDisabled = true
         UIDevice.current.isBatteryMonitoringEnabled = true
         let repeats = max(1, Int(ProcessInfo.processInfo.arguments
             .firstIndex(of: "--suite-repeats").map { $0 + 1 }
@@ -40,6 +41,8 @@ enum SuiteBench {
                         let request = try DecisionRequest(state: item.state, question: item.question)
                         let outcome = try await engine.decide(request)
                         results.append(SuiteResult(item: item, outcome: outcome))
+                        // Keep the main runloop responsive during long suites.
+                        await Task.yield()
                     }
                 }
                 print("SUITE|runtime=\(runtime.rawValue)|prompts=\(results.count)|repeats=\(repeats)")

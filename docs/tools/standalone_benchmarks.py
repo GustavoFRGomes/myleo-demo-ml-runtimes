@@ -150,6 +150,9 @@ def static_table(rows, area):
                 out.append(f"<td{attr}>{esc(row.get(key, '') or '')}</td>")
             elif key == "note":
                 out.append(f'<td class="note">{esc(row.get(key, ""))}</td>')
+            elif key in ("powerW", "mjPerToken", "mjPerChunk", "mjPerPrompt") and row.get(key) is None:
+                star = "*" if row.get("platform") == "iOS" and area in ("Vector search", "Decision") else ""
+                out.append(f'<td class="num">—{star}</td>')
             elif isinstance(row.get(key), (int, float)):
                 out.append(f'<td class="num">{num(row.get(key), 0 if key == "loadMs" else 1)}</td>')
             else:
@@ -390,6 +393,9 @@ def build():
       compiles but is 7.6× slower than ONNX CPU.</li>
       <li>Rows tagged <span class="pill">60-run</span> or <span class="pill">2026-10-27</span>
       are sustained battery runs, not cold single runs.</li>
+      <li><code>—*</code> = no power/energy measurement for that iOS row. iOS exposes no current
+      API, the vector and decision workloads are shorter than the ~5% battery gauge can resolve,
+      and Power Profiler needs the cable (it reads 0 while charging).</li>
     </ul>
   </details>
 
@@ -531,9 +537,16 @@ def build():
           if (span === 0) return "";
           return `<td${{span > 1 ? ` rowspan="${{span}}"` : ""}}>${{String(row[key] ?? "")}}</td>`;
         }}
-        return typeof row[key] === "number"
-          ? `<td class="num">${{fmt(row[key], key === "loadMs" ? 0 : 1)}}</td>`
-          : `<td>${{String(row[key] ?? "")}}</td>`;
+        if (typeof row[key] === "number")
+          return `<td class="num">${{fmt(row[key], key === "loadMs" ? 0 : 1)}}</td>`;
+        const blank = row[key] === null || row[key] === undefined || row[key] === "";
+        const energy = key === "powerW" || key.indexOf("mj") === 0;
+        if (blank && energy) {{
+          const star = row.platform === "iOS" &&
+            (row.area === "Vector search" || row.area === "Decision") ? "*" : "";
+          return `<td class="num">—${{star}}</td>`;
+        }}
+        return `<td>${{String(row[key] ?? "")}}</td>`;
       }}).join("");
       return `<tr class="row-button" data-id="${{DATA.indexOf(row)}}">${{cells}}<td class="note">${{row.note || ""}}</td></tr>`;
     }}).join("");

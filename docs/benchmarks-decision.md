@@ -383,3 +383,15 @@ repeats for LiteRT (720 requests) and 200 for ONNX (3600 requests).
   per-decision figure carries roughly ±25%.
 - Per-type ordering matches every other runtime: `noul` is the cheapest ONNX call and the
   LiteRT lane is flat because the fixed marker pass dominates.
+
+### iPhone SE 3rd gen — long-run energy (2026-10-28)
+
+540 prompts (30 suite repeats) on LiteRT and 7200 prompts (400 repeats) on ONNX, unplugged:
+
+| Runtime | ms/prompt | Battery | ≈ power | ≈ energy/prompt |
+|---|---:|---|---:|---:|
+| LiteRT | 989.2 | 65% → 60% | 2.62 W | **2596 mJ** |
+| ONNX | 82.8 | 60% → 50% | 4.67 W | **389 mJ** |
+
+Sustained latency is higher than the short suite (660 / 51 ms) because these ran ~9–10 minutes
+with the screen on; thermal state was `serious` for both.

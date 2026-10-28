@@ -41,6 +41,7 @@ enum EmbeddingBench {
     ]
 
     static func run() async {
+        UIApplication.shared.isIdleTimerDisabled = true
         UIDevice.current.isBatteryMonitoringEnabled = true
         let args = ProcessInfo.processInfo.arguments
         func value(_ flag: String) -> String? {
@@ -62,6 +63,9 @@ enum EmbeddingBench {
                         let started = Date()
                         _ = try loaded.embedder.embed(text: chunk)
                         times.append(Date().timeIntervalSince(started) * 1000)
+                        // Long runs execute on the main actor; yield so the
+                        // watchdog never sees a blocked runloop.
+                        await Task.yield()
                     }
                 }
                 times.sort()
@@ -73,6 +77,23 @@ enum EmbeddingBench {
                              times.first ?? 0, times.last ?? 0, thermal,
                              startLevel < 0 ? -1 : Double(startLevel) * 100,
                              endLevel < 0 ? -1 : Double(endLevel) * 100, repeats))
+                let report: [String: Any] = [
+                    "runtime": runtime.rawValue,
+                    "loadMs": loadMs,
+                    "chunks": times.count,
+                    "medianMs": median,
+                    "meanMs": mean,
+                    "minMs": times.first ?? 0,
+                    "maxMs": times.last ?? 0,
+                    "thermal": thermal,
+                    "repeats": repeats,
+                    "batteryStartPct": startLevel < 0 ? -1 : Int((Double(startLevel) * 100).rounded()),
+                    "batteryEndPct": endLevel < 0 ? -1 : Int((Double(endLevel) * 100).rounded()),
+                ]
+                if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]),
+                   let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                    try? data.write(to: documents.appendingPathComponent("bench-embedding-\(runtime.rawValue).json"))
+                }
             } catch {
                 print("EMBED|runtime=\(runtime.rawValue)|error=\(error.localizedDescription)")
             }
@@ -90,7 +111,12 @@ enum EmbeddingBench {
         let start = Date()
         let embedder: Embedder
         switch runtime {
-        case .litert: embedder = try LiteRTEmbedderFactory.create()
+        case .litert:
+            // `--embed-cpu` skips the Core ML delegate: some devices crash the
+            // process inside the delegate's warmup on this graph.
+            let accelerator: LiteRTEmbedderFactory.Accelerator =
+                ProcessInfo.processInfo.arguments.contains("--embed-cpu") ? .cpu : .coreml
+            embedder = try LiteRTEmbedderFactory.create(accelerator: accelerator)
         case .onnx: embedder = try OnnxEmbedderFactory.create()
         case .coreml: embedder = try CoreMLEmbedderFactory.create()
         }

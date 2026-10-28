@@ -718,3 +718,23 @@ Reading it:
   at the cost of drawing 9.4 W during decision bursts.
 - The ONNX GenAI engine still allows up to 1536 tokens (`max_length = maxTokens + 1024`);
   two of the three runs hit 1525 before EOS, the third stopped at 574.
+
+### iPhone SE 3rd gen — long-run energy (2026-10-28)
+
+The SE's short vector/decision lanes never moved the ~5% gauge, so they had no energy
+figures. These runs were sized to 8–10 minutes each, unplugged, screen kept awake
+(`isIdleTimerDisabled`), and the bench now yields between items so the watchdog doesn't kill
+the process. Energy uses the SE pack (2018 mAh, 3.86 V); one gauge step ≈ 280 J.
+
+| Area | Runtime | Workload | ms/op | Battery | ≈ power | ≈ energy/op |
+|---|---|---|---:|---|---:|---:|
+| Vector | LiteRT | 8000 chunks | 68.5 | 100% → 90% | 5.36 W | **350.5 mJ/chunk** |
+| Vector | ONNX | 20000 chunks | 41.7 | 90% → 75% | 5.04 W | **210.3 mJ/chunk** |
+| Vector | Core ML | 30000 chunks | 16.5 | 75% → 65% | 5.70 W | **93.5 mJ/chunk** |
+| Decision | LiteRT | 540 prompts | 989.2 | 65% → 60% | 2.62 W | **2596 mJ/prompt** |
+| Decision | ONNX | 7200 prompts | 82.8 | 60% → 50% | 4.67 W | **389 mJ/prompt** |
+
+These are **sustained** figures: the short-run table above (56.1 / 23.1 / 10.8 ms per chunk,
+660 / 51 ms per prompt) is what the phone does for 10–60 s; eight minutes of screen-on load
+lands 20–60% slower (thermal `serious` for Core ML and both decision lanes). The gauge step
+still gives ±50% on the 5% lanes.

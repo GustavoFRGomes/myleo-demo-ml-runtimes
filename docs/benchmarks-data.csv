@@ -43,3 +43,8 @@ Android,Decision,Galaxy S25 Ultra,LiteRT,GPU FP32,Julia-1,4557,,,1.96,,,,89.8,18
 Android,Decision,Galaxy S25 Ultra,ONNX,CPU,Julia-1,3304,,,9.43,,,,49.0,470.3,,"2026-10-28 dual leaf, 18-prompt suite x200; all cores pinned at 9.4 W during bursts."
 Android,LLM,Galaxy S25 Ultra,LiteRT-LM,GPU,MiniCPM5-1B,5674,133,59.5,4.2,88.2,,,,,,"2026-10-28 dual leaf, 3x512-token runs; cold run 60.4 tok/s then 59.5/59.2."
 Android,LLM,Galaxy S25 Ultra,ONNX GenAI,CPU,Phi-4-mini int4,6201,505,14.0,7.11,523.3,,,,,,"2026-10-28 dual leaf, Phi-4 int4; 1525/1525/574 tokens because max_length = maxTokens+1024."
+iOS,Vector search,iPhone SE 3,LiteRT,CPU (no delegate),MiniLM-L6-v2,33.4,,,5.36,,68.5,350.5,,,,"2026-10-28 long run, 8000 chunks, battery 100->90, thermal nominal; gauge-derived energy."
+iOS,Vector search,iPhone SE 3,ONNX,CPU,MiniLM-L6-v2,643.7,,,5.04,,41.7,210.3,,,,"2026-10-28 long run, 20000 chunks, battery 90->75, thermal nominal."
+iOS,Vector search,iPhone SE 3,Core ML,CPU,MiniLM-L6-v2,354.9,,,5.7,,16.5,93.5,,,,"2026-10-28 long run, 30000 chunks, battery 75->65, thermal serious."
+iOS,Decision,iPhone SE 3,LiteRT,CPU,Julia-1,3851,,,2.62,,,,989.2,2596.5,,"2026-10-28 long run, 30 suite repeats (540 prompts), battery 65->60, thermal serious."
+iOS,Decision,iPhone SE 3,ONNX,CPU,Julia-1,4130,,,4.67,,,,82.8,389.5,,"2026-10-28 long run, 400 suite repeats (7200 prompts), battery 60->50, thermal serious."

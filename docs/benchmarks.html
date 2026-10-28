@@ -752,6 +752,71 @@
     "powerW": 7.11,
     "mjPerToken": 523.3,
     "note": "2026-10-28 dual leaf, Phi-4 int4; 1525/1525/574 tokens because max_length = maxTokens+1024."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT",
+    "backend": "CPU (no delegate)",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 33.4,
+    "msPerChunk": 68.5,
+    "powerW": 5.36,
+    "mjPerChunk": 350.5,
+    "note": "2026-10-28 long run, 8000 chunks, battery 100->90, thermal nominal; gauge-derived energy."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 643.7,
+    "msPerChunk": 41.7,
+    "powerW": 5.04,
+    "mjPerChunk": 210.3,
+    "note": "2026-10-28 long run, 20000 chunks, battery 90->75, thermal nominal."
+  },
+  {
+    "platform": "iOS",
+    "area": "Vector search",
+    "device": "iPhone SE 3",
+    "runtime": "Core ML",
+    "backend": "CPU",
+    "model": "MiniLM-L6-v2",
+    "loadMs": 354.9,
+    "msPerChunk": 16.5,
+    "powerW": 5.7,
+    "mjPerChunk": 93.5,
+    "note": "2026-10-28 long run, 30000 chunks, battery 75->65, thermal serious."
+  },
+  {
+    "platform": "iOS",
+    "area": "Decision",
+    "device": "iPhone SE 3",
+    "runtime": "LiteRT",
+    "backend": "CPU",
+    "model": "Julia-1",
+    "loadMs": 3851,
+    "msPerPrompt": 989.2,
+    "powerW": 2.62,
+    "mjPerPrompt": 2596.5,
+    "note": "2026-10-28 long run, 30 suite repeats (540 prompts), battery 65->60, thermal serious."
+  },
+  {
+    "platform": "iOS",
+    "area": "Decision",
+    "device": "iPhone SE 3",
+    "runtime": "ONNX",
+    "backend": "CPU",
+    "model": "Julia-1",
+    "loadMs": 4130,
+    "msPerPrompt": 82.8,
+    "powerW": 4.67,
+    "mjPerPrompt": 389.5,
+    "note": "2026-10-28 long run, 400 suite repeats (7200 prompts), battery 60->50, thermal serious."
   }
 ]
 </script>
@@ -1021,7 +1086,10 @@
         return "<td>" + esc(r[c[0]]) + "</td>";
       }).join("") + METRICS.map(function (m) {
         var has = rows.some(function (x) { return typeof x[m.key] === "number"; });
-        return has ? "<td class='num'>" + (typeof r[m.key] === "number" ? fmt(r[m.key]) : "—") + "</td>" : "";
+        var missing = typeof r[m.key] !== "number";
+        var star = missing && (m.key === "powerW" || m.key.indexOf("mj") === 0) &&
+          r.platform === "iOS" && (r.area === "Vector search" || r.area === "Decision") ? "*" : "";
+        return has ? "<td class='num'>" + (missing ? "—" + star : fmt(r[m.key])) + "</td>" : "";
       }).join("") + "<td class='note'>" + esc(r.note || "") + "</td></tr>";
     }).join("");
     $("table").innerHTML = head + "<tbody>" + body + "</tbody>";
@@ -1095,6 +1163,11 @@
       html += "<h4>This selection</h4><ul>" + perRow.map(function (r) {
         return "<li><strong>" + r.runtime + " · " + r.backend + " · " + r.device + ":</strong> " + r.note + "</li>";
       }).join("") + "</ul>";
+    }
+    if ((area === "Vector search" || area === "Decision") && platforms.indexOf("iOS") >= 0) {
+      html += "<h4>Missing values</h4><p><strong>—*</strong> means no power/energy measurement for " +
+        "that iOS row: iOS exposes no current API, these workloads are shorter than the ~5% battery " +
+        "gauge can resolve, and Power Profiler needs the cable (it reads 0 while charging).</p>";
     }
     if (!html) html = "<p>No notes for this selection.</p>";
     document.getElementById("quirks-body").innerHTML = html;

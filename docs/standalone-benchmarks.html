@@ -112,7 +112,7 @@
 <main>
   <noscript><style>#interactive { display:none; }</style></noscript>
   <div id="interactive">
-  <div class="cards"><div class="card"><h3>iOS · LLM</h3><div class="big"><span class="worst">2.0</span> – <span class="best">47.5</span> <span class="unit">tok/s</span></div><div class="delta">worst: iPhone SE 3 · Core ML</div><div class="delta">best: iPhone 15 Pro · ONNX GenAI</div></div><div class="card"><h3>Android · LLM</h3><div class="big"><span class="worst">5.7</span> – <span class="best">91.3</span> <span class="unit">tok/s</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · ONNX GenAI</div><div class="delta">best: Galaxy S26 Ultra · ONNX GenAI</div></div><div class="card"><h3>iOS · Vector search</h3><div class="big"><span class="worst">56.1</span> – <span class="best">8.8</span> <span class="unit">ms/chunk</span></div><div class="delta">worst: iPhone SE 3 · LiteRT</div><div class="delta">best: iPhone 15 Pro · Core ML</div></div><div class="card"><h3>Android · Vector search</h3><div class="big"><span class="worst">94.2</span> – <span class="best">9.0</span> <span class="unit">ms/chunk</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · LiteRT</div><div class="delta">best: Galaxy S26 Ultra · LiteRT (dual)</div></div><div class="card"><h3>iOS · Decision</h3><div class="big"><span class="worst">660.5</span> – <span class="best">36.8</span> <span class="unit">ms/prompt</span></div><div class="delta">worst: iPhone SE 3 · LiteRT</div><div class="delta">best: iPhone 15 Pro · ONNX</div></div><div class="card"><h3>Android · Decision</h3><div class="big"><span class="worst">513.4</span> – <span class="best">42.0</span> <span class="unit">ms/prompt</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · LiteRT</div><div class="delta">best: Galaxy S25 Ultra · ONNX</div></div></div>
+  <div class="cards"><div class="card"><h3>iOS · LLM</h3><div class="big"><span class="worst">2.0</span> – <span class="best">47.5</span> <span class="unit">tok/s</span></div><div class="delta">worst: iPhone SE 3 · Core ML</div><div class="delta">best: iPhone 15 Pro · ONNX GenAI</div></div><div class="card"><h3>Android · LLM</h3><div class="big"><span class="worst">5.7</span> – <span class="best">91.3</span> <span class="unit">tok/s</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · ONNX GenAI</div><div class="delta">best: Galaxy S26 Ultra · ONNX GenAI</div></div><div class="card"><h3>iOS · Vector search</h3><div class="big"><span class="worst">68.5</span> – <span class="best">8.8</span> <span class="unit">ms/chunk</span></div><div class="delta">worst: iPhone SE 3 · LiteRT</div><div class="delta">best: iPhone 15 Pro · Core ML</div></div><div class="card"><h3>Android · Vector search</h3><div class="big"><span class="worst">94.2</span> – <span class="best">9.0</span> <span class="unit">ms/chunk</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · LiteRT</div><div class="delta">best: Galaxy S26 Ultra · LiteRT (dual)</div></div><div class="card"><h3>iOS · Decision</h3><div class="big"><span class="worst">989.2</span> – <span class="best">36.8</span> <span class="unit">ms/prompt</span></div><div class="delta">worst: iPhone SE 3 · LiteRT</div><div class="delta">best: iPhone 15 Pro · ONNX</div></div><div class="card"><h3>Android · Decision</h3><div class="big"><span class="worst">513.4</span> – <span class="best">42.0</span> <span class="unit">ms/prompt</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · LiteRT</div><div class="delta">best: Galaxy S25 Ultra · ONNX</div></div></div>
   <div class="tabs" role="tablist" aria-label="Benchmark area"><button type="button" role="tab" data-area="LLM" aria-selected="true">LLM</button><button type="button" role="tab" data-area="Vector search" aria-selected="false">Vector search</button><button type="button" role="tab" data-area="Decision" aria-selected="false">Decision</button></div>
 
   <section class="controls" aria-label="Filters">
@@ -173,6 +173,9 @@
       compiles but is 7.6× slower than ONNX CPU.</li>
       <li>Rows tagged <span class="pill">60-run</span> or <span class="pill">2026-10-27</span>
       are sustained battery runs, not cold single runs.</li>
+      <li><code>—*</code> = no power/energy measurement for that iOS row. iOS exposes no current
+      API, the vector and decision workloads are shorter than the ~5% battery gauge can resolve,
+      and Power Profiler needs the cable (it reads 0 while charging).</li>
     </ul>
   </details>
 
@@ -221,8 +224,8 @@
 <td class="num">890</td>
 <td class="num">90.0</td>
 <td class="num">91.3</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">Fastest decode on this phone; 361-544 tokens/run.</td>
 </tr>
 <tr>
@@ -232,8 +235,8 @@
 <td class="num">317</td>
 <td class="num">591.0</td>
 <td class="num">72.6</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">GPU and CPU decode at parity on this bundle.</td>
 </tr>
 <tr>
@@ -242,8 +245,8 @@
 <td class="num">2,902</td>
 <td class="num">436.0</td>
 <td class="num">71.0</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">Also 1.37 GB GL mtrack. load includes GPU copy.</td>
 </tr>
 <tr>
@@ -362,8 +365,8 @@
 <td class="num">1,480</td>
 <td class="num">3,386.0</td>
 <td class="num">2.0</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">128-token stateless window, no KV cache; 30 s first-launch compile, 1480 ms afterwards. Not a fair race.</td>
 </tr>
 </tbody></table></div></section>
@@ -383,7 +386,7 @@
 <td rowspan="4">Galaxy S25 Ultra</td>
 <td>ONNX</td>
 <td>WebGPU</td>
-<td rowspan="18">MiniLM-L6-v2</td>
+<td rowspan="21">MiniLM-L6-v2</td>
 <td class="num">785</td>
 <td class="num">13.4</td>
 <td class="num">5.1</td>
@@ -421,24 +424,24 @@
 <td>LiteRT (dual)</td>
 <td class="num">131</td>
 <td class="num">9.0</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">TFLite converted from the same checkpoint as the ONNX file.</td>
 </tr>
 <tr>
 <td>ONNX (leaf)</td>
 <td class="num">428</td>
 <td class="num">14.0</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">417-439 ms load across runs.</td>
 </tr>
 <tr>
 <td>ONNX (dual)</td>
 <td class="num">489</td>
 <td class="num">14.4</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">readBytes + session build.</td>
 </tr>
 <tr>
@@ -486,47 +489,63 @@
 <td class="note">40x20 chunks; battery 80-&gt;80; load includes delegate setup.</td>
 </tr>
 <tr>
-<td rowspan="6">iPhone SE 3</td>
+<td rowspan="9">iPhone SE 3</td>
 <td>Core ML</td>
-<td rowspan="2">CPU</td>
+<td rowspan="3">CPU</td>
 <td class="num">347</td>
 <td class="num">10.8</td>
-<td></td>
-<td></td>
+<td class="num">—*</td>
+<td class="num">—*</td>
 <td class="note">2026-10-27 re-run: 15x20 chunks; locally converted fp32 package.</td>
 </tr>
 <tr>
 <td>Core ML</td>
 <td class="num">452</td>
 <td class="num">14.0</td>
-<td></td>
-<td></td>
+<td class="num">—*</td>
+<td class="num">—*</td>
 <td class="note">Execution plan compiled at load; fastest steady state.</td>
+</tr>
+<tr>
+<td>Core ML</td>
+<td class="num">355</td>
+<td class="num">16.5</td>
+<td class="num">5.7</td>
+<td class="num">93.5</td>
+<td class="note">2026-10-28 long run, 30000 chunks, battery 75-&gt;65, thermal serious.</td>
 </tr>
 <tr>
 <td>ONNX</td>
 <td>CPU (Core ML EP attempted)</td>
 <td class="num">541</td>
 <td class="num">23.1</td>
-<td></td>
-<td></td>
+<td class="num">—*</td>
+<td class="num">—*</td>
 <td class="note">2026-10-27 re-run: 15x20 chunks; Core ML EP attempted then CPU.</td>
 </tr>
 <tr>
 <td>ONNX</td>
-<td rowspan="2">CPU</td>
+<td rowspan="3">CPU</td>
 <td class="num">209</td>
 <td class="num">28.0</td>
-<td></td>
-<td></td>
+<td class="num">—*</td>
+<td class="num">—*</td>
 <td class="note">Session build parses/optimizes the graph.</td>
+</tr>
+<tr>
+<td>ONNX</td>
+<td class="num">644</td>
+<td class="num">41.7</td>
+<td class="num">5.0</td>
+<td class="num">210.3</td>
+<td class="note">2026-10-28 long run, 20000 chunks, battery 90-&gt;75, thermal nominal.</td>
 </tr>
 <tr>
 <td>LiteRT</td>
 <td class="num">39</td>
 <td class="num">53.0</td>
-<td></td>
-<td></td>
+<td class="num">—*</td>
+<td class="num">—*</td>
 <td class="note">Interpreter mmap; fastest load, slowest per chunk.</td>
 </tr>
 <tr>
@@ -534,9 +553,18 @@
 <td>CPU (Core ML delegate attempted)</td>
 <td class="num">905</td>
 <td class="num">56.1</td>
-<td></td>
-<td></td>
+<td class="num">—*</td>
+<td class="num">—*</td>
 <td class="note">2026-10-27 re-run: 15x20 chunks, one runtime per process; 26 Mean-op delegate fallbacks; battery flat.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td>CPU (no delegate)</td>
+<td class="num">33</td>
+<td class="num">68.5</td>
+<td class="num">5.4</td>
+<td class="num">350.5</td>
+<td class="note">2026-10-28 long run, 8000 chunks, battery 100-&gt;90, thermal nominal; gauge-derived energy.</td>
 </tr>
 </tbody></table></div></section>
 <section><h2>Decision</h2><div class="table-wrap"><table>
@@ -555,11 +583,11 @@
 <td rowspan="4">Galaxy S25 Ultra</td>
 <td>ONNX</td>
 <td>CPU (4 threads)</td>
-<td rowspan="10">Julia-1</td>
+<td rowspan="12">Julia-1</td>
 <td class="num">1,973</td>
 <td class="num">42.0</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">Warm reload after lane switch; window 1024. Identical answers on all 18 prompts.</td>
 </tr>
 <tr>
@@ -576,8 +604,8 @@
 <td>GPU (FP32)</td>
 <td class="num">3,093</td>
 <td class="num">76.0</td>
-<td></td>
-<td></td>
+<td class="num">—</td>
+<td class="num">—</td>
 <td class="note">First load after process start; window 512. 18-prompt suite.</td>
 </tr>
 <tr>
@@ -611,7 +639,7 @@
 <tr>
 <td rowspan="2">iPhone 15 Pro</td>
 <td>ONNX</td>
-<td rowspan="4">CPU</td>
+<td rowspan="6">CPU</td>
 <td class="num">3,032</td>
 <td class="num">36.8</td>
 <td class="num">4.8</td>
@@ -627,27 +655,43 @@
 <td class="note">18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX.</td>
 </tr>
 <tr>
-<td rowspan="2">iPhone SE 3</td>
+<td rowspan="4">iPhone SE 3</td>
 <td>ONNX</td>
 <td class="num">4,543</td>
 <td class="num">51.0</td>
-<td></td>
-<td></td>
+<td class="num">—*</td>
+<td class="num">—*</td>
 <td class="note">2026-10-27 18-prompt suite, window 1024; tokenizer load 3.86 s; single request 35-47 ms.</td>
+</tr>
+<tr>
+<td>ONNX</td>
+<td class="num">4,130</td>
+<td class="num">82.8</td>
+<td class="num">4.7</td>
+<td class="num">389.5</td>
+<td class="note">2026-10-28 long run, 400 suite repeats (7200 prompts), battery 60-&gt;50, thermal serious.</td>
 </tr>
 <tr>
 <td>LiteRT</td>
 <td class="num">3,657</td>
 <td class="num">660.5</td>
-<td></td>
-<td></td>
+<td class="num">—*</td>
+<td class="num">—*</td>
 <td class="note">2026-10-27 18-prompt suite, window 512; tokenizer load 3.59 s; single request 598-627 ms; battery 94-&gt;94.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td class="num">3,851</td>
+<td class="num">989.2</td>
+<td class="num">2.6</td>
+<td class="num">2,596.5</td>
+<td class="note">2026-10-28 long run, 30 suite repeats (540 prompts), battery 65-&gt;60, thermal serious.</td>
 </tr>
 </tbody></table></div></section>
   </noscript>
 
   <p class="foot" id="foot">Generated 2026-10-28 from the <code>bench-data</code> block of
-  <code>benchmarks.html</code> (44 rows). Single file, no external assets.</p>
+  <code>benchmarks.html</code> (49 rows). Single file, no external assets.</p>
   <p class="foot">Source data and code:
   <a href="https://github.com/GustavoFRGomes/myleo-demo-ml-runtimes">github.com/GustavoFRGomes/myleo-demo-ml-runtimes</a> — the page itself needs nothing but this
   file; the link is only for the underlying data.</p>
@@ -1219,6 +1263,71 @@
   "powerW": 7.11,
   "mjPerToken": 523.3,
   "note": "2026-10-28 dual leaf, Phi-4 int4; 1525/1525/574 tokens because max_length = maxTokens+1024."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT",
+  "backend": "CPU (no delegate)",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 33.4,
+  "msPerChunk": 68.5,
+  "powerW": 5.36,
+  "mjPerChunk": 350.5,
+  "note": "2026-10-28 long run, 8000 chunks, battery 100->90, thermal nominal; gauge-derived energy."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "ONNX",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 643.7,
+  "msPerChunk": 41.7,
+  "powerW": 5.04,
+  "mjPerChunk": 210.3,
+  "note": "2026-10-28 long run, 20000 chunks, battery 90->75, thermal nominal."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "Core ML",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 354.9,
+  "msPerChunk": 16.5,
+  "powerW": 5.7,
+  "mjPerChunk": 93.5,
+  "note": "2026-10-28 long run, 30000 chunks, battery 75->65, thermal serious."
+ },
+ {
+  "platform": "iOS",
+  "area": "Decision",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT",
+  "backend": "CPU",
+  "model": "Julia-1",
+  "loadMs": 3851,
+  "msPerPrompt": 989.2,
+  "powerW": 2.62,
+  "mjPerPrompt": 2596.5,
+  "note": "2026-10-28 long run, 30 suite repeats (540 prompts), battery 65->60, thermal serious."
+ },
+ {
+  "platform": "iOS",
+  "area": "Decision",
+  "device": "iPhone SE 3",
+  "runtime": "ONNX",
+  "backend": "CPU",
+  "model": "Julia-1",
+  "loadMs": 4130,
+  "msPerPrompt": 82.8,
+  "powerW": 4.67,
+  "mjPerPrompt": 389.5,
+  "note": "2026-10-28 long run, 400 suite repeats (7200 prompts), battery 60->50, thermal serious."
  }
 ]
 </script>
@@ -1537,9 +1646,16 @@
           if (span === 0) return "";
           return `<td${span > 1 ? ` rowspan="${span}"` : ""}>${String(row[key] ?? "")}</td>`;
         }
-        return typeof row[key] === "number"
-          ? `<td class="num">${fmt(row[key], key === "loadMs" ? 0 : 1)}</td>`
-          : `<td>${String(row[key] ?? "")}</td>`;
+        if (typeof row[key] === "number")
+          return `<td class="num">${fmt(row[key], key === "loadMs" ? 0 : 1)}</td>`;
+        const blank = row[key] === null || row[key] === undefined || row[key] === "";
+        const energy = key === "powerW" || key.indexOf("mj") === 0;
+        if (blank && energy) {
+          const star = row.platform === "iOS" &&
+            (row.area === "Vector search" || row.area === "Decision") ? "*" : "";
+          return `<td class="num">—${star}</td>`;
+        }
+        return `<td>${String(row[key] ?? "")}</td>`;
       }).join("");
       return `<tr class="row-button" data-id="${DATA.indexOf(row)}">${cells}<td class="note">${row.note || ""}</td></tr>`;
     }).join("");

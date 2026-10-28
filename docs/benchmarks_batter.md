@@ -262,3 +262,19 @@ Reading it:
   (9.4 vs 5.8 W) to go 1.4× faster, and the LLM ONNX lane draws 7.1 W.
 - The counter step is the dominant uncertainty for the two smallest lanes (LiteRT decision
   and LLM: one step each, ±25%).
+
+### iPhone SE 3rd gen — vector + decision battery runs (2026-10-28)
+
+Same gauge method as the TCL/S25 runs, sized to 8–10 minutes per lane so at least one 5% step
+is crossed. Unplugged, screen awake, bench yields between items to survive the watchdog.
+
+| Area | Runtime | Workload | Battery | ≈ power | ≈ energy/op |
+|---|---|---|---:|---:|---:|
+| Vector | LiteRT | 8000 chunks | 100% → 90% | 5.36 W | 350.5 mJ/chunk |
+| Vector | ONNX | 20000 chunks | 90% → 75% | 5.04 W | 210.3 mJ/chunk |
+| Vector | Core ML | 30000 chunks | 75% → 65% | 5.70 W | 93.5 mJ/chunk |
+| Decision | LiteRT | 540 prompts | 65% → 60% | 2.62 W | 2596 mJ/prompt |
+| Decision | ONNX | 7200 prompts | 60% → 50% | 4.67 W | 389 mJ/prompt |
+
+The SE runs hotter than the 15 Pro under the same load (thermal `serious` after the first two
+lanes), which is why the sustained per-op numbers sit above the short-run table.
