@@ -48,12 +48,14 @@ open docs/benchmarks.html          # macOS
 
 Everything works from `file://` — no server needed.
 
-### Standalone snapshot (no JavaScript)
+### Standalone snapshot (one file)
 
-`docs/standalone-benchmarks.html` is a second, deliberately dumber artifact for people who
-just need *the numbers in one file*: no scripts, no images, no CSV/PNG siblings, no network.
-It has the same 38 rows as the dashboard, drawn as CSS bars plus full tables, and prints
-cleanly. Regenerate it after editing the dashboard data (same command as the dashboard sync):
+`docs/standalone-benchmarks.html` is the single-file variant: inline CSS, inline data and
+inline JS, so it needs no images, no CSV/PNG siblings and no network. It is interactive —
+area tabs, platform/device filters, free-text search, chart-metric switch, sortable table
+headers, a `<dialog>` with the full row, and a client-side CSV export — and falls back to
+static tables under `<noscript>` (or when a host strips scripts). Regenerate it after
+editing the dashboard data:
 
 ```bash
 python3 docs/tools/standalone_benchmarks.py   # reads bench-data, writes the snapshot

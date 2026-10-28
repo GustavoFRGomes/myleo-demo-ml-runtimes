@@ -3,369 +3,421 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MyLEO benchmarks — standalone snapshot</title>
+<title>MyLEO benchmarks — standalone</title>
 <style>
   :root {
-    --bg:#ffffff; --fg:#1b1f24; --muted:#5b6673; --line:#d8dee4;
-    --track:#eef2f6; --bar:#4a90e2; --best:#1f883d; --card:#f6f8fa;
+    --bg:#ffffff; --fg:#1b1f24; --muted:#5b6673; --line:#d8dee4; --track:#eef2f6;
+    --bar:#4a90e2; --best:#1f883d; --card:#f6f8fa; --chip:#eef2f6;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#0d1117; --fg:#e6edf3; --muted:#9aa7b4; --line:#30363d;
-             --track:#161b22; --bar:#58a6ff; --best:#3fb950; --card:#11161d; }
+    :root { --bg:#0d1117; --fg:#e6edf3; --muted:#9aa7b4; --line:#30363d; --track:#161b22;
+             --bar:#58a6ff; --best:#3fb950; --card:#11161d; --chip:#1c232c; }
   }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg);
          font:15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
   header, main { max-width:1100px; margin:0 auto; padding:0 24px; }
-  header { padding-top:30px; }
+  header { padding-top:28px; }
   h1 { margin:0 0 6px; font-size:24px; letter-spacing:-0.01em; }
-  h2 { margin:0 0 14px; font-size:18px; }
+  h2 { margin:0 0 12px; font-size:18px; }
   .sub, .foot { color:var(--muted); font-size:13px; }
-  section { margin-top:34px; }
-  .cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:22px; }
-  .card { border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--card); }
-  .card h3 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
-  .big { font-size:26px; font-weight:700; }
-  .unit { font-size:13px; font-weight:500; color:var(--muted); }
-  .delta { color:var(--muted); font-size:12px; margin-top:2px; }
-  .chart { border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
-  .chart-row { display:grid; grid-template-columns:minmax(180px, 34%) 1fr 70px; gap:12px; align-items:center; padding:4px 0; }
-  .chart-label { font-size:12px; color:var(--fg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .chart-track { background:var(--track); border-radius:6px; height:14px; overflow:hidden; }
-  .bar { height:100%; background:var(--bar); border-radius:6px; }
-  .bar.best { background:var(--best); }
+  main { padding-bottom:40px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 12px; }
+  .tabs button { font:inherit; background:transparent; color:var(--fg); border:1px solid var(--line);
+                  border-radius:999px; padding:6px 14px; cursor:pointer; }
+  .tabs button[aria-selected="true"] { background:var(--bar); border-color:var(--bar); color:#fff; font-weight:600; }
+  .controls { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-end;
+               padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--card); }
+  .controls label { display:flex; flex-direction:column; gap:4px; font-size:11px;
+                     color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .controls select, .controls input, .controls button {
+      font:inherit; color:var(--fg); background:var(--bg); border:1px solid var(--line);
+      border-radius:8px; padding:6px 9px; }
+  .controls button { cursor:pointer; }
+  .controls .grow { flex:1 1 180px; }
+  .controls .grow input { width:100%; }
+  .count { color:var(--muted); font-size:12px; margin-left:auto; padding-bottom:7px; }
+  .chart { border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+            display:grid; grid-template-columns:minmax(190px, 34%) 1fr 74px;
+            gap:3px 12px; align-items:center; }
+  .chart-btn { display:contents; border:0; background:none; padding:0; cursor:pointer; color:inherit; font:inherit; }
+  .chart-btn:focus-visible .chart-label { outline:2px solid var(--bar); outline-offset:2px; }
+  .chart-label { font-size:12px; text-align:right; overflow:hidden; text-overflow:ellipsis;
+                  white-space:nowrap; }
+  .chart-btn:hover .chart-label { color:var(--bar); }
   .chart-value { text-align:right; font-variant-numeric:tabular-nums; font-size:12px; font-weight:600; }
+  progress { width:100%; height:14px; appearance:none; border:0; border-radius:6px; background:var(--track); }
+  progress::-webkit-progress-bar { background:var(--track); border-radius:6px; }
+  progress::-webkit-progress-value { background:var(--bar); border-radius:6px; }
+  progress::-moz-progress-bar { background:var(--bar); border-radius:6px; }
+  progress.best::-webkit-progress-value { background:var(--best); }
+  progress.best::-moz-progress-bar { background:var(--best); }
   .table-wrap { margin-top:14px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
   table { width:100%; border-collapse:collapse; font-size:12.5px; }
   th, td { text-align:left; padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { color:var(--muted); font-weight:600; background:var(--bg); }
+  th { color:var(--muted); font-weight:600; background:var(--bg); position:sticky; top:0; }
+  th button { all:unset; cursor:pointer; color:inherit; font:inherit; }
+  th button:focus-visible { outline:2px solid var(--bar); }
   td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
   td.note { color:var(--muted); font-size:12px; }
   td:first-child { white-space:nowrap; }
-  .empty { color:var(--muted); }
-  .toc { margin-top:22px; font-size:13px; }
-  .toc a { color:var(--bar); text-decoration:none; }
-  .toc a:hover { text-decoration:underline; }
-  .foot { margin:30px 0 40px; }
+  tr.row-button { cursor:pointer; }
+  tr.row-button:hover { background:var(--chip); }
+  details { border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-top:16px; }
+  summary { cursor:pointer; font-weight:600; }
+  details p, details li { color:var(--muted); font-size:13px; }
+  dialog { border:1px solid var(--line); border-radius:12px; padding:0; max-width:620px; width:92%;
+            background:var(--bg); color:var(--fg); }
+  dialog::backdrop { background:rgba(0,0,0,.45); }
+  .dialog-head { display:flex; justify-content:space-between; align-items:center; gap:12px;
+                  padding:14px 16px; border-bottom:1px solid var(--line); }
+  .dialog-head h3 { margin:0; font-size:15px; }
+  .dialog-body { padding:12px 16px 18px; }
+  .dialog-body dl { display:grid; grid-template-columns:auto 1fr; gap:6px 16px; margin:0; font-size:13px; }
+  .dialog-body dt { color:var(--muted); }
+  .dialog-body dd { margin:0; font-variant-numeric:tabular-nums; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; background:var(--chip);
+           font-size:11px; color:var(--muted); margin-left:6px; }
+  .actions { display:flex; gap:8px; }
+  .actions button { font:inherit; border:1px solid var(--line); background:var(--bg); color:var(--fg);
+                     border-radius:8px; padding:5px 10px; cursor:pointer; }
+  #close { font-size:22px; line-height:1; border:1px solid var(--line); background:var(--bg);
+            color:var(--fg); border-radius:8px; width:34px; height:34px; cursor:pointer; }
+  .foot { margin-top:24px; }
   @media print {
+    .tabs, .controls, .actions { display:none; }
     body { background:#fff; color:#000; }
-    .card, .chart, .table-wrap { border-color:#bbb; }
-    .bar { background:#666 !important; }
-    .bar.best { background:#000 !important; }
+    .chart, .table-wrap, details, dialog { border-color:#bbb; }
+    progress { border:1px solid #999; background:#eee; }
+    progress::-webkit-progress-value { background:#444; }
+    progress::-moz-progress-bar { background:#444; }
     section { break-inside:avoid; }
   }
 </style>
 </head>
 <body>
 <header>
-  <h1>MyLEO benchmarks — standalone snapshot</h1>
-  <p class="sub">Single self-contained file: inline styles, no scripts, no images, no network.
-  Generated 2026-10-27 from the data embedded in <code>benchmarks.html</code> (38 measured rows).</p>
+  <h1>MyLEO benchmarks — standalone</h1>
+  <p class="sub">One file: inline styles, data and script; no images, no network, no siblings.
+  Tab an area, filter, search, sort a column or open a bar for the full row.</p>
 </header>
 <main>
-  <div class="cards"><div class="card"><h3>iOS · LLM</h3><div class="big">47.5 <span class="unit">tok/s</span></div><div class="delta">iPhone 15 Pro · ONNX GenAI</div></div>
-<div class="card"><h3>Android · LLM</h3><div class="big">91.3 <span class="unit">tok/s</span></div><div class="delta">SM-S948B · ONNX GenAI</div></div>
-<div class="card"><h3>iOS · Vector search</h3><div class="big">8.8 <span class="unit">ms/chunk</span></div><div class="delta">iPhone 15 Pro · Core ML</div></div>
-<div class="card"><h3>Android · Vector search</h3><div class="big">9.0 <span class="unit">ms/chunk</span></div><div class="delta">SM-S948B · LiteRT (dual)</div></div>
-<div class="card"><h3>iOS · Decision</h3><div class="big">36.8 <span class="unit">ms/prompt</span></div><div class="delta">iPhone 15 Pro · ONNX</div></div>
-<div class="card"><h3>Android · Decision</h3><div class="big">42.0 <span class="unit">ms/prompt</span></div><div class="delta">SM-S938B · ONNX</div></div></div>
-  <nav class="toc"><a href="#llm">LLM</a> · <a href="#vector-search">Vector search</a> · <a href="#decision">Decision</a></nav>
-  <section id="llm"><h2>LLM — Decode speed (tok/s, higher is better)</h2><div class="chart">
-<div class="chart-row" title="iPhone SE 3 · LiteRT-LM · GPU (Metal)"><div class="chart-label">iPhone SE 3 · LiteRT-LM · GPU (Metal)</div><div class="chart-track"><div class="bar" style="width:48.0%"></div></div><div class="chart-value">43.8</div></div>
-<div class="chart-row" title="iPhone SE 3 · LiteRT-LM · CPU (XNNPACK)"><div class="chart-label">iPhone SE 3 · LiteRT-LM · CPU (XNNPACK)</div><div class="chart-track"><div class="bar" style="width:39.1%"></div></div><div class="chart-value">35.7</div></div>
-<div class="chart-row" title="iPhone SE 3 · ONNX GenAI · CPU"><div class="chart-label">iPhone SE 3 · ONNX GenAI · CPU</div><div class="chart-track"><div class="bar" style="width:51.0%"></div></div><div class="chart-value">46.6</div></div>
-<div class="chart-row" title="iPhone SE 3 · Core ML · ANE/GPU/CPU"><div class="chart-label">iPhone SE 3 · Core ML · ANE/GPU/CPU</div><div class="chart-track"><div class="bar" style="width:2.2%"></div></div><div class="chart-value">2.0</div></div>
-<div class="chart-row" title="SM-S948B · LiteRT-LM · GPU (OpenCL)"><div class="chart-label">SM-S948B · LiteRT-LM · GPU (OpenCL)</div><div class="chart-track"><div class="bar" style="width:77.8%"></div></div><div class="chart-value">71.0</div></div>
-<div class="chart-row" title="SM-S948B · LiteRT-LM · CPU (XNNPACK)"><div class="chart-label">SM-S948B · LiteRT-LM · CPU (XNNPACK)</div><div class="chart-track"><div class="bar" style="width:79.5%"></div></div><div class="chart-value">72.6</div></div>
-<div class="chart-row" title="SM-S948B · ONNX GenAI · CPU"><div class="chart-label">SM-S948B · ONNX GenAI · CPU</div><div class="chart-track"><div class="bar best" style="width:100.0%"></div></div><div class="chart-value">91.3</div></div>
-<div class="chart-row" title="iPhone 15 Pro · LiteRT-LM · GPU (Metal) · 60-run"><div class="chart-label">iPhone 15 Pro · LiteRT-LM · GPU (Metal) · 60-run</div><div class="chart-track"><div class="bar" style="width:49.7%"></div></div><div class="chart-value">45.4</div></div>
-<div class="chart-row" title="iPhone 15 Pro · ONNX GenAI · CPU · 60-run"><div class="chart-label">iPhone 15 Pro · ONNX GenAI · CPU · 60-run</div><div class="chart-track"><div class="bar" style="width:52.0%"></div></div><div class="chart-value">47.5</div></div>
-<div class="chart-row" title="iPhone SE 3 · LiteRT-LM · GPU (Metal) · 2026-10-27"><div class="chart-label">iPhone SE 3 · LiteRT-LM · GPU (Metal) · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:35.5%"></div></div><div class="chart-value">32.4</div></div>
-<div class="chart-row" title="iPhone SE 3 · ONNX GenAI · CPU · 2026-10-27"><div class="chart-label">iPhone SE 3 · ONNX GenAI · CPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:33.7%"></div></div><div class="chart-value">30.8</div></div>
-<div class="chart-row" title="iPhone SE 3 · LiteRT-LM · CPU (XNNPACK) · 2026-10-27"><div class="chart-label">iPhone SE 3 · LiteRT-LM · CPU (XNNPACK) · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:29.9%"></div></div><div class="chart-value">27.3</div></div>
-<div class="chart-row" title="TCL T807D · LiteRT-LM · GPU · 2026-10-27"><div class="chart-label">TCL T807D · LiteRT-LM · GPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:16.8%"></div></div><div class="chart-value">15.3</div></div>
-<div class="chart-row" title="TCL T807D · ONNX GenAI · CPU · 2026-10-27"><div class="chart-label">TCL T807D · ONNX GenAI · CPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:6.2%"></div></div><div class="chart-value">5.7</div></div>
-</div><div class="table-wrap"><table>
+  <noscript><style>#interactive { display:none; }</style></noscript>
+  <div id="interactive">
+  <div class="tabs" role="tablist" aria-label="Benchmark area"><button type="button" role="tab" data-area="LLM" aria-selected="true">LLM</button><button type="button" role="tab" data-area="Vector search" aria-selected="false">Vector search</button><button type="button" role="tab" data-area="Decision" aria-selected="false">Decision</button></div>
+
+  <section class="controls" aria-label="Filters">
+    <label>Platform
+      <select id="platform">
+        <option value="all">All</option>
+        <option value="iOS">iOS</option>
+        <option value="Android">Android</option>
+      </select>
+    </label>
+    <label>Device<select id="device"><option value="all">All devices</option></select></label>
+    <label>Chart metric<select id="metric"></select></label>
+    <label class="grow">Search<input id="query" type="search" placeholder="device, runtime, model, note…"></label>
+    <output class="count" id="count" for="platform device metric query"></output>
+    <div class="actions"><button type="button" id="export">Download CSV</button></div>
+  </section>
+
+  <section id="chart-section" aria-live="polite">
+    <h2 id="chart-title"></h2>
+    <div class="chart" id="chart"></div>
+  </section>
+
+  <section>
+    <h2>All matching rows</h2>
+    <div class="table-wrap" id="table-wrap"><table id="table"></table></div>
+  </section>
+  </div>
+
+  <details>
+    <summary>Methodology</summary>
+    <p>LLM: MiniCPM5-1B or Phi-4-mini int4, one turn, temperature 0.8, top-k 40, top-p 0.95,
+    512-token cap (the ONNX GenAI engine allows up to 1536 total when EOS does not fire).
+    Vector search: MiniLM-L6-v2, 384-d, 20-chunk corpus. Decision: Julia-1, 18-prompt suite.</p>
+    <p>Energy is an estimate: iOS uses the ~5% gauge or Power Profiler; Android integrates
+    current × voltage at 1 Hz. Compare lanes on the same device, not across devices.</p>
+  </details>
+  <details>
+    <summary>Notes &amp; quirks</summary>
+    <ul>
+      <li>iOS Core ML runs the decision leaf is reserved — no Julia-1 package exists yet.</li>
+      <li>The LiteRT decision GPU delegate fails to compile on the 15 Pro; on the TCL it
+      compiles but is 7.6× slower than ONNX CPU.</li>
+      <li>Rows tagged <span class="pill">60-run</span> or <span class="pill">2026-10-27</span>
+      are sustained battery runs, not cold single runs.</li>
+    </ul>
+  </details>
+
+  <noscript>
+    <p class="sub">JavaScript is off — showing the static tables instead.</p>
+    <section><h2>LLM</h2><div class="table-wrap"><table>
 <thead><tr>
-<th>Device</th>
-<th>Runtime</th>
-<th>Backend</th>
-<th>Model</th>
-<th>Load ms</th>
-<th>TTFT ms</th>
-<th>tok/s</th>
-<th>W</th>
-<th>mJ/token</th>
-<th>Note</th>
+<th scope="col">Device</th>
+<th scope="col">Runtime</th>
+<th scope="col">Backend</th>
+<th scope="col">Model</th>
+<th scope="col">Load ms</th>
+<th scope="col">TTFT ms</th>
+<th scope="col">tok/s</th>
+<th scope="col">W</th>
+<th scope="col">mJ/token</th>
+<th scope="col">Note</th>
 </tr></thead><tbody>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">Core ML</td>
-<td class="note">ANE/GPU/CPU</td>
-<td class="note">MiniCPM5-1B 4-bit</td>
+<td>iPhone SE 3</td>
+<td>Core ML</td>
+<td>ANE/GPU/CPU</td>
+<td>MiniCPM5-1B 4-bit</td>
 <td class="num">1,480</td>
-<td class="num">3,386</td>
+<td class="num">3,386.0</td>
 <td class="num">2.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">128-token stateless window, no KV cache; 30 s first-launch compile, 1480 ms afterwards. Not a fair race.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">LiteRT-LM</td>
-<td class="note">CPU (XNNPACK)</td>
-<td class="note">MiniCPM5-1B</td>
+<td>iPhone SE 3</td>
+<td>LiteRT-LM</td>
+<td>CPU (XNNPACK)</td>
+<td>MiniCPM5-1B</td>
 <td class="num">433</td>
-<td class="num">1,252</td>
+<td class="num">1,252.0</td>
 <td class="num">35.7</td>
 <td class="num">3.7</td>
 <td class="num">133.0</td>
 <td class="note">278 tokens/run (EOS).</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">LiteRT-LM</td>
-<td class="note">CPU (XNNPACK)</td>
-<td class="note">MiniCPM5-1B</td>
+<td>iPhone SE 3</td>
+<td>LiteRT-LM</td>
+<td>CPU (XNNPACK)</td>
+<td>MiniCPM5-1B</td>
 <td class="num">316</td>
-<td class="num">948</td>
+<td class="num">948.0</td>
 <td class="num">27.3</td>
 <td class="num">6.1</td>
 <td class="num">252.2</td>
 <td class="note">2026-10-27 sustained 60x, battery 55-&gt;40, thermal serious; cold 35.7 tok/s; shortest run, widest error.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">LiteRT-LM</td>
-<td class="note">GPU (Metal)</td>
-<td class="note">MiniCPM5-1B</td>
+<td>iPhone SE 3</td>
+<td>LiteRT-LM</td>
+<td>GPU (Metal)</td>
+<td>MiniCPM5-1B</td>
 <td class="num">1,158</td>
-<td class="num">360</td>
+<td class="num">360.0</td>
 <td class="num">43.8</td>
 <td class="num">4.7</td>
 <td class="num">122.0</td>
 <td class="note">Graphs delegated to Metal; sampler on CPU. 533 tokens/run.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">LiteRT-LM</td>
-<td class="note">GPU (Metal)</td>
-<td class="note">MiniCPM5-1B</td>
+<td>iPhone SE 3</td>
+<td>LiteRT-LM</td>
+<td>GPU (Metal)</td>
+<td>MiniCPM5-1B</td>
 <td class="num">6,274</td>
-<td class="num">949</td>
+<td class="num">949.0</td>
 <td class="num">32.4</td>
 <td class="num">4.0</td>
 <td class="num">131.5</td>
 <td class="note">2026-10-27 sustained 60x, battery 95-&gt;80, thermal serious; cold 43.8 tok/s (3-run table).</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">ONNX GenAI</td>
-<td class="note">CPU</td>
-<td class="note">MiniCPM5-1B int4</td>
+<td>iPhone SE 3</td>
+<td>ONNX GenAI</td>
+<td>CPU</td>
+<td>MiniCPM5-1B int4</td>
 <td class="num">635</td>
-<td class="num">207</td>
+<td class="num">207.0</td>
 <td class="num">46.6</td>
 <td class="num">6.1</td>
 <td class="num">130.0</td>
 <td class="note">Same package as the Android ONNX leaf. 392-533 tokens/run.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">ONNX GenAI</td>
-<td class="note">CPU</td>
-<td class="note">MiniCPM5-1B int4</td>
+<td>iPhone SE 3</td>
+<td>ONNX GenAI</td>
+<td>CPU</td>
+<td>MiniCPM5-1B int4</td>
 <td class="num">1,261</td>
-<td class="num">399</td>
+<td class="num">399.0</td>
 <td class="num">30.8</td>
 <td class="num">5.3</td>
 <td class="num">179.6</td>
 <td class="note">2026-10-27 sustained 60x, battery 80-&gt;60, thermal serious; cold 46.6 tok/s.</td>
 </tr>
 <tr>
-<td class="note">iPhone 15 Pro</td>
-<td class="note">LiteRT-LM</td>
-<td class="note">GPU (Metal)</td>
-<td class="note">MiniCPM5-1B</td>
+<td>iPhone 15 Pro</td>
+<td>LiteRT-LM</td>
+<td>GPU (Metal)</td>
+<td>MiniCPM5-1B</td>
 <td class="num">932</td>
-<td class="num">220</td>
+<td class="num">220.0</td>
 <td class="num">45.4</td>
 <td class="num">1.9</td>
 <td class="num">43.8</td>
 <td class="note">Sustained 60x run, battery 70-&gt;65, thermal critical; cold run 63.3 tok/s.</td>
 </tr>
 <tr>
-<td class="note">iPhone 15 Pro</td>
-<td class="note">ONNX GenAI</td>
-<td class="note">CPU</td>
-<td class="note">MiniCPM5-1B int4</td>
+<td>iPhone 15 Pro</td>
+<td>ONNX GenAI</td>
+<td>CPU</td>
+<td>MiniCPM5-1B int4</td>
 <td class="num">467</td>
-<td class="num">136</td>
+<td class="num">136.0</td>
 <td class="num">47.5</td>
 <td class="num">4.2</td>
 <td class="num">97.4</td>
 <td class="note">Sustained 60x run, battery 60-&gt;50, thermal serious; cold run 67.4 tok/s.</td>
 </tr>
 <tr>
-<td class="note">SM-S948B</td>
-<td class="note">LiteRT-LM</td>
-<td class="note">CPU (XNNPACK)</td>
-<td class="note">MiniCPM5-1B</td>
+<td>SM-S948B</td>
+<td>LiteRT-LM</td>
+<td>CPU (XNNPACK)</td>
+<td>MiniCPM5-1B</td>
 <td class="num">317</td>
-<td class="num">591</td>
+<td class="num">591.0</td>
 <td class="num">72.6</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">GPU and CPU decode at parity on this bundle.</td>
 </tr>
 <tr>
-<td class="note">SM-S948B</td>
-<td class="note">LiteRT-LM</td>
-<td class="note">GPU (OpenCL)</td>
-<td class="note">MiniCPM5-1B</td>
+<td>SM-S948B</td>
+<td>LiteRT-LM</td>
+<td>GPU (OpenCL)</td>
+<td>MiniCPM5-1B</td>
 <td class="num">2,902</td>
-<td class="num">436</td>
+<td class="num">436.0</td>
 <td class="num">71.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">Also 1.37 GB GL mtrack. load includes GPU copy.</td>
 </tr>
 <tr>
-<td class="note">SM-S948B</td>
-<td class="note">ONNX GenAI</td>
-<td class="note">CPU</td>
-<td class="note">MiniCPM5-1B int4</td>
+<td>SM-S948B</td>
+<td>ONNX GenAI</td>
+<td>CPU</td>
+<td>MiniCPM5-1B int4</td>
 <td class="num">890</td>
-<td class="num">90</td>
+<td class="num">90.0</td>
 <td class="num">91.3</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">Fastest decode on this phone; 361-544 tokens/run.</td>
 </tr>
 <tr>
-<td class="note">TCL T807D</td>
-<td class="note">LiteRT-LM</td>
-<td class="note">GPU</td>
-<td class="note">MiniCPM5-1B</td>
+<td>TCL T807D</td>
+<td>LiteRT-LM</td>
+<td>GPU</td>
+<td>MiniCPM5-1B</td>
 <td class="num">5,011</td>
-<td class="num">941</td>
+<td class="num">941.0</td>
 <td class="num">15.3</td>
 <td class="num">3.9</td>
 <td class="num">394.1</td>
 <td class="note">2026-10-27 dual leaf, 3x512-token runs; cold run 10.0 tok/s, then 15.3/15.4.</td>
 </tr>
 <tr>
-<td class="note">TCL T807D</td>
-<td class="note">ONNX GenAI</td>
-<td class="note">CPU</td>
-<td class="note">Phi-4-mini int4</td>
+<td>TCL T807D</td>
+<td>ONNX GenAI</td>
+<td>CPU</td>
+<td>Phi-4-mini int4</td>
 <td class="num">10,215</td>
-<td class="num">853</td>
+<td class="num">853.0</td>
 <td class="num">5.7</td>
 <td class="num">4.6</td>
 <td class="num">1,082.3</td>
 <td class="note">2026-10-27 dual leaf, Phi-4 int4 (4.9 GB); runs 495-1525 tokens because max_length = maxTokens+1024.</td>
 </tr>
-</tbody></table></div></section><section id="vector-search"><h2>Vector search — Embedding latency (ms/chunk, lower is better)</h2><div class="chart">
-<div class="chart-row" title="iPhone SE 3 · LiteRT · CPU"><div class="chart-label">iPhone SE 3 · LiteRT · CPU</div><div class="chart-track"><div class="bar" style="width:56.3%"></div></div><div class="chart-value">53.0</div></div>
-<div class="chart-row" title="iPhone SE 3 · ONNX · CPU"><div class="chart-label">iPhone SE 3 · ONNX · CPU</div><div class="chart-track"><div class="bar" style="width:29.7%"></div></div><div class="chart-value">28.0</div></div>
-<div class="chart-row" title="iPhone SE 3 · Core ML · CPU"><div class="chart-label">iPhone SE 3 · Core ML · CPU</div><div class="chart-track"><div class="bar" style="width:14.9%"></div></div><div class="chart-value">14.0</div></div>
-<div class="chart-row" title="SM-S948B · LiteRT (dual) · CPU"><div class="chart-label">SM-S948B · LiteRT (dual) · CPU</div><div class="chart-track"><div class="bar" style="width:9.6%"></div></div><div class="chart-value">9.0</div></div>
-<div class="chart-row" title="SM-S948B · ONNX (dual) · CPU"><div class="chart-label">SM-S948B · ONNX (dual) · CPU</div><div class="chart-track"><div class="bar" style="width:15.3%"></div></div><div class="chart-value">14.4</div></div>
-<div class="chart-row" title="SM-S948B · ONNX (leaf) · CPU"><div class="chart-label">SM-S948B · ONNX (leaf) · CPU</div><div class="chart-track"><div class="bar" style="width:14.9%"></div></div><div class="chart-value">14.0</div></div>
-<div class="chart-row" title="SM-S938B · ONNX · CPU (XNNPACK) · 60-run"><div class="chart-label">SM-S938B · ONNX · CPU (XNNPACK) · 60-run</div><div class="chart-track"><div class="bar" style="width:20.4%"></div></div><div class="chart-value">19.2</div></div>
-<div class="chart-row" title="SM-S938B · ONNX · WebGPU"><div class="chart-label">SM-S938B · ONNX · WebGPU</div><div class="chart-track"><div class="bar" style="width:14.2%"></div></div><div class="chart-value">13.4</div></div>
-<div class="chart-row" title="iPhone 15 Pro · LiteRT · CPU (Core ML delegate attempted)"><div class="chart-label">iPhone 15 Pro · LiteRT · CPU (Core ML delegate attempted)</div><div class="chart-track"><div class="bar" style="width:47.0%"></div></div><div class="chart-value">44.3</div></div>
-<div class="chart-row" title="iPhone 15 Pro · ONNX · CPU (Core ML EP attempted)"><div class="chart-label">iPhone 15 Pro · ONNX · CPU (Core ML EP attempted)</div><div class="chart-track"><div class="bar" style="width:21.8%"></div></div><div class="chart-value">20.5</div></div>
-<div class="chart-row" title="iPhone 15 Pro · Core ML · CPU"><div class="chart-label">iPhone 15 Pro · Core ML · CPU</div><div class="chart-track"><div class="bar best" style="width:9.3%"></div></div><div class="chart-value">8.8</div></div>
-<div class="chart-row" title="iPhone SE 3 · LiteRT · CPU (Core ML delegate attempted) · 2026-10-27"><div class="chart-label">iPhone SE 3 · LiteRT · CPU (Core ML delegate attempted) · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:59.6%"></div></div><div class="chart-value">56.1</div></div>
-<div class="chart-row" title="iPhone SE 3 · ONNX · CPU (Core ML EP attempted) · 2026-10-27"><div class="chart-label">iPhone SE 3 · ONNX · CPU (Core ML EP attempted) · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:24.5%"></div></div><div class="chart-value">23.1</div></div>
-<div class="chart-row" title="iPhone SE 3 · Core ML · CPU · 2026-10-27"><div class="chart-label">iPhone SE 3 · Core ML · CPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:11.5%"></div></div><div class="chart-value">10.8</div></div>
-<div class="chart-row" title="TCL T807D · LiteRT · CPU · 2026-10-27"><div class="chart-label">TCL T807D · LiteRT · CPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:100.0%"></div></div><div class="chart-value">94.2</div></div>
-<div class="chart-row" title="TCL T807D · ONNX · CPU · 2026-10-27"><div class="chart-label">TCL T807D · ONNX · CPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:31.5%"></div></div><div class="chart-value">29.7</div></div>
-</div><div class="table-wrap"><table>
+</tbody></table></div></section>
+<section><h2>Vector search</h2><div class="table-wrap"><table>
 <thead><tr>
-<th>Device</th>
-<th>Runtime</th>
-<th>Backend</th>
-<th>Model</th>
-<th>Load ms</th>
-<th>ms/chunk</th>
-<th>W</th>
-<th>mJ/chunk</th>
-<th>Note</th>
+<th scope="col">Device</th>
+<th scope="col">Runtime</th>
+<th scope="col">Backend</th>
+<th scope="col">Model</th>
+<th scope="col">Load ms</th>
+<th scope="col">ms/chunk</th>
+<th scope="col">W</th>
+<th scope="col">mJ/chunk</th>
+<th scope="col">Note</th>
 </tr></thead><tbody>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">Core ML</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone SE 3</td>
+<td>Core ML</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">452</td>
 <td class="num">14.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">Execution plan compiled at load; fastest steady state.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">Core ML</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone SE 3</td>
+<td>Core ML</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">347</td>
 <td class="num">10.8</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">2026-10-27 re-run: 15x20 chunks; locally converted fp32 package.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">LiteRT</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone SE 3</td>
+<td>LiteRT</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">39</td>
 <td class="num">53.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">Interpreter mmap; fastest load, slowest per chunk.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">LiteRT</td>
-<td class="note">CPU (Core ML delegate attempted)</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone SE 3</td>
+<td>LiteRT</td>
+<td>CPU (Core ML delegate attempted)</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">905</td>
 <td class="num">56.1</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">2026-10-27 re-run: 15x20 chunks, one runtime per process; 26 Mean-op delegate fallbacks; battery flat.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">ONNX</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone SE 3</td>
+<td>ONNX</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">209</td>
 <td class="num">28.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">Session build parses/optimizes the graph.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">ONNX</td>
-<td class="note">CPU (Core ML EP attempted)</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone SE 3</td>
+<td>ONNX</td>
+<td>CPU (Core ML EP attempted)</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">541</td>
 <td class="num">23.1</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">2026-10-27 re-run: 15x20 chunks; Core ML EP attempted then CPU.</td>
 </tr>
 <tr>
-<td class="note">iPhone 15 Pro</td>
-<td class="note">Core ML</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone 15 Pro</td>
+<td>Core ML</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">31</td>
 <td class="num">8.8</td>
 <td class="num">4.8</td>
@@ -373,10 +425,10 @@
 <td class="note">180x20 chunks; locally converted fp32 package; warm load 31 ms (175 first). Battery 75-&gt;75.</td>
 </tr>
 <tr>
-<td class="note">iPhone 15 Pro</td>
-<td class="note">LiteRT</td>
-<td class="note">CPU (Core ML delegate attempted)</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone 15 Pro</td>
+<td>LiteRT</td>
+<td>CPU (Core ML delegate attempted)</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">688</td>
 <td class="num">44.3</td>
 <td class="num">3.7</td>
@@ -384,10 +436,10 @@
 <td class="note">40x20 chunks; battery 80-&gt;80; load includes delegate setup.</td>
 </tr>
 <tr>
-<td class="note">iPhone 15 Pro</td>
-<td class="note">ONNX</td>
-<td class="note">CPU (Core ML EP attempted)</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>iPhone 15 Pro</td>
+<td>ONNX</td>
+<td>CPU (Core ML EP attempted)</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">405</td>
 <td class="num">20.5</td>
 <td class="num">4.2</td>
@@ -395,43 +447,43 @@
 <td class="note">80x20 chunks; Core ML EP attempted then CPU; battery 80-&gt;80.</td>
 </tr>
 <tr>
-<td class="note">SM-S948B</td>
-<td class="note">LiteRT (dual)</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>SM-S948B</td>
+<td>LiteRT (dual)</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">131</td>
 <td class="num">9.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">TFLite converted from the same checkpoint as the ONNX file.</td>
 </tr>
 <tr>
-<td class="note">SM-S948B</td>
-<td class="note">ONNX (dual)</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>SM-S948B</td>
+<td>ONNX (dual)</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">489</td>
 <td class="num">14.4</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">readBytes + session build.</td>
 </tr>
 <tr>
-<td class="note">SM-S948B</td>
-<td class="note">ONNX (leaf)</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>SM-S948B</td>
+<td>ONNX (leaf)</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">428</td>
 <td class="num">14.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">417-439 ms load across runs.</td>
 </tr>
 <tr>
-<td class="note">SM-S938B</td>
-<td class="note">ONNX</td>
-<td class="note">CPU (XNNPACK)</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>SM-S938B</td>
+<td>ONNX</td>
+<td>CPU (XNNPACK)</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">504</td>
 <td class="num">19.2</td>
 <td class="num">7.9</td>
@@ -439,10 +491,10 @@
 <td class="note">120 s sustained loop; charge counter 64.0 mAh.</td>
 </tr>
 <tr>
-<td class="note">SM-S938B</td>
-<td class="note">ONNX</td>
-<td class="note">WebGPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>SM-S938B</td>
+<td>ONNX</td>
+<td>WebGPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">785</td>
 <td class="num">13.4</td>
 <td class="num">5.1</td>
@@ -450,10 +502,10 @@
 <td class="note">Dawn/Vulkan; 1.7x faster and 2-3x less energy per chunk.</td>
 </tr>
 <tr>
-<td class="note">TCL T807D</td>
-<td class="note">LiteRT</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>TCL T807D</td>
+<td>LiteRT</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">224</td>
 <td class="num">94.2</td>
 <td class="num">3.3</td>
@@ -461,64 +513,56 @@
 <td class="note">2026-10-27 dual leaf, 30x20 chunks; energy from current x voltage at 1 Hz.</td>
 </tr>
 <tr>
-<td class="note">TCL T807D</td>
-<td class="note">ONNX</td>
-<td class="note">CPU</td>
-<td class="note">MiniLM-L6-v2</td>
+<td>TCL T807D</td>
+<td>ONNX</td>
+<td>CPU</td>
+<td>MiniLM-L6-v2</td>
 <td class="num">891</td>
 <td class="num">29.7</td>
 <td class="num">6.2</td>
 <td class="num">190.6</td>
 <td class="note">2026-10-27 dual leaf, 30x20 chunks; faster and lower energy per chunk than LiteRT.</td>
 </tr>
-</tbody></table></div></section><section id="decision"><h2>Decision — Decision latency (ms/prompt, lower is better)</h2><div class="chart">
-<div class="chart-row" title="SM-S938B · LiteRT · GPU (FP32)"><div class="chart-label">SM-S938B · LiteRT · GPU (FP32)</div><div class="chart-track"><div class="bar" style="width:11.5%"></div></div><div class="chart-value">76.0</div></div>
-<div class="chart-row" title="SM-S938B · ONNX · CPU (4 threads)"><div class="chart-label">SM-S938B · ONNX · CPU (4 threads)</div><div class="chart-track"><div class="bar" style="width:6.4%"></div></div><div class="chart-value">42.0</div></div>
-<div class="chart-row" title="iPhone 15 Pro · LiteRT · CPU"><div class="chart-label">iPhone 15 Pro · LiteRT · CPU</div><div class="chart-track"><div class="bar" style="width:72.1%"></div></div><div class="chart-value">476.4</div></div>
-<div class="chart-row" title="iPhone 15 Pro · ONNX · CPU"><div class="chart-label">iPhone 15 Pro · ONNX · CPU</div><div class="chart-track"><div class="bar best" style="width:5.6%"></div></div><div class="chart-value">36.8</div></div>
-<div class="chart-row" title="iPhone SE 3 · LiteRT · CPU · 2026-10-27"><div class="chart-label">iPhone SE 3 · LiteRT · CPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:100.0%"></div></div><div class="chart-value">660.5</div></div>
-<div class="chart-row" title="iPhone SE 3 · ONNX · CPU · 2026-10-27"><div class="chart-label">iPhone SE 3 · ONNX · CPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:7.7%"></div></div><div class="chart-value">51.0</div></div>
-<div class="chart-row" title="TCL T807D · LiteRT · GPU FP32 · 2026-10-27"><div class="chart-label">TCL T807D · LiteRT · GPU FP32 · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:77.7%"></div></div><div class="chart-value">513.4</div></div>
-<div class="chart-row" title="TCL T807D · ONNX · CPU · 2026-10-27"><div class="chart-label">TCL T807D · ONNX · CPU · 2026-10-27</div><div class="chart-track"><div class="bar" style="width:10.2%"></div></div><div class="chart-value">67.3</div></div>
-</div><div class="table-wrap"><table>
+</tbody></table></div></section>
+<section><h2>Decision</h2><div class="table-wrap"><table>
 <thead><tr>
-<th>Device</th>
-<th>Runtime</th>
-<th>Backend</th>
-<th>Model</th>
-<th>Load ms</th>
-<th>ms/prompt</th>
-<th>W</th>
-<th>mJ/prompt</th>
-<th>Note</th>
+<th scope="col">Device</th>
+<th scope="col">Runtime</th>
+<th scope="col">Backend</th>
+<th scope="col">Model</th>
+<th scope="col">Load ms</th>
+<th scope="col">ms/prompt</th>
+<th scope="col">W</th>
+<th scope="col">mJ/prompt</th>
+<th scope="col">Note</th>
 </tr></thead><tbody>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">LiteRT</td>
-<td class="note">CPU</td>
-<td class="note">Julia-1</td>
+<td>iPhone SE 3</td>
+<td>LiteRT</td>
+<td>CPU</td>
+<td>Julia-1</td>
 <td class="num">3,657</td>
 <td class="num">660.5</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">2026-10-27 18-prompt suite, window 512; tokenizer load 3.59 s; single request 598-627 ms; battery 94-&gt;94.</td>
 </tr>
 <tr>
-<td class="note">iPhone SE 3</td>
-<td class="note">ONNX</td>
-<td class="note">CPU</td>
-<td class="note">Julia-1</td>
+<td>iPhone SE 3</td>
+<td>ONNX</td>
+<td>CPU</td>
+<td>Julia-1</td>
 <td class="num">4,543</td>
 <td class="num">51.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">2026-10-27 18-prompt suite, window 1024; tokenizer load 3.86 s; single request 35-47 ms.</td>
 </tr>
 <tr>
-<td class="note">iPhone 15 Pro</td>
-<td class="note">LiteRT</td>
-<td class="note">CPU</td>
-<td class="note">Julia-1</td>
+<td>iPhone 15 Pro</td>
+<td>LiteRT</td>
+<td>CPU</td>
+<td>Julia-1</td>
 <td class="num">2,670</td>
 <td class="num">476.4</td>
 <td class="num">4.6</td>
@@ -526,10 +570,10 @@
 <td class="note">18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX.</td>
 </tr>
 <tr>
-<td class="note">iPhone 15 Pro</td>
-<td class="note">ONNX</td>
-<td class="note">CPU</td>
-<td class="note">Julia-1</td>
+<td>iPhone 15 Pro</td>
+<td>ONNX</td>
+<td>CPU</td>
+<td>Julia-1</td>
 <td class="num">3,032</td>
 <td class="num">36.8</td>
 <td class="num">4.8</td>
@@ -537,32 +581,32 @@
 <td class="note">18-prompt suite (40x, 28 s sampling window); window 1024; energy via Power Profiler.</td>
 </tr>
 <tr>
-<td class="note">SM-S938B</td>
-<td class="note">LiteRT</td>
-<td class="note">GPU (FP32)</td>
-<td class="note">Julia-1</td>
+<td>SM-S938B</td>
+<td>LiteRT</td>
+<td>GPU (FP32)</td>
+<td>Julia-1</td>
 <td class="num">3,093</td>
 <td class="num">76.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">First load after process start; window 512. 18-prompt suite.</td>
 </tr>
 <tr>
-<td class="note">SM-S938B</td>
-<td class="note">ONNX</td>
-<td class="note">CPU (4 threads)</td>
-<td class="note">Julia-1</td>
+<td>SM-S938B</td>
+<td>ONNX</td>
+<td>CPU (4 threads)</td>
+<td>Julia-1</td>
 <td class="num">1,973</td>
 <td class="num">42.0</td>
-<td class="num">—</td>
-<td class="num">—</td>
+<td></td>
+<td></td>
 <td class="note">Warm reload after lane switch; window 1024. Identical answers on all 18 prompts.</td>
 </tr>
 <tr>
-<td class="note">TCL T807D</td>
-<td class="note">LiteRT</td>
-<td class="note">GPU FP32</td>
-<td class="note">Julia-1</td>
+<td>TCL T807D</td>
+<td>LiteRT</td>
+<td>GPU FP32</td>
+<td>Julia-1</td>
 <td class="num">6,426</td>
 <td class="num">513.4</td>
 <td class="num">3.7</td>
@@ -570,10 +614,10 @@
 <td class="note">2026-10-27 dual leaf, 18-prompt suite x10; GPU compiles but is 7.6x slower than ONNX CPU.</td>
 </tr>
 <tr>
-<td class="note">TCL T807D</td>
-<td class="note">ONNX</td>
-<td class="note">CPU</td>
-<td class="note">Julia-1</td>
+<td>TCL T807D</td>
+<td>ONNX</td>
+<td>CPU</td>
+<td>Julia-1</td>
 <td class="num">4,934</td>
 <td class="num">67.3</td>
 <td class="num">5.8</td>
@@ -581,11 +625,906 @@
 <td class="note">2026-10-27 dual leaf, 18-prompt suite x10; window 1024; 338 mJ per decision.</td>
 </tr>
 </tbody></table></div></section>
-  <p class="foot">Methods: LLM = MiniCPM5-1B / Phi-4-mini int4, one turn, temperature 0.8, top-k 40,
-  top-p 0.95, 512-token cap (the ONNX GenAI engine allows up to 1536 total when EOS does not fire).
-  Vector search = MiniLM-L6-v2, 384-d, 20-chunk corpus. Decision = Julia-1, 18-prompt suite.
-  Energy is an estimate: iOS uses the ~5% gauge or Power Profiler; Android integrates
-  current × voltage. Compare lanes on the same device, not across devices.</p>
+  </noscript>
+
+  <p class="foot" id="foot">Generated 2026-10-27 from the <code>bench-data</code> block of
+  <code>benchmarks.html</code> (38 rows). Single file, no external assets.</p>
 </main>
+
+<dialog id="detail" aria-labelledby="detail-title">
+  <div class="dialog-head">
+    <h3 id="detail-title">Row</h3>
+    <button type="button" id="close" aria-label="Close">&times;</button>
+  </div>
+  <div class="dialog-body"><dl id="detail-fields"></dl></div>
+</dialog>
+
+<script id="bench-data-LOCAL" type="application/json">
+[
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT-LM",
+  "backend": "GPU (Metal)",
+  "model": "MiniCPM5-1B",
+  "loadMs": 1158,
+  "ttftMs": 360,
+  "tokPerSec": 43.8,
+  "powerW": 4.7,
+  "mjPerToken": 122,
+  "note": "Graphs delegated to Metal; sampler on CPU. 533 tokens/run."
+ },
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT-LM",
+  "backend": "CPU (XNNPACK)",
+  "model": "MiniCPM5-1B",
+  "loadMs": 433,
+  "ttftMs": 1252,
+  "tokPerSec": 35.7,
+  "powerW": 3.7,
+  "mjPerToken": 133,
+  "note": "278 tokens/run (EOS)."
+ },
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone SE 3",
+  "runtime": "ONNX GenAI",
+  "backend": "CPU",
+  "model": "MiniCPM5-1B int4",
+  "loadMs": 635,
+  "ttftMs": 207,
+  "tokPerSec": 46.6,
+  "powerW": 6.1,
+  "mjPerToken": 130,
+  "note": "Same package as the Android ONNX leaf. 392-533 tokens/run."
+ },
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone SE 3",
+  "runtime": "Core ML",
+  "backend": "ANE/GPU/CPU",
+  "model": "MiniCPM5-1B 4-bit",
+  "loadMs": 1480,
+  "ttftMs": 3386,
+  "tokPerSec": 2.0,
+  "note": "128-token stateless window, no KV cache; 30 s first-launch compile, 1480 ms afterwards. Not a fair race."
+ },
+ {
+  "platform": "Android",
+  "area": "LLM",
+  "device": "SM-S948B",
+  "runtime": "LiteRT-LM",
+  "backend": "GPU (OpenCL)",
+  "model": "MiniCPM5-1B",
+  "loadMs": 2902,
+  "ttftMs": 436,
+  "tokPerSec": 71.0,
+  "pssMb": 1800,
+  "note": "Also 1.37 GB GL mtrack. load includes GPU copy."
+ },
+ {
+  "platform": "Android",
+  "area": "LLM",
+  "device": "SM-S948B",
+  "runtime": "LiteRT-LM",
+  "backend": "CPU (XNNPACK)",
+  "model": "MiniCPM5-1B",
+  "loadMs": 317,
+  "ttftMs": 591,
+  "tokPerSec": 72.6,
+  "pssMb": 918,
+  "note": "GPU and CPU decode at parity on this bundle."
+ },
+ {
+  "platform": "Android",
+  "area": "LLM",
+  "device": "SM-S948B",
+  "runtime": "ONNX GenAI",
+  "backend": "CPU",
+  "model": "MiniCPM5-1B int4",
+  "loadMs": 890,
+  "ttftMs": 90,
+  "tokPerSec": 91.3,
+  "pssMb": 834,
+  "note": "Fastest decode on this phone; 361-544 tokens/run."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 39,
+  "msPerChunk": 53,
+  "note": "Interpreter mmap; fastest load, slowest per chunk."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "ONNX",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 209,
+  "msPerChunk": 28,
+  "note": "Session build parses/optimizes the graph."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "Core ML",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 452,
+  "msPerChunk": 14,
+  "note": "Execution plan compiled at load; fastest steady state."
+ },
+ {
+  "platform": "Android",
+  "area": "Vector search",
+  "device": "SM-S948B",
+  "runtime": "LiteRT (dual)",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 131,
+  "msPerChunk": 9.0,
+  "note": "TFLite converted from the same checkpoint as the ONNX file."
+ },
+ {
+  "platform": "Android",
+  "area": "Vector search",
+  "device": "SM-S948B",
+  "runtime": "ONNX (dual)",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 489,
+  "msPerChunk": 14.4,
+  "note": "readBytes + session build."
+ },
+ {
+  "platform": "Android",
+  "area": "Vector search",
+  "device": "SM-S948B",
+  "runtime": "ONNX (leaf)",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 428,
+  "msPerChunk": 14.0,
+  "note": "417-439 ms load across runs."
+ },
+ {
+  "platform": "Android",
+  "area": "Vector search",
+  "device": "SM-S938B",
+  "runtime": "ONNX",
+  "backend": "CPU (XNNPACK)",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 504,
+  "msPerChunk": 19.2,
+  "powerW": 7.9,
+  "mjPerChunk": 170,
+  "note": "120 s sustained loop; charge counter 64.0 mAh."
+ },
+ {
+  "platform": "Android",
+  "area": "Vector search",
+  "device": "SM-S938B",
+  "runtime": "ONNX",
+  "backend": "WebGPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 785,
+  "msPerChunk": 13.4,
+  "powerW": 5.1,
+  "mjPerChunk": 60,
+  "note": "Dawn/Vulkan; 1.7x faster and 2-3x less energy per chunk."
+ },
+ {
+  "platform": "Android",
+  "area": "Decision",
+  "device": "SM-S938B",
+  "runtime": "LiteRT",
+  "backend": "GPU (FP32)",
+  "model": "Julia-1",
+  "loadMs": 3093,
+  "msPerPrompt": 76,
+  "note": "First load after process start; window 512. 18-prompt suite."
+ },
+ {
+  "platform": "Android",
+  "area": "Decision",
+  "device": "SM-S938B",
+  "runtime": "ONNX",
+  "backend": "CPU (4 threads)",
+  "model": "Julia-1",
+  "loadMs": 1973,
+  "msPerPrompt": 42,
+  "note": "Warm reload after lane switch; window 1024. Identical answers on all 18 prompts."
+ },
+ {
+  "platform": "iOS",
+  "area": "Decision",
+  "device": "iPhone 15 Pro",
+  "runtime": "LiteRT",
+  "backend": "CPU",
+  "model": "Julia-1",
+  "loadMs": 2670,
+  "msPerPrompt": 476.4,
+  "note": "18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX.",
+  "powerW": 4.59,
+  "mjPerPrompt": 2033.3
+ },
+ {
+  "platform": "iOS",
+  "area": "Decision",
+  "device": "iPhone 15 Pro",
+  "runtime": "ONNX",
+  "backend": "CPU",
+  "model": "Julia-1",
+  "loadMs": 3032,
+  "msPerPrompt": 36.8,
+  "note": "18-prompt suite (40x, 28 s sampling window); window 1024; energy via Power Profiler.",
+  "powerW": 4.79,
+  "mjPerPrompt": 186.0
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone 15 Pro",
+  "runtime": "LiteRT",
+  "backend": "CPU (Core ML delegate attempted)",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 688.4,
+  "msPerChunk": 44.3,
+  "powerW": 3.69,
+  "mjPerChunk": 161.0,
+  "note": "40x20 chunks; battery 80->80; load includes delegate setup."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone 15 Pro",
+  "runtime": "ONNX",
+  "backend": "CPU (Core ML EP attempted)",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 405.3,
+  "msPerChunk": 20.5,
+  "powerW": 4.22,
+  "mjPerChunk": 81.5,
+  "note": "80x20 chunks; Core ML EP attempted then CPU; battery 80->80."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone 15 Pro",
+  "runtime": "Core ML",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 31.3,
+  "msPerChunk": 8.8,
+  "powerW": 4.77,
+  "mjPerChunk": 34.4,
+  "note": "180x20 chunks; locally converted fp32 package; warm load 31 ms (175 first). Battery 75->75."
+ },
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone 15 Pro",
+  "runtime": "LiteRT-LM",
+  "backend": "GPU (Metal)",
+  "model": "MiniCPM5-1B",
+  "loadMs": 932,
+  "ttftMs": 220,
+  "tokPerSec": 45.4,
+  "powerW": 1.87,
+  "mjPerToken": 43.8,
+  "note": "Sustained 60x run, battery 70->65, thermal critical; cold run 63.3 tok/s."
+ },
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone 15 Pro",
+  "runtime": "ONNX GenAI",
+  "backend": "CPU",
+  "model": "MiniCPM5-1B int4",
+  "loadMs": 467,
+  "ttftMs": 136,
+  "tokPerSec": 47.5,
+  "powerW": 4.16,
+  "mjPerToken": 97.4,
+  "note": "Sustained 60x run, battery 60->50, thermal serious; cold run 67.4 tok/s."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT",
+  "backend": "CPU (Core ML delegate attempted)",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 905,
+  "msPerChunk": 56.1,
+  "note": "2026-10-27 re-run: 15x20 chunks, one runtime per process; 26 Mean-op delegate fallbacks; battery flat."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "ONNX",
+  "backend": "CPU (Core ML EP attempted)",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 541,
+  "msPerChunk": 23.1,
+  "note": "2026-10-27 re-run: 15x20 chunks; Core ML EP attempted then CPU."
+ },
+ {
+  "platform": "iOS",
+  "area": "Vector search",
+  "device": "iPhone SE 3",
+  "runtime": "Core ML",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 347,
+  "msPerChunk": 10.8,
+  "note": "2026-10-27 re-run: 15x20 chunks; locally converted fp32 package."
+ },
+ {
+  "platform": "iOS",
+  "area": "Decision",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT",
+  "backend": "CPU",
+  "model": "Julia-1",
+  "loadMs": 3657,
+  "msPerPrompt": 660.5,
+  "note": "2026-10-27 18-prompt suite, window 512; tokenizer load 3.59 s; single request 598-627 ms; battery 94->94."
+ },
+ {
+  "platform": "iOS",
+  "area": "Decision",
+  "device": "iPhone SE 3",
+  "runtime": "ONNX",
+  "backend": "CPU",
+  "model": "Julia-1",
+  "loadMs": 4543,
+  "msPerPrompt": 51.0,
+  "note": "2026-10-27 18-prompt suite, window 1024; tokenizer load 3.86 s; single request 35-47 ms."
+ },
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT-LM",
+  "backend": "GPU (Metal)",
+  "model": "MiniCPM5-1B",
+  "loadMs": 6274,
+  "ttftMs": 949,
+  "tokPerSec": 32.4,
+  "powerW": 4.03,
+  "mjPerToken": 131.5,
+  "note": "2026-10-27 sustained 60x, battery 95->80, thermal serious; cold 43.8 tok/s (3-run table)."
+ },
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone SE 3",
+  "runtime": "ONNX GenAI",
+  "backend": "CPU",
+  "model": "MiniCPM5-1B int4",
+  "loadMs": 1261,
+  "ttftMs": 399,
+  "tokPerSec": 30.8,
+  "powerW": 5.33,
+  "mjPerToken": 179.6,
+  "note": "2026-10-27 sustained 60x, battery 80->60, thermal serious; cold 46.6 tok/s."
+ },
+ {
+  "platform": "iOS",
+  "area": "LLM",
+  "device": "iPhone SE 3",
+  "runtime": "LiteRT-LM",
+  "backend": "CPU (XNNPACK)",
+  "model": "MiniCPM5-1B",
+  "loadMs": 316,
+  "ttftMs": 948,
+  "tokPerSec": 27.3,
+  "powerW": 6.12,
+  "mjPerToken": 252.2,
+  "note": "2026-10-27 sustained 60x, battery 55->40, thermal serious; cold 35.7 tok/s; shortest run, widest error."
+ },
+ {
+  "platform": "Android",
+  "area": "Vector search",
+  "device": "TCL T807D",
+  "runtime": "LiteRT",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 224,
+  "msPerChunk": 94.2,
+  "powerW": 3.29,
+  "mjPerChunk": 304.6,
+  "note": "2026-10-27 dual leaf, 30x20 chunks; energy from current x voltage at 1 Hz."
+ },
+ {
+  "platform": "Android",
+  "area": "Vector search",
+  "device": "TCL T807D",
+  "runtime": "ONNX",
+  "backend": "CPU",
+  "model": "MiniLM-L6-v2",
+  "loadMs": 891,
+  "msPerChunk": 29.7,
+  "powerW": 6.18,
+  "mjPerChunk": 190.6,
+  "note": "2026-10-27 dual leaf, 30x20 chunks; faster and lower energy per chunk than LiteRT."
+ },
+ {
+  "platform": "Android",
+  "area": "Decision",
+  "device": "TCL T807D",
+  "runtime": "LiteRT",
+  "backend": "GPU FP32",
+  "model": "Julia-1",
+  "loadMs": 6426,
+  "msPerPrompt": 513.4,
+  "powerW": 3.7,
+  "mjPerPrompt": 1878.9,
+  "note": "2026-10-27 dual leaf, 18-prompt suite x10; GPU compiles but is 7.6x slower than ONNX CPU."
+ },
+ {
+  "platform": "Android",
+  "area": "Decision",
+  "device": "TCL T807D",
+  "runtime": "ONNX",
+  "backend": "CPU",
+  "model": "Julia-1",
+  "loadMs": 4934,
+  "msPerPrompt": 67.3,
+  "powerW": 5.76,
+  "mjPerPrompt": 338.2,
+  "note": "2026-10-27 dual leaf, 18-prompt suite x10; window 1024; 338 mJ per decision."
+ },
+ {
+  "platform": "Android",
+  "area": "LLM",
+  "device": "TCL T807D",
+  "runtime": "LiteRT-LM",
+  "backend": "GPU",
+  "model": "MiniCPM5-1B",
+  "loadMs": 5011,
+  "ttftMs": 941,
+  "tokPerSec": 15.3,
+  "powerW": 3.85,
+  "mjPerToken": 394.1,
+  "note": "2026-10-27 dual leaf, 3x512-token runs; cold run 10.0 tok/s, then 15.3/15.4."
+ },
+ {
+  "platform": "Android",
+  "area": "LLM",
+  "device": "TCL T807D",
+  "runtime": "ONNX GenAI",
+  "backend": "CPU",
+  "model": "Phi-4-mini int4",
+  "loadMs": 10215,
+  "ttftMs": 853,
+  "tokPerSec": 5.7,
+  "powerW": 4.64,
+  "mjPerToken": 1082.3,
+  "note": "2026-10-27 dual leaf, Phi-4 int4 (4.9 GB); runs 495-1525 tokens because max_length = maxTokens+1024."
+ }
+]
+</script>
+<script>
+(() => {
+  "use strict";
+  const DATA = JSON.parse(document.getElementById("bench-data-LOCAL").textContent);
+  const AREAS = {
+ "LLM": {
+  "metric": "tokPerSec",
+  "metrics": [
+   [
+    "tokPerSec",
+    "Decode speed",
+    "tok/s",
+    "higher"
+   ],
+   [
+    "ttftMs",
+    "Time to first token",
+    "ms",
+    "lower"
+   ],
+   [
+    "loadMs",
+    "Model load",
+    "ms",
+    "lower"
+   ],
+   [
+    "powerW",
+    "Average power",
+    "W",
+    "lower"
+   ],
+   [
+    "mjPerToken",
+    "Energy per token",
+    "mJ",
+    "lower"
+   ]
+  ],
+  "columns": [
+   [
+    "Device",
+    "device"
+   ],
+   [
+    "Runtime",
+    "runtime"
+   ],
+   [
+    "Backend",
+    "backend"
+   ],
+   [
+    "Model",
+    "model"
+   ],
+   [
+    "Load ms",
+    "loadMs"
+   ],
+   [
+    "TTFT ms",
+    "ttftMs"
+   ],
+   [
+    "tok/s",
+    "tokPerSec"
+   ],
+   [
+    "W",
+    "powerW"
+   ],
+   [
+    "mJ/token",
+    "mjPerToken"
+   ]
+  ]
+ },
+ "Vector search": {
+  "metric": "msPerChunk",
+  "metrics": [
+   [
+    "msPerChunk",
+    "Embedding latency",
+    "ms/chunk",
+    "lower"
+   ],
+   [
+    "loadMs",
+    "Model load",
+    "ms",
+    "lower"
+   ],
+   [
+    "powerW",
+    "Average power",
+    "W",
+    "lower"
+   ],
+   [
+    "mjPerChunk",
+    "Energy per chunk",
+    "mJ",
+    "lower"
+   ]
+  ],
+  "columns": [
+   [
+    "Device",
+    "device"
+   ],
+   [
+    "Runtime",
+    "runtime"
+   ],
+   [
+    "Backend",
+    "backend"
+   ],
+   [
+    "Model",
+    "model"
+   ],
+   [
+    "Load ms",
+    "loadMs"
+   ],
+   [
+    "ms/chunk",
+    "msPerChunk"
+   ],
+   [
+    "W",
+    "powerW"
+   ],
+   [
+    "mJ/chunk",
+    "mjPerChunk"
+   ]
+  ]
+ },
+ "Decision": {
+  "metric": "msPerPrompt",
+  "metrics": [
+   [
+    "msPerPrompt",
+    "Decision latency",
+    "ms/prompt",
+    "lower"
+   ],
+   [
+    "loadMs",
+    "Model load",
+    "ms",
+    "lower"
+   ],
+   [
+    "powerW",
+    "Average power",
+    "W",
+    "lower"
+   ],
+   [
+    "mjPerPrompt",
+    "Energy per decision",
+    "mJ",
+    "lower"
+   ]
+  ],
+  "columns": [
+   [
+    "Device",
+    "device"
+   ],
+   [
+    "Runtime",
+    "runtime"
+   ],
+   [
+    "Backend",
+    "backend"
+   ],
+   [
+    "Model",
+    "model"
+   ],
+   [
+    "Load ms",
+    "loadMs"
+   ],
+   [
+    "ms/prompt",
+    "msPerPrompt"
+   ],
+   [
+    "W",
+    "powerW"
+   ],
+   [
+    "mJ/prompt",
+    "mjPerPrompt"
+   ]
+  ]
+ }
+};
+  const state = { area: "LLM", platform: "all", device: "all", query: "", metric: null, sortKey: null, sortDir: -1 };
+  const $ = (id) => document.getElementById(id);
+
+  const qualifier = (row) => {
+    const note = (row.note || "").toLowerCase();
+    if (note.includes("2026-10-27")) return "2026-10-27";
+    if (note.includes("sustained") || note.includes("60x")) return "60-run";
+    return "";
+  };
+
+  const value = (row, key) => {
+    const n = Number(row[key]);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const fmt = (v, d = 1) => (v === null || v === undefined || v === "" ? "—" : Number(v).toFixed(d).replace(/\.0$/, ""));
+
+  function filtered() {
+    const q = state.query.trim().toLowerCase();
+    return DATA.filter((row) => row.area === state.area)
+      .filter((row) => state.platform === "all" || row.platform === state.platform)
+      .filter((row) => state.device === "all" || row.device === state.device)
+      .filter((row) => !q || ["device","runtime","backend","model","note"].some(
+        (key) => String(row[key] || "").toLowerCase().includes(q)));
+  }
+
+  const metricDef = () => AREAS[state.area].metrics.find((m) => m[0] === (state.metric || AREAS[state.area].metric));
+
+  function renderMetrics() {
+    const select = $("metric");
+    select.innerHTML = AREAS[state.area].metrics
+      .map(([key, label, unit]) => `<option value="${key}">${label} (${unit})</option>`).join("");
+    select.value = state.metric || AREAS[state.area].metric;
+  }
+
+  function renderDevices() {
+    const devices = [...new Set(DATA.filter((r) => r.area === state.area)
+      .filter((r) => state.platform === "all" || r.platform === state.platform)
+      .map((r) => r.device))];
+    devices.sort();
+    const select = $("device");
+    select.innerHTML = '<option value="all">All devices</option>' +
+      devices.map((d) => `<option value="${d}">${d}</option>`).join("");
+    select.value = devices.includes(state.device) ? state.device : "all";
+    state.device = select.value;
+  }
+
+  function renderChart(rows) {
+    const [key, label, unit, better] = metricDef();
+    const present = rows.map((r) => [r, value(r, key)]).filter((pair) => pair[1] !== null);
+    $("chart-title").textContent = `${state.area} — ${label} (${unit}, ${better} is better)`;
+    if (!present.length) {
+      $("chart").innerHTML = '<p class="sub">No measurements for this filter.</p>';
+      return;
+    }
+    const ordered = present.slice().sort((a, b) => better === "lower" ? a[1] - b[1] : b[1] - a[1]);
+    const best = ordered[0][0];
+    const peak = Math.max(...present.map((p) => p[1]));
+    $("chart").innerHTML = ordered.map(([row, v]) => {
+      const tag = qualifier(row);
+      const text = [row.device, row.runtime, row.backend].filter(Boolean).join(" · ") + (tag ? ` · ${tag}` : "");
+      return `<button type="button" class="chart-btn" data-id="${DATA.indexOf(row)}">
+        <span class="chart-label" title="${text.replace(/"/g, "&quot;")}">${text}</span>
+        <progress max="${peak}" value="${v}" class="${row === best ? "best" : ""}"></progress>
+        <span class="chart-value">${fmt(v)}</span>
+      </button>`;
+    }).join("");
+  }
+
+  function renderTable(rows) {
+    const columns = AREAS[state.area].columns;
+    const sortKey = state.sortKey || (state.metric || AREAS[state.area].metric);
+    const dir = state.sortDir;
+    const sorted = rows.slice().sort((a, b) => {
+      const av = sortKey === "device" || sortKey === "runtime" || sortKey === "backend" || sortKey === "model"
+        ? String(a[sortKey] || "") : (value(a, sortKey) ?? -Infinity);
+      const bv = sortKey === "device" || sortKey === "runtime" || sortKey === "backend" || sortKey === "model"
+        ? String(b[sortKey] || "") : (value(b, sortKey) ?? -Infinity);
+      return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
+    });
+    const head = columns.map(([label, key]) =>
+      `<th scope="col"><button type="button" data-sort="${key}">${label}${state.sortKey === key ? (dir > 0 ? " ▲" : " ▼") : ""}</button></th>`
+    ).join("") + '<th scope="col">Note</th>';
+    const body = sorted.map((row) => {
+      const cells = columns.map(([, key]) =>
+        typeof row[key] === "number"
+          ? `<td class="num">${fmt(row[key], key === "loadMs" ? 0 : 1)}</td>`
+          : `<td>${String(row[key] ?? "")}</td>`
+      ).join("");
+      return `<tr class="row-button" data-id="${DATA.indexOf(row)}">${cells}<td class="note">${row.note || ""}</td></tr>`;
+    }).join("");
+    $("table").innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
+  }
+
+  function render() {
+    renderMetrics();
+    renderDevices();
+    const rows = filtered();
+    $("count").textContent = `${rows.length} row${rows.length === 1 ? "" : "s"}`;
+    renderChart(rows);
+    renderTable(rows);
+    if (location.hash.slice(1) !== state.area) history.replaceState(null, "", `#${encodeURIComponent(state.area)}`);
+  }
+
+  const LABELS = {
+    platform: "Platform", area: "Area", device: "Device", runtime: "Runtime", backend: "Backend",
+    model: "Model", loadMs: "Load (ms)", ttftMs: "TTFT (ms)", tokPerSec: "Decode (tok/s)",
+    powerW: "Power (W)", mjPerToken: "Energy (mJ/token)", msPerChunk: "Embedding (ms/chunk)",
+    mjPerChunk: "Energy (mJ/chunk)", msPerPrompt: "Decision (ms/prompt)",
+    mjPerPrompt: "Energy (mJ/decision)", pssMb: "Memory (MB PSS)", note: "Note",
+  };
+  const ORDER = ["device", "platform", "area", "runtime", "backend", "model", "loadMs",
+    "ttftMs", "tokPerSec", "powerW", "mjPerToken", "msPerChunk", "mjPerChunk",
+    "msPerPrompt", "mjPerPrompt", "pssMb", "note"];
+
+  function openDetail(id) {
+    const row = DATA[id];
+    if (!row) return;
+    $("detail-title").textContent = `${row.device} · ${row.runtime}`;
+    const keys = ORDER.filter((k) => row[k] !== null && row[k] !== undefined && row[k] !== "")
+      .concat(Object.keys(row).filter((k) => !ORDER.includes(k) && row[k] !== null && row[k] !== undefined && row[k] !== ""));
+    $("detail-fields").innerHTML = keys.map((k) => {
+      const v = row[k];
+      const shown = typeof v === "number" ? fmt(v, Number.isInteger(v) ? 0 : 1) : String(v);
+      return `<dt>${LABELS[k] || k}</dt><dd>${shown}</dd>`;
+    }).join("");
+    $("detail").showModal();
+  }
+
+  function toCsv(rows) {
+    const keys = ["platform","area","device","runtime","backend","model","loadMs","ttftMs","tokPerSec",
+      "powerW","mjPerToken","msPerChunk","mjPerChunk","msPerPrompt","mjPerPrompt","note"];
+    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    return [keys.join(","), ...rows.map((r) => keys.map((k) => escape(r[k])).join(","))].join("\n");
+  }
+
+  document.addEventListener("click", (event) => {
+    const tab = event.target.closest(".tabs button");
+    if (tab) {
+      state.area = tab.dataset.area;
+      state.metric = null;
+      state.sortKey = AREAS[state.area].metric;
+      state.sortDir = -1;
+      state.device = "all";
+      document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b === tab)));
+      render();
+      return;
+    }
+    const sort = event.target.closest("th button");
+    if (sort) {
+      const key = sort.dataset.sort;
+      state.sortDir = state.sortKey === key ? -state.sortDir : -1;
+      state.sortKey = key;
+      renderTable(filtered());
+      return;
+    }
+    const hit = event.target.closest("[data-id]");
+    if (hit) {
+      openDetail(Number(hit.dataset.id));
+      return;
+    }
+    if (event.target.id === "close") $("detail").close();
+  });
+
+  $("detail").addEventListener("click", (event) => {
+    if (event.target === $("detail")) $("detail").close();
+  });
+
+  $("platform").addEventListener("change", (event) => {
+    state.platform = event.target.value;
+    state.device = "all";
+    render();
+  });
+  $("device").addEventListener("change", (event) => { state.device = event.target.value; render(); });
+  $("metric").addEventListener("change", (event) => {
+    state.metric = event.target.value;
+    state.sortKey = null;
+    renderChart(filtered());
+    renderTable(filtered());
+  });
+  $("query").addEventListener("input", (event) => { state.query = event.target.value; render(); });
+  $("export").addEventListener("click", () => {
+    const blob = new Blob([toCsv(filtered())], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "myleo-benchmarks.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+
+  const initial = decodeURIComponent(location.hash.slice(1));
+  if (AREAS[initial]) {
+    state.area = initial;
+    document.querySelectorAll(".tabs button").forEach((b) =>
+      b.setAttribute("aria-selected", String(b.dataset.area === initial)));
+  }
+  state.sortKey = AREAS[state.area].metric;
+  document.body.dataset.ready = "1";
+  render();
+})();
+</script>
 </body>
 </html>
