@@ -192,151 +192,7 @@
 <th scope="col">Note</th>
 </tr></thead><tbody>
 <tr>
-<td>iPhone SE 3</td>
-<td>Core ML</td>
-<td>ANE/GPU/CPU</td>
-<td>MiniCPM5-1B 4-bit</td>
-<td class="num">1,480</td>
-<td class="num">3,386.0</td>
-<td class="num">2.0</td>
-<td></td>
-<td></td>
-<td class="note">128-token stateless window, no KV cache; 30 s first-launch compile, 1480 ms afterwards. Not a fair race.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>LiteRT-LM</td>
-<td>CPU (XNNPACK)</td>
-<td>MiniCPM5-1B</td>
-<td class="num">433</td>
-<td class="num">1,252.0</td>
-<td class="num">35.7</td>
-<td class="num">3.7</td>
-<td class="num">133.0</td>
-<td class="note">278 tokens/run (EOS).</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>LiteRT-LM</td>
-<td>CPU (XNNPACK)</td>
-<td>MiniCPM5-1B</td>
-<td class="num">316</td>
-<td class="num">948.0</td>
-<td class="num">27.3</td>
-<td class="num">6.1</td>
-<td class="num">252.2</td>
-<td class="note">2026-10-27 sustained 60x, battery 55-&gt;40, thermal serious; cold 35.7 tok/s; shortest run, widest error.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>LiteRT-LM</td>
-<td>GPU (Metal)</td>
-<td>MiniCPM5-1B</td>
-<td class="num">1,158</td>
-<td class="num">360.0</td>
-<td class="num">43.8</td>
-<td class="num">4.7</td>
-<td class="num">122.0</td>
-<td class="note">Graphs delegated to Metal; sampler on CPU. 533 tokens/run.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>LiteRT-LM</td>
-<td>GPU (Metal)</td>
-<td>MiniCPM5-1B</td>
-<td class="num">6,274</td>
-<td class="num">949.0</td>
-<td class="num">32.4</td>
-<td class="num">4.0</td>
-<td class="num">131.5</td>
-<td class="note">2026-10-27 sustained 60x, battery 95-&gt;80, thermal serious; cold 43.8 tok/s (3-run table).</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>ONNX GenAI</td>
-<td>CPU</td>
-<td>MiniCPM5-1B int4</td>
-<td class="num">635</td>
-<td class="num">207.0</td>
-<td class="num">46.6</td>
-<td class="num">6.1</td>
-<td class="num">130.0</td>
-<td class="note">Same package as the Android ONNX leaf. 392-533 tokens/run.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>ONNX GenAI</td>
-<td>CPU</td>
-<td>MiniCPM5-1B int4</td>
-<td class="num">1,261</td>
-<td class="num">399.0</td>
-<td class="num">30.8</td>
-<td class="num">5.3</td>
-<td class="num">179.6</td>
-<td class="note">2026-10-27 sustained 60x, battery 80-&gt;60, thermal serious; cold 46.6 tok/s.</td>
-</tr>
-<tr>
-<td>iPhone 15 Pro</td>
-<td>LiteRT-LM</td>
-<td>GPU (Metal)</td>
-<td>MiniCPM5-1B</td>
-<td class="num">932</td>
-<td class="num">220.0</td>
-<td class="num">45.4</td>
-<td class="num">1.9</td>
-<td class="num">43.8</td>
-<td class="note">Sustained 60x run, battery 70-&gt;65, thermal critical; cold run 63.3 tok/s.</td>
-</tr>
-<tr>
-<td>iPhone 15 Pro</td>
-<td>ONNX GenAI</td>
-<td>CPU</td>
-<td>MiniCPM5-1B int4</td>
-<td class="num">467</td>
-<td class="num">136.0</td>
-<td class="num">47.5</td>
-<td class="num">4.2</td>
-<td class="num">97.4</td>
-<td class="note">Sustained 60x run, battery 60-&gt;50, thermal serious; cold run 67.4 tok/s.</td>
-</tr>
-<tr>
-<td>Galaxy S26 Ultra</td>
-<td>LiteRT-LM</td>
-<td>CPU (XNNPACK)</td>
-<td>MiniCPM5-1B</td>
-<td class="num">317</td>
-<td class="num">591.0</td>
-<td class="num">72.6</td>
-<td></td>
-<td></td>
-<td class="note">GPU and CPU decode at parity on this bundle.</td>
-</tr>
-<tr>
-<td>Galaxy S26 Ultra</td>
-<td>LiteRT-LM</td>
-<td>GPU (OpenCL)</td>
-<td>MiniCPM5-1B</td>
-<td class="num">2,902</td>
-<td class="num">436.0</td>
-<td class="num">71.0</td>
-<td></td>
-<td></td>
-<td class="note">Also 1.37 GB GL mtrack. load includes GPU copy.</td>
-</tr>
-<tr>
-<td>Galaxy S26 Ultra</td>
-<td>ONNX GenAI</td>
-<td>CPU</td>
-<td>MiniCPM5-1B int4</td>
-<td class="num">890</td>
-<td class="num">90.0</td>
-<td class="num">91.3</td>
-<td></td>
-<td></td>
-<td class="note">Fastest decode on this phone; 361-544 tokens/run.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
+<td rowspan="2">Galaxy S25 Ultra</td>
 <td>LiteRT-LM</td>
 <td>GPU</td>
 <td>MiniCPM5-1B</td>
@@ -348,9 +204,8 @@
 <td class="note">2026-10-28 dual leaf, 3x512-token runs; cold run 60.4 tok/s then 59.5/59.2.</td>
 </tr>
 <tr>
-<td>Galaxy S25 Ultra</td>
 <td>ONNX GenAI</td>
-<td>CPU</td>
+<td rowspan="2">CPU</td>
 <td>Phi-4-mini int4</td>
 <td class="num">6,201</td>
 <td class="num">505.0</td>
@@ -360,10 +215,41 @@
 <td class="note">2026-10-28 dual leaf, Phi-4 int4; 1525/1525/574 tokens because max_length = maxTokens+1024.</td>
 </tr>
 <tr>
-<td>TCL NXTPaper 70 Pro</td>
+<td rowspan="3">Galaxy S26 Ultra</td>
+<td>ONNX GenAI</td>
+<td>MiniCPM5-1B int4</td>
+<td class="num">890</td>
+<td class="num">90.0</td>
+<td class="num">91.3</td>
+<td></td>
+<td></td>
+<td class="note">Fastest decode on this phone; 361-544 tokens/run.</td>
+</tr>
+<tr>
+<td>LiteRT-LM</td>
+<td>CPU (XNNPACK)</td>
+<td rowspan="3">MiniCPM5-1B</td>
+<td class="num">317</td>
+<td class="num">591.0</td>
+<td class="num">72.6</td>
+<td></td>
+<td></td>
+<td class="note">GPU and CPU decode at parity on this bundle.</td>
+</tr>
+<tr>
+<td>LiteRT-LM</td>
+<td>GPU (OpenCL)</td>
+<td class="num">2,902</td>
+<td class="num">436.0</td>
+<td class="num">71.0</td>
+<td></td>
+<td></td>
+<td class="note">Also 1.37 GB GL mtrack. load includes GPU copy.</td>
+</tr>
+<tr>
+<td rowspan="2">TCL NXTPaper 70 Pro</td>
 <td>LiteRT-LM</td>
 <td>GPU</td>
-<td>MiniCPM5-1B</td>
 <td class="num">5,011</td>
 <td class="num">941.0</td>
 <td class="num">15.3</td>
@@ -372,9 +258,8 @@
 <td class="note">2026-10-27 dual leaf, 3x512-token runs; cold run 10.0 tok/s, then 15.3/15.4.</td>
 </tr>
 <tr>
-<td>TCL NXTPaper 70 Pro</td>
 <td>ONNX GenAI</td>
-<td>CPU</td>
+<td rowspan="2">CPU</td>
 <td>Phi-4-mini int4</td>
 <td class="num">10,215</td>
 <td class="num">853.0</td>
@@ -382,6 +267,104 @@
 <td class="num">4.6</td>
 <td class="num">1,082.3</td>
 <td class="note">2026-10-27 dual leaf, Phi-4 int4 (4.9 GB); runs 495-1525 tokens because max_length = maxTokens+1024.</td>
+</tr>
+<tr>
+<td rowspan="2">iPhone 15 Pro</td>
+<td>ONNX GenAI</td>
+<td>MiniCPM5-1B int4</td>
+<td class="num">467</td>
+<td class="num">136.0</td>
+<td class="num">47.5</td>
+<td class="num">4.2</td>
+<td class="num">97.4</td>
+<td class="note">Sustained 60x run, battery 60-&gt;50, thermal serious; cold run 67.4 tok/s.</td>
+</tr>
+<tr>
+<td>LiteRT-LM</td>
+<td>GPU (Metal)</td>
+<td>MiniCPM5-1B</td>
+<td class="num">932</td>
+<td class="num">220.0</td>
+<td class="num">45.4</td>
+<td class="num">1.9</td>
+<td class="num">43.8</td>
+<td class="note">Sustained 60x run, battery 70-&gt;65, thermal critical; cold run 63.3 tok/s.</td>
+</tr>
+<tr>
+<td rowspan="7">iPhone SE 3</td>
+<td>ONNX GenAI</td>
+<td>CPU</td>
+<td>MiniCPM5-1B int4</td>
+<td class="num">635</td>
+<td class="num">207.0</td>
+<td class="num">46.6</td>
+<td class="num">6.1</td>
+<td class="num">130.0</td>
+<td class="note">Same package as the Android ONNX leaf. 392-533 tokens/run.</td>
+</tr>
+<tr>
+<td>LiteRT-LM</td>
+<td>GPU (Metal)</td>
+<td rowspan="3">MiniCPM5-1B</td>
+<td class="num">1,158</td>
+<td class="num">360.0</td>
+<td class="num">43.8</td>
+<td class="num">4.7</td>
+<td class="num">122.0</td>
+<td class="note">Graphs delegated to Metal; sampler on CPU. 533 tokens/run.</td>
+</tr>
+<tr>
+<td>LiteRT-LM</td>
+<td>CPU (XNNPACK)</td>
+<td class="num">433</td>
+<td class="num">1,252.0</td>
+<td class="num">35.7</td>
+<td class="num">3.7</td>
+<td class="num">133.0</td>
+<td class="note">278 tokens/run (EOS).</td>
+</tr>
+<tr>
+<td>LiteRT-LM</td>
+<td>GPU (Metal)</td>
+<td class="num">6,274</td>
+<td class="num">949.0</td>
+<td class="num">32.4</td>
+<td class="num">4.0</td>
+<td class="num">131.5</td>
+<td class="note">2026-10-27 sustained 60x, battery 95-&gt;80, thermal serious; cold 43.8 tok/s (3-run table).</td>
+</tr>
+<tr>
+<td>ONNX GenAI</td>
+<td>CPU</td>
+<td>MiniCPM5-1B int4</td>
+<td class="num">1,261</td>
+<td class="num">399.0</td>
+<td class="num">30.8</td>
+<td class="num">5.3</td>
+<td class="num">179.6</td>
+<td class="note">2026-10-27 sustained 60x, battery 80-&gt;60, thermal serious; cold 46.6 tok/s.</td>
+</tr>
+<tr>
+<td>LiteRT-LM</td>
+<td>CPU (XNNPACK)</td>
+<td>MiniCPM5-1B</td>
+<td class="num">316</td>
+<td class="num">948.0</td>
+<td class="num">27.3</td>
+<td class="num">6.1</td>
+<td class="num">252.2</td>
+<td class="note">2026-10-27 sustained 60x, battery 55-&gt;40, thermal serious; cold 35.7 tok/s; shortest run, widest error.</td>
+</tr>
+<tr>
+<td>Core ML</td>
+<td>ANE/GPU/CPU</td>
+<td>MiniCPM5-1B 4-bit</td>
+<td class="num">1,480</td>
+<td class="num">3,386.0</td>
+<td class="num">2.0</td>
+<td></td>
+<td></td>
+<td class="note">128-token stateless window, no KV cache; 30 s first-launch compile, 1480 ms afterwards. Not a fair race.</td>
 </tr>
 </tbody></table></div></section>
 <section><h2>Vector search</h2><div class="table-wrap"><table>
@@ -397,175 +380,10 @@
 <th scope="col">Note</th>
 </tr></thead><tbody>
 <tr>
-<td>iPhone SE 3</td>
-<td>Core ML</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">452</td>
-<td class="num">14.0</td>
-<td></td>
-<td></td>
-<td class="note">Execution plan compiled at load; fastest steady state.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>Core ML</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">347</td>
-<td class="num">10.8</td>
-<td></td>
-<td></td>
-<td class="note">2026-10-27 re-run: 15x20 chunks; locally converted fp32 package.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>LiteRT</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">39</td>
-<td class="num">53.0</td>
-<td></td>
-<td></td>
-<td class="note">Interpreter mmap; fastest load, slowest per chunk.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>LiteRT</td>
-<td>CPU (Core ML delegate attempted)</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">905</td>
-<td class="num">56.1</td>
-<td></td>
-<td></td>
-<td class="note">2026-10-27 re-run: 15x20 chunks, one runtime per process; 26 Mean-op delegate fallbacks; battery flat.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>ONNX</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">209</td>
-<td class="num">28.0</td>
-<td></td>
-<td></td>
-<td class="note">Session build parses/optimizes the graph.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>ONNX</td>
-<td>CPU (Core ML EP attempted)</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">541</td>
-<td class="num">23.1</td>
-<td></td>
-<td></td>
-<td class="note">2026-10-27 re-run: 15x20 chunks; Core ML EP attempted then CPU.</td>
-</tr>
-<tr>
-<td>iPhone 15 Pro</td>
-<td>Core ML</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">31</td>
-<td class="num">8.8</td>
-<td class="num">4.8</td>
-<td class="num">34.4</td>
-<td class="note">180x20 chunks; locally converted fp32 package; warm load 31 ms (175 first). Battery 75-&gt;75.</td>
-</tr>
-<tr>
-<td>iPhone 15 Pro</td>
-<td>LiteRT</td>
-<td>CPU (Core ML delegate attempted)</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">688</td>
-<td class="num">44.3</td>
-<td class="num">3.7</td>
-<td class="num">161.0</td>
-<td class="note">40x20 chunks; battery 80-&gt;80; load includes delegate setup.</td>
-</tr>
-<tr>
-<td>iPhone 15 Pro</td>
-<td>ONNX</td>
-<td>CPU (Core ML EP attempted)</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">405</td>
-<td class="num">20.5</td>
-<td class="num">4.2</td>
-<td class="num">81.5</td>
-<td class="note">80x20 chunks; Core ML EP attempted then CPU; battery 80-&gt;80.</td>
-</tr>
-<tr>
-<td>Galaxy S26 Ultra</td>
-<td>LiteRT (dual)</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">131</td>
-<td class="num">9.0</td>
-<td></td>
-<td></td>
-<td class="note">TFLite converted from the same checkpoint as the ONNX file.</td>
-</tr>
-<tr>
-<td>Galaxy S26 Ultra</td>
-<td>ONNX (dual)</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">489</td>
-<td class="num">14.4</td>
-<td></td>
-<td></td>
-<td class="note">readBytes + session build.</td>
-</tr>
-<tr>
-<td>Galaxy S26 Ultra</td>
-<td>ONNX (leaf)</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">428</td>
-<td class="num">14.0</td>
-<td></td>
-<td></td>
-<td class="note">417-439 ms load across runs.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
-<td>LiteRT</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">140</td>
-<td class="num">58.8</td>
-<td class="num">3.5</td>
-<td class="num">203.2</td>
-<td class="note">2026-10-28 dual leaf, 150x20 chunks; single-thread XNNPACK; energy from 0.1% charge-counter steps.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
-<td>ONNX</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">660</td>
-<td class="num">19.6</td>
-<td class="num">2.8</td>
-<td class="num">67.7</td>
-<td class="note">2026-10-28 dual leaf, 150x20 chunks; multithreaded; 3x less energy per chunk than LiteRT.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
-<td>ONNX</td>
-<td>CPU (XNNPACK)</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">504</td>
-<td class="num">19.2</td>
-<td class="num">7.9</td>
-<td class="num">170.0</td>
-<td class="note">120 s sustained loop; charge counter 64.0 mAh.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
+<td rowspan="4">Galaxy S25 Ultra</td>
 <td>ONNX</td>
 <td>WebGPU</td>
-<td>MiniLM-L6-v2</td>
+<td rowspan="18">MiniLM-L6-v2</td>
 <td class="num">785</td>
 <td class="num">13.4</td>
 <td class="num">5.1</td>
@@ -573,10 +391,67 @@
 <td class="note">Dawn/Vulkan; 1.7x faster and 2-3x less energy per chunk.</td>
 </tr>
 <tr>
-<td>TCL NXTPaper 70 Pro</td>
+<td>ONNX</td>
+<td>CPU (XNNPACK)</td>
+<td class="num">504</td>
+<td class="num">19.2</td>
+<td class="num">7.9</td>
+<td class="num">170.0</td>
+<td class="note">120 s sustained loop; charge counter 64.0 mAh.</td>
+</tr>
+<tr>
+<td>ONNX</td>
+<td rowspan="8">CPU</td>
+<td class="num">660</td>
+<td class="num">19.6</td>
+<td class="num">2.8</td>
+<td class="num">67.7</td>
+<td class="note">2026-10-28 dual leaf, 150x20 chunks; multithreaded; 3x less energy per chunk than LiteRT.</td>
+</tr>
+<tr>
 <td>LiteRT</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
+<td class="num">140</td>
+<td class="num">58.8</td>
+<td class="num">3.5</td>
+<td class="num">203.2</td>
+<td class="note">2026-10-28 dual leaf, 150x20 chunks; single-thread XNNPACK; energy from 0.1% charge-counter steps.</td>
+</tr>
+<tr>
+<td rowspan="3">Galaxy S26 Ultra</td>
+<td>LiteRT (dual)</td>
+<td class="num">131</td>
+<td class="num">9.0</td>
+<td></td>
+<td></td>
+<td class="note">TFLite converted from the same checkpoint as the ONNX file.</td>
+</tr>
+<tr>
+<td>ONNX (leaf)</td>
+<td class="num">428</td>
+<td class="num">14.0</td>
+<td></td>
+<td></td>
+<td class="note">417-439 ms load across runs.</td>
+</tr>
+<tr>
+<td>ONNX (dual)</td>
+<td class="num">489</td>
+<td class="num">14.4</td>
+<td></td>
+<td></td>
+<td class="note">readBytes + session build.</td>
+</tr>
+<tr>
+<td rowspan="2">TCL NXTPaper 70 Pro</td>
+<td>ONNX</td>
+<td class="num">891</td>
+<td class="num">29.7</td>
+<td class="num">6.2</td>
+<td class="num">190.6</td>
+<td class="note">2026-10-27 dual leaf, 30x20 chunks; faster and lower energy per chunk than LiteRT.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
 <td class="num">224</td>
 <td class="num">94.2</td>
 <td class="num">3.3</td>
@@ -584,15 +459,84 @@
 <td class="note">2026-10-27 dual leaf, 30x20 chunks; energy from current x voltage at 1 Hz.</td>
 </tr>
 <tr>
-<td>TCL NXTPaper 70 Pro</td>
+<td rowspan="3">iPhone 15 Pro</td>
+<td>Core ML</td>
+<td class="num">31</td>
+<td class="num">8.8</td>
+<td class="num">4.8</td>
+<td class="num">34.4</td>
+<td class="note">180x20 chunks; locally converted fp32 package; warm load 31 ms (175 first). Battery 75-&gt;75.</td>
+</tr>
+<tr>
 <td>ONNX</td>
-<td>CPU</td>
-<td>MiniLM-L6-v2</td>
-<td class="num">891</td>
-<td class="num">29.7</td>
-<td class="num">6.2</td>
-<td class="num">190.6</td>
-<td class="note">2026-10-27 dual leaf, 30x20 chunks; faster and lower energy per chunk than LiteRT.</td>
+<td>CPU (Core ML EP attempted)</td>
+<td class="num">405</td>
+<td class="num">20.5</td>
+<td class="num">4.2</td>
+<td class="num">81.5</td>
+<td class="note">80x20 chunks; Core ML EP attempted then CPU; battery 80-&gt;80.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td>CPU (Core ML delegate attempted)</td>
+<td class="num">688</td>
+<td class="num">44.3</td>
+<td class="num">3.7</td>
+<td class="num">161.0</td>
+<td class="note">40x20 chunks; battery 80-&gt;80; load includes delegate setup.</td>
+</tr>
+<tr>
+<td rowspan="6">iPhone SE 3</td>
+<td>Core ML</td>
+<td rowspan="2">CPU</td>
+<td class="num">347</td>
+<td class="num">10.8</td>
+<td></td>
+<td></td>
+<td class="note">2026-10-27 re-run: 15x20 chunks; locally converted fp32 package.</td>
+</tr>
+<tr>
+<td>Core ML</td>
+<td class="num">452</td>
+<td class="num">14.0</td>
+<td></td>
+<td></td>
+<td class="note">Execution plan compiled at load; fastest steady state.</td>
+</tr>
+<tr>
+<td>ONNX</td>
+<td>CPU (Core ML EP attempted)</td>
+<td class="num">541</td>
+<td class="num">23.1</td>
+<td></td>
+<td></td>
+<td class="note">2026-10-27 re-run: 15x20 chunks; Core ML EP attempted then CPU.</td>
+</tr>
+<tr>
+<td>ONNX</td>
+<td rowspan="2">CPU</td>
+<td class="num">209</td>
+<td class="num">28.0</td>
+<td></td>
+<td></td>
+<td class="note">Session build parses/optimizes the graph.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td class="num">39</td>
+<td class="num">53.0</td>
+<td></td>
+<td></td>
+<td class="note">Interpreter mmap; fastest load, slowest per chunk.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td>CPU (Core ML delegate attempted)</td>
+<td class="num">905</td>
+<td class="num">56.1</td>
+<td></td>
+<td></td>
+<td class="note">2026-10-27 re-run: 15x20 chunks, one runtime per process; 26 Mean-op delegate fallbacks; battery flat.</td>
 </tr>
 </tbody></table></div></section>
 <section><h2>Decision</h2><div class="table-wrap"><table>
@@ -608,87 +552,10 @@
 <th scope="col">Note</th>
 </tr></thead><tbody>
 <tr>
-<td>iPhone SE 3</td>
-<td>LiteRT</td>
-<td>CPU</td>
-<td>Julia-1</td>
-<td class="num">3,657</td>
-<td class="num">660.5</td>
-<td></td>
-<td></td>
-<td class="note">2026-10-27 18-prompt suite, window 512; tokenizer load 3.59 s; single request 598-627 ms; battery 94-&gt;94.</td>
-</tr>
-<tr>
-<td>iPhone SE 3</td>
-<td>ONNX</td>
-<td>CPU</td>
-<td>Julia-1</td>
-<td class="num">4,543</td>
-<td class="num">51.0</td>
-<td></td>
-<td></td>
-<td class="note">2026-10-27 18-prompt suite, window 1024; tokenizer load 3.86 s; single request 35-47 ms.</td>
-</tr>
-<tr>
-<td>iPhone 15 Pro</td>
-<td>LiteRT</td>
-<td>CPU</td>
-<td>Julia-1</td>
-<td class="num">2,670</td>
-<td class="num">476.4</td>
-<td class="num">4.6</td>
-<td class="num">2,033.3</td>
-<td class="note">18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX.</td>
-</tr>
-<tr>
-<td>iPhone 15 Pro</td>
-<td>ONNX</td>
-<td>CPU</td>
-<td>Julia-1</td>
-<td class="num">3,032</td>
-<td class="num">36.8</td>
-<td class="num">4.8</td>
-<td class="num">186.0</td>
-<td class="note">18-prompt suite (40x, 28 s sampling window); window 1024; energy via Power Profiler.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
-<td>LiteRT</td>
-<td>GPU (FP32)</td>
-<td>Julia-1</td>
-<td class="num">3,093</td>
-<td class="num">76.0</td>
-<td></td>
-<td></td>
-<td class="note">First load after process start; window 512. 18-prompt suite.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
-<td>LiteRT</td>
-<td>GPU FP32</td>
-<td>Julia-1</td>
-<td class="num">4,557</td>
-<td class="num">89.8</td>
-<td class="num">2.0</td>
-<td class="num">188.1</td>
-<td class="note">2026-10-28 dual leaf, 18-prompt suite x40; slower than ONNX but 2.5x less energy per decision.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
-<td>ONNX</td>
-<td>CPU</td>
-<td>Julia-1</td>
-<td class="num">3,304</td>
-<td class="num">49.0</td>
-<td class="num">9.4</td>
-<td class="num">470.3</td>
-<td class="note">2026-10-28 dual leaf, 18-prompt suite x200; all cores pinned at 9.4 W during bursts.</td>
-</tr>
-<tr>
-<td>Galaxy S25 Ultra</td>
+<td rowspan="4">Galaxy S25 Ultra</td>
 <td>ONNX</td>
 <td>CPU (4 threads)</td>
-<td>Julia-1</td>
+<td rowspan="10">Julia-1</td>
 <td class="num">1,973</td>
 <td class="num">42.0</td>
 <td></td>
@@ -696,10 +563,45 @@
 <td class="note">Warm reload after lane switch; window 1024. Identical answers on all 18 prompts.</td>
 </tr>
 <tr>
-<td>TCL NXTPaper 70 Pro</td>
+<td>ONNX</td>
+<td>CPU</td>
+<td class="num">3,304</td>
+<td class="num">49.0</td>
+<td class="num">9.4</td>
+<td class="num">470.3</td>
+<td class="note">2026-10-28 dual leaf, 18-prompt suite x200; all cores pinned at 9.4 W during bursts.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td>GPU (FP32)</td>
+<td class="num">3,093</td>
+<td class="num">76.0</td>
+<td></td>
+<td></td>
+<td class="note">First load after process start; window 512. 18-prompt suite.</td>
+</tr>
+<tr>
 <td>LiteRT</td>
 <td>GPU FP32</td>
-<td>Julia-1</td>
+<td class="num">4,557</td>
+<td class="num">89.8</td>
+<td class="num">2.0</td>
+<td class="num">188.1</td>
+<td class="note">2026-10-28 dual leaf, 18-prompt suite x40; slower than ONNX but 2.5x less energy per decision.</td>
+</tr>
+<tr>
+<td rowspan="2">TCL NXTPaper 70 Pro</td>
+<td>ONNX</td>
+<td>CPU</td>
+<td class="num">4,934</td>
+<td class="num">67.3</td>
+<td class="num">5.8</td>
+<td class="num">338.2</td>
+<td class="note">2026-10-27 dual leaf, 18-prompt suite x10; window 1024; 338 mJ per decision.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td>GPU FP32</td>
 <td class="num">6,426</td>
 <td class="num">513.4</td>
 <td class="num">3.7</td>
@@ -707,15 +609,39 @@
 <td class="note">2026-10-27 dual leaf, 18-prompt suite x10; GPU compiles but is 7.6x slower than ONNX CPU.</td>
 </tr>
 <tr>
-<td>TCL NXTPaper 70 Pro</td>
+<td rowspan="2">iPhone 15 Pro</td>
 <td>ONNX</td>
-<td>CPU</td>
-<td>Julia-1</td>
-<td class="num">4,934</td>
-<td class="num">67.3</td>
-<td class="num">5.8</td>
-<td class="num">338.2</td>
-<td class="note">2026-10-27 dual leaf, 18-prompt suite x10; window 1024; 338 mJ per decision.</td>
+<td rowspan="4">CPU</td>
+<td class="num">3,032</td>
+<td class="num">36.8</td>
+<td class="num">4.8</td>
+<td class="num">186.0</td>
+<td class="note">18-prompt suite (40x, 28 s sampling window); window 1024; energy via Power Profiler.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td class="num">2,670</td>
+<td class="num">476.4</td>
+<td class="num">4.6</td>
+<td class="num">2,033.3</td>
+<td class="note">18-prompt suite; window 512; 451.5-488.8 ms; answers match ONNX.</td>
+</tr>
+<tr>
+<td rowspan="2">iPhone SE 3</td>
+<td>ONNX</td>
+<td class="num">4,543</td>
+<td class="num">51.0</td>
+<td></td>
+<td></td>
+<td class="note">2026-10-27 18-prompt suite, window 1024; tokenizer load 3.86 s; single request 35-47 ms.</td>
+</tr>
+<tr>
+<td>LiteRT</td>
+<td class="num">3,657</td>
+<td class="num">660.5</td>
+<td></td>
+<td></td>
+<td class="note">2026-10-27 18-prompt suite, window 512; tokenizer load 3.59 s; single request 598-627 ms; battery 94-&gt;94.</td>
 </tr>
 </tbody></table></div></section>
   </noscript>
@@ -1574,22 +1500,47 @@
     const columns = AREAS[state.area].columns;
     const sortKey = state.sortKey || (state.metric || AREAS[state.area].metric);
     const dir = state.sortDir;
+    // Tables group by device so repeated cells can be merged; the metric orders rows
+    // inside each device. Text-column sorts stay global.
+    const textKey = ["device", "runtime", "backend", "model"].includes(sortKey);
     const sorted = rows.slice().sort((a, b) => {
-      const av = sortKey === "device" || sortKey === "runtime" || sortKey === "backend" || sortKey === "model"
-        ? String(a[sortKey] || "") : (value(a, sortKey) ?? -Infinity);
-      const bv = sortKey === "device" || sortKey === "runtime" || sortKey === "backend" || sortKey === "model"
-        ? String(b[sortKey] || "") : (value(b, sortKey) ?? -Infinity);
+      if (textKey) {
+        const av = String(a[sortKey] || ""), bv = String(b[sortKey] || "");
+        return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
+      }
+      const device = String(a.device || "").localeCompare(String(b.device || ""));
+      if (device) return device;
+      const av = value(a, sortKey) ?? -Infinity;
+      const bv = value(b, sortKey) ?? -Infinity;
       return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
     });
     const head = columns.map(([label, key]) =>
       `<th scope="col"><button type="button" data-sort="${key}">${label}${state.sortKey === key ? (dir > 0 ? " ▲" : " ▼") : ""}</button></th>`
     ).join("") + '<th scope="col">Note</th>';
-    const body = sorted.map((row) => {
-      const cells = columns.map(([, key]) =>
-        typeof row[key] === "number"
+    // Collapse repeated Device/Backend/Model cells into rowspans.
+    const spanKeys = ["device", "backend", "model"];
+    const spans = sorted.map(() => ({}));
+    for (const key of spanKeys) {
+      let index = 0;
+      while (index < sorted.length) {
+        let next = index + 1;
+        while (next < sorted.length && String(sorted[next][key] ?? "") === String(sorted[index][key] ?? "")) next++;
+        spans[index][key] = next - index;
+        for (let k = index + 1; k < next; k++) spans[k][key] = 0;
+        index = next;
+      }
+    }
+    const body = sorted.map((row, index) => {
+      const cells = columns.map(([, key]) => {
+        if (spanKeys.includes(key)) {
+          const span = spans[index][key];
+          if (span === 0) return "";
+          return `<td${span > 1 ? ` rowspan="${span}"` : ""}>${String(row[key] ?? "")}</td>`;
+        }
+        return typeof row[key] === "number"
           ? `<td class="num">${fmt(row[key], key === "loadMs" ? 0 : 1)}</td>`
-          : `<td>${String(row[key] ?? "")}</td>`
-      ).join("");
+          : `<td>${String(row[key] ?? "")}</td>`;
+      }).join("");
       return `<tr class="row-button" data-id="${DATA.indexOf(row)}">${cells}<td class="note">${row.note || ""}</td></tr>`;
     }).join("");
     $("table").innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;

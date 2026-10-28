@@ -114,13 +114,41 @@ def qualifier(row):
 def static_table(rows, area):
     """Script-free fallback table (also used for print)."""
     columns = AREAS[area]["columns"] + [("Note", "note")]
+    metric = AREAS[area]["metric"]
+    _key, _label, _unit, better = next(m for m in AREAS[area]["metrics"] if m[0] == metric)
+    sign = -1 if better == "higher" else 1
+
+    def order(row):
+        raw = row.get(metric)
+        number = float(raw) if isinstance(raw, (int, float)) else float("inf")
+        return (row.get("device") or "", sign * number)
+
+    ordered = sorted(rows, key=order)
+    span_keys = ("device", "backend", "model")
+    spans = {key: [1] * len(ordered) for key in span_keys}
+    for key in span_keys:
+        index = 0
+        while index < len(ordered):
+            nxt = index + 1
+            while nxt < len(ordered) and (ordered[nxt].get(key) or "") == (ordered[index].get(key) or ""):
+                nxt += 1
+            spans[key][index] = nxt - index
+            for skip in range(index + 1, nxt):
+                spans[key][skip] = 0
+            index = nxt
     out = ['<div class="table-wrap"><table>', "<thead><tr>"]
     out += [f'<th scope="col">{esc(label)}</th>' for label, _ in columns]
     out.append("</tr></thead><tbody>")
-    for row in sorted(rows, key=sort_key):
+    for position, row in enumerate(ordered):
         out.append("<tr>")
         for label, key in columns:
-            if key == "note":
+            if key in span_keys:
+                span = spans[key][position]
+                if span == 0:
+                    continue
+                attr = f' rowspan="{span}"' if span > 1 else ""
+                out.append(f"<td{attr}>{esc(row.get(key, '') or '')}</td>")
+            elif key == "note":
                 out.append(f'<td class="note">{esc(row.get(key, ""))}</td>')
             elif isinstance(row.get(key), (int, float)):
                 out.append(f'<td class="num">{num(row.get(key), 0 if key == "loadMs" else 1)}</td>')
@@ -466,22 +494,47 @@ def build():
     const columns = AREAS[state.area].columns;
     const sortKey = state.sortKey || (state.metric || AREAS[state.area].metric);
     const dir = state.sortDir;
+    // Tables group by device so repeated cells can be merged; the metric orders rows
+    // inside each device. Text-column sorts stay global.
+    const textKey = ["device", "runtime", "backend", "model"].includes(sortKey);
     const sorted = rows.slice().sort((a, b) => {{
-      const av = sortKey === "device" || sortKey === "runtime" || sortKey === "backend" || sortKey === "model"
-        ? String(a[sortKey] || "") : (value(a, sortKey) ?? -Infinity);
-      const bv = sortKey === "device" || sortKey === "runtime" || sortKey === "backend" || sortKey === "model"
-        ? String(b[sortKey] || "") : (value(b, sortKey) ?? -Infinity);
+      if (textKey) {{
+        const av = String(a[sortKey] || ""), bv = String(b[sortKey] || "");
+        return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
+      }}
+      const device = String(a.device || "").localeCompare(String(b.device || ""));
+      if (device) return device;
+      const av = value(a, sortKey) ?? -Infinity;
+      const bv = value(b, sortKey) ?? -Infinity;
       return (av > bv ? 1 : av < bv ? -1 : 0) * dir;
     }});
     const head = columns.map(([label, key]) =>
       `<th scope="col"><button type="button" data-sort="${{key}}">${{label}}${{state.sortKey === key ? (dir > 0 ? " ▲" : " ▼") : ""}}</button></th>`
     ).join("") + '<th scope="col">Note</th>';
-    const body = sorted.map((row) => {{
-      const cells = columns.map(([, key]) =>
-        typeof row[key] === "number"
+    // Collapse repeated Device/Backend/Model cells into rowspans.
+    const spanKeys = ["device", "backend", "model"];
+    const spans = sorted.map(() => ({{}}));
+    for (const key of spanKeys) {{
+      let index = 0;
+      while (index < sorted.length) {{
+        let next = index + 1;
+        while (next < sorted.length && String(sorted[next][key] ?? "") === String(sorted[index][key] ?? "")) next++;
+        spans[index][key] = next - index;
+        for (let k = index + 1; k < next; k++) spans[k][key] = 0;
+        index = next;
+      }}
+    }}
+    const body = sorted.map((row, index) => {{
+      const cells = columns.map(([, key]) => {{
+        if (spanKeys.includes(key)) {{
+          const span = spans[index][key];
+          if (span === 0) return "";
+          return `<td${{span > 1 ? ` rowspan="${{span}}"` : ""}}>${{String(row[key] ?? "")}}</td>`;
+        }}
+        return typeof row[key] === "number"
           ? `<td class="num">${{fmt(row[key], key === "loadMs" ? 0 : 1)}}</td>`
-          : `<td>${{String(row[key] ?? "")}}</td>`
-      ).join("");
+          : `<td>${{String(row[key] ?? "")}}</td>`;
+      }}).join("");
       return `<tr class="row-button" data-id="${{DATA.indexOf(row)}}">${{cells}}<td class="note">${{row.note || ""}}</td></tr>`;
     }}).join("");
     $("table").innerHTML = `<thead><tr>${{head}}</tr></thead><tbody>${{body}}</tbody>`;
