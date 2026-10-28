@@ -69,6 +69,20 @@ PY
 Then open the page and check the tab counts against that output (currently 16 / 18 / 10, 44
 total). With scripts disabled it should show 44 data rows in three tables.
 
+## Confluence
+
+Paste **`docs/confluence-benchmarks.html`** into the HTML macro, not this page: it is a body
+fragment with every rule inlined, no scripts and no `<style>` block, which is what macros that
+re-render content into an existing document need. It is static by design (tables, relative bars,
+specs) and is generated from the same `bench-data`:
+
+```bash
+python3 docs/tools/confluence_benchmarks.py
+```
+
+The interactive page remains the better choice when the host allows an iframe/URL embed — see
+the Confluence section in [`benchmarks-dashboard.md`](benchmarks-dashboard.md).
+
 ## Limits
 
 - Same measurement caveats as the dashboard: energy is an estimate, and rows from different
@@ -83,6 +97,7 @@ total). With scripts disabled it should show 44 data rows in three tables.
 | File | Role |
 |---|---|
 | `docs/standalone-benchmarks.html` | The generated single-file page |
+| `docs/confluence-benchmarks.html` | Static body fragment for the Confluence HTML macro |
 | `docs/tools/standalone_benchmarks.py` | Generator (reads `bench-data`, writes the page) |
 | `docs/benchmarks.html` | Interactive dashboard and data source |
 | `docs/benchmarks-data.csv` | CSV export of the same rows (not needed by the standalone page) |

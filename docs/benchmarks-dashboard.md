@@ -104,17 +104,22 @@ simply omitted, and the chart says how many rows were excluded.
 There is no single portable answer: it depends on Cloud vs Data Center and on which macros are
 installed. In order of quality:
 
-### 1. Data Center / Server — built-in **HTML macro**
+### 1. Confluence HTML macro (Data Center/Server)
 
-Paste the entire contents of `docs/benchmarks.html` into the macro (with "HTML" rendering).
-The page is self-contained, so it survives Confluence's CSP as long as scripts are allowed;
-the chart, filters and head-to-head work. Downloads may be blocked inside the macro's sandbox —
-the visualisations are not.
+Paste **`docs/confluence-benchmarks.html`**, not the full dashboard. That file is a body
+fragment with inline styles, no `<script>`, no `<style>` block and no `<html>/<head>/<body>`,
+so it survives macros that insert the content into the page's own document (a full page loses
+its `<head>` — and with it the styles and scripts — which is why the interactive files can
+arrive blank or unstyled).
+
+The fragment is static: summary cards, the three area tables with relative bars, device specs
+and the source link. For the interactive version use option 2 or 3 below. Downloads may be
+blocked inside the macro's sandbox regardless.
 
 ### 2. Cloud or DC — **HTML Include / HTML for Confluence** (Marketplace app)
 
-Host the page somewhere reachable (next section) and point the macro at the URL, or paste the
-file inline if the app supports raw HTML. These apps are the common way to run scripted content
+Host the page somewhere reachable (next section) and point the macro at the URL, or paste
+`docs/confluence-benchmarks.html` inline — it is already fragment-shaped and inline-styled. These apps are the common way to run scripted content
 on Confluence Cloud, where the built-in HTML macro does not exist.
 
 ### 3. Cloud — **Widget Connector** (built-in) with a hosted URL
