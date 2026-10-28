@@ -326,6 +326,9 @@ def build():
 
   <p class="foot" id="foot">Generated {today} from the <code>bench-data</code> block of
   <code>benchmarks.html</code> ({len(rows)} rows). Single file, no external assets.</p>
+  <p class="foot">Source data and code:
+  <a href="https://github.com/GustavoFRGomes/myleo-demo-ml-runtimes">github.com/GustavoFRGomes/myleo-demo-ml-runtimes</a> — the page itself needs nothing but this
+  file; the link is only for the underlying data.</p>
 </main>
 
 <dialog id="detail" aria-labelledby="detail-title">

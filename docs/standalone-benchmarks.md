@@ -20,6 +20,8 @@ It is generated, never hand-edited. The source of truth is the
   each with a bar chart and a full table including load, power (W) and energy (mJ per
   op) where measured.
 - Row count as of 2026-10-28: **44** (16 LLM, 18 vector, 10 decision).
+- Footer links back to the source repository (the only outbound link; nothing is fetched when
+  the page loads).
 
 ## Interaction
 
@@ -51,8 +53,8 @@ output. `AGENTS.md` lists it as the fourth dashboard-sync step.
 ## Verify
 
 ```bash
-# no external dependencies
-grep -cE 'https?://|<link|<img' docs/standalone-benchmarks.html   # expect 0
+# no external dependencies (the only URL is the footer anchor)
+grep -cE '<link|<img|<script[^>]+src=' docs/standalone-benchmarks.html   # expect 0
 
 # row count matches the dashboard
 python3 - <<'PY'
