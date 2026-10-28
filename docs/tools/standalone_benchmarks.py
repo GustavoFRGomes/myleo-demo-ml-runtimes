@@ -139,11 +139,48 @@ def noscript_sections(rows):
     return "\n".join(out)
 
 
+def metric_value(row, key):
+    try:
+        return float(row.get(key))
+    except (TypeError, ValueError):
+        return None
+
+
+def summary_cards(rows):
+    """Worst → best range per area × platform; only the best value is bold."""
+    cards = []
+    for area, config in AREAS.items():
+        key = config["metric"]
+        _key, _label, unit, better = next(m for m in config["metrics"] if m[0] == key)
+        for platform in ("iOS", "Android"):
+            subset = [r for r in rows if r["area"] == area and r["platform"] == platform]
+            pairs = [(row, metric_value(row, key)) for row in subset]
+            pairs = [(row, val) for row, val in pairs if val is not None]
+            if not pairs:
+                continue
+            best_row, best = (min if better == "lower" else max)(pairs, key=lambda pair: pair[1])
+            worst_row, worst = (max if better == "lower" else min)(pairs, key=lambda pair: pair[1])
+            if best_row is worst_row:
+                value = f'<span class="best">{num(best)}</span>'
+            else:
+                value = (f'<span class="worst">{num(worst)}</span> – '
+                         f'<span class="best">{num(best)}</span>')
+            cards.append(
+                f'<div class="card"><h3>{esc(platform)} · {esc(area)}</h3>'
+                f'<div class="big">{value} <span class="unit">{esc(unit)}</span></div>'
+                f'<div class="delta">worst: {esc(worst_row["device"])} · {esc(worst_row["runtime"])}</div>'
+                f'<div class="delta">best: {esc(best_row["device"])} · {esc(best_row["runtime"])}</div>'
+                f"</div>"
+            )
+    return '<div class="cards">' + "".join(cards) + "</div>"
+
+
 def build():
     rows = load_rows()
     data_json = json.dumps(rows, indent=1)
     area_meta = json.dumps({k: {kk: vv for kk, vv in v.items()} for k, v in AREAS.items()}, indent=1)
     today = datetime.date.today().isoformat()
+    cards = summary_cards(rows)
     tabs = "".join(
         f'<button type="button" role="tab" data-area="{esc(area)}" '
         f'aria-selected="{"true" if index == 0 else "false"}">{esc(area)}</button>'
@@ -173,6 +210,14 @@ def build():
   h1 {{ margin:0 0 6px; font-size:24px; letter-spacing:-0.01em; }}
   h2 {{ margin:0 0 12px; font-size:18px; }}
   .sub, .foot {{ color:var(--muted); font-size:13px; }}
+  .cards {{ display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+            gap:12px; margin:18px 0 14px; }}
+  .card {{ border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--card); }}
+  .card h3 {{ margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }}
+  .big {{ font-size:21px; font-weight:400; font-variant-numeric:tabular-nums; white-space:nowrap; }}
+  .big .best {{ font-weight:700; }}
+  .unit {{ font-size:11.5px; font-weight:500; color:var(--muted); }}
+  .delta {{ color:var(--muted); font-size:12px; margin-top:2px; }}
   main {{ padding-bottom:40px; }}
   .tabs {{ display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 12px; }}
   .tabs button {{ font:inherit; background:transparent; color:var(--fg); border:1px solid var(--line);
@@ -256,6 +301,7 @@ def build():
 <main>
   <noscript><style>#interactive {{ display:none; }}</style></noscript>
   <div id="interactive">
+  {cards}
   <div class="tabs" role="tablist" aria-label="Benchmark area">{tabs}</div>
 
   <section class="controls" aria-label="Filters">

@@ -21,6 +21,14 @@
   h1 { margin:0 0 6px; font-size:24px; letter-spacing:-0.01em; }
   h2 { margin:0 0 12px; font-size:18px; }
   .sub, .foot { color:var(--muted); font-size:13px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+            gap:12px; margin:18px 0 14px; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--card); }
+  .card h3 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .big { font-size:21px; font-weight:400; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .big .best { font-weight:700; }
+  .unit { font-size:11.5px; font-weight:500; color:var(--muted); }
+  .delta { color:var(--muted); font-size:12px; margin-top:2px; }
   main { padding-bottom:40px; }
   .tabs { display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 12px; }
   .tabs button { font:inherit; background:transparent; color:var(--fg); border:1px solid var(--line);
@@ -104,6 +112,7 @@
 <main>
   <noscript><style>#interactive { display:none; }</style></noscript>
   <div id="interactive">
+  <div class="cards"><div class="card"><h3>iOS · LLM</h3><div class="big"><span class="worst">2.0</span> – <span class="best">47.5</span> <span class="unit">tok/s</span></div><div class="delta">worst: iPhone SE 3 · Core ML</div><div class="delta">best: iPhone 15 Pro · ONNX GenAI</div></div><div class="card"><h3>Android · LLM</h3><div class="big"><span class="worst">5.7</span> – <span class="best">91.3</span> <span class="unit">tok/s</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · ONNX GenAI</div><div class="delta">best: Galaxy S26 Ultra · ONNX GenAI</div></div><div class="card"><h3>iOS · Vector search</h3><div class="big"><span class="worst">56.1</span> – <span class="best">8.8</span> <span class="unit">ms/chunk</span></div><div class="delta">worst: iPhone SE 3 · LiteRT</div><div class="delta">best: iPhone 15 Pro · Core ML</div></div><div class="card"><h3>Android · Vector search</h3><div class="big"><span class="worst">94.2</span> – <span class="best">9.0</span> <span class="unit">ms/chunk</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · LiteRT</div><div class="delta">best: Galaxy S26 Ultra · LiteRT (dual)</div></div><div class="card"><h3>iOS · Decision</h3><div class="big"><span class="worst">660.5</span> – <span class="best">36.8</span> <span class="unit">ms/prompt</span></div><div class="delta">worst: iPhone SE 3 · LiteRT</div><div class="delta">best: iPhone 15 Pro · ONNX</div></div><div class="card"><h3>Android · Decision</h3><div class="big"><span class="worst">513.4</span> – <span class="best">42.0</span> <span class="unit">ms/prompt</span></div><div class="delta">worst: TCL NXTPaper 70 Pro · LiteRT</div><div class="delta">best: Galaxy S25 Ultra · ONNX</div></div></div>
   <div class="tabs" role="tablist" aria-label="Benchmark area"><button type="button" role="tab" data-area="LLM" aria-selected="true">LLM</button><button type="button" role="tab" data-area="Vector search" aria-selected="false">Vector search</button><button type="button" role="tab" data-area="Decision" aria-selected="false">Decision</button></div>
 
   <section class="controls" aria-label="Filters">

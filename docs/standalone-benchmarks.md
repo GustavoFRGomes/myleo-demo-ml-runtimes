@@ -14,7 +14,8 @@ It is generated, never hand-edited. The source of truth is the
 
 ## What it contains
 
-- 6 summary cards: best lane per area × platform.
+- 6 summary cards: worst → best range per area × platform (only the best value is bold),
+  with the two device/runtime labels underneath.
 - **Device specs** (collapsible): model code, SoC, RAM and OS for every device in the data.
 - Three sections — **LLM** (tok/s), **Vector search** (ms/chunk), **Decision** (ms/prompt) —
   each with a bar chart and a full table including load, power (W) and energy (mJ per
