@@ -179,6 +179,9 @@ def static_area(rows, area, title, unit, order, key, columns):
                     continue
                 attr = f' rowspan="{span}"' if span > 1 else ""
                 cells.append(f'<td{attr} style="{STYLE["td"]}">{esc(raw or "")}</td>')
+            elif field in ("powerW", "mjPerToken", "mjPerChunk", "mjPerPrompt") and raw is None:
+                star = "*" if row.get("platform") == "iOS" and area in ("Vector search", "Decision") else ""
+                cells.append(f'<td style="{STYLE["td"] + STYLE["num"]}">—{star}</td>')
             elif isinstance(raw, (int, float)):
                 style = STYLE["td"] + STYLE["num"] + (STYLE["best"] if row is best and field == key else "")
                 cells.append(f'<td style="{style}">{fmt(raw, 0 if field == "loadMs" else 1)}</td>')
@@ -214,6 +217,9 @@ def static_fallback(rows):
             f'{len(rows)} measured rows. Interactive version: '
             f'<a href="{REPO}">{esc(REPO.replace("https://", ""))}</a>.</p>'
             f"{static_summary(rows)}{sections}{static_specs()}"
+            f'<p style="{STYLE["note"]}">—* = no power/energy measurement for that iOS row: no current API, '
+            f'the vector and decision workloads are below the ~5% gauge, and Power Profiler needs the '
+            f'cable (0 while charging).</p>'
             f'<p style="{STYLE["note"]}">Generated from docs/benchmarks.html. Energy figures are '
             f'estimates. Compare lanes on the same device, not across devices.</p></div>')
 
