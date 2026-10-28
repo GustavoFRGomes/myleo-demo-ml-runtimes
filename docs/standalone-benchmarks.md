@@ -21,6 +21,8 @@ It is generated, never hand-edited. The source of truth is the
   each with a bar chart and a full table including load, power (W) and energy (mJ per
   op) where measured.
 - Row count as of 2026-10-28: **44** (16 LLM, 18 vector, 10 decision).
+- Tables group rows by device: identical Device/Backend/Model values are merged with `rowspan`
+  instead of repeating on every line.
 - Footer links back to the source repository (the only outbound link; nothing is fetched when
   the page loads).
 
@@ -33,7 +35,7 @@ It is generated, never hand-edited. The source of truth is the
 | Chart metric | Decode tok/s, TTFT, load, power or energy; best row is green |
 | Search | Matches device, runtime, backend, model and note text |
 | Chart bar or table row | Opens a native `<dialog>` with every field of that row, human-labelled |
-| Table header | Sorts by that column; numeric columns default to best-first |
+| Table header | Sorts by that column; numeric sorts reorder rows inside each device group |
 | Download CSV | Exports the current filtered rows (same column set as `benchmarks-data.csv`) |
 | Device specs / Methodology / Notes | `<details>` panels (specs are static, so they also work without JS) |
 | `<noscript>` | Hides the interactive shell and renders all rows as three static tables |
@@ -71,7 +73,8 @@ total). With scripts disabled it should show 44 data rows in three tables.
 
 ## Confluence
 
-Paste **`docs/confluence-benchmarks.html`** into the HTML macro, not this page: it is a body
+The Confluence copy currently omits the **Galaxy S26 Ultra** rows (38 of the 44). Paste
+**`docs/confluence-benchmarks.html`** into the HTML macro, not this page: it is a body
 fragment (no doctype/head/body) that mounts this page's UI in a shadow root when scripts are
 allowed — same tabs, filters, dialog and CSV export, with the CSS isolated from the Confluence
 page. If the macro strips scripts, the host div falls back to inline-styled static tables, so

@@ -112,7 +112,8 @@ so it survives macros that insert the content into the page's own document (a fu
 its `<head>` — and with it the styles and scripts — which is why the interactive files can
 arrive blank or unstyled).
 
-When scripts survive the macro, the fragment mounts the **same interactive UI** as the
+The fragment currently excludes the **Galaxy S26 Ultra** rows (38 of 44). When scripts survive
+the macro, it mounts the **same interactive UI** as the
 standalone page — tabs, filters, search, sortable tables, dialog, CSV export — inside a shadow
 root, so its CSS cannot leak into or inherit from the Confluence page. If scripts are stripped,
 the host div already contains inline-styled static tables (summary cards, the three area tables

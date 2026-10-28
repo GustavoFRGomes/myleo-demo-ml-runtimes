@@ -24,6 +24,9 @@ TARGET = ROOT / "confluence-benchmarks.html"
 
 REPO = "https://github.com/GustavoFRGomes/myleo-demo-ml-runtimes"
 
+# Devices intentionally left out of the Confluence copy.
+EXCLUDED_DEVICES = {"Galaxy S26 Ultra"}
+
 AREAS = [
     ("LLM", "Decode speed", "tok/s", "desc", "tokPerSec",
      [("Device", "device"), ("Runtime", "runtime"), ("Backend", "backend"),
@@ -143,18 +146,40 @@ def static_area(rows, area, title, unit, order, key, columns):
         return ""
     pairs = [(row, value(row, key)) for row in subset]
     pairs = [(row, val) for row, val in pairs if val is not None]
-    pairs.sort(key=lambda pair: pair[1], reverse=(order == "desc"))
+    # Group by device (so repeated cells merge), best first inside each device.
+    pairs.sort(key=lambda pair: (pair[0].get("device") or "",
+                                 -pair[1] if order == "desc" else pair[1]))
     peak = max((val for _, val in pairs), default=1) or 1
     best = pairs[0][0] if pairs else None
 
     head = "".join(f'<th style="{STYLE["th"]}">{esc(label)}</th>' for label, _ in columns)
     head += f'<th style="{STYLE["th"]}">Relative</th><th style="{STYLE["th"]}">Note</th>'
+    span_keys = {"device", "backend", "model"}
+    grouped = [(row, val) for row, val in pairs]
+    spans = {field: [1] * len(grouped) for field in span_keys}
+    for field in span_keys:
+        index = 0
+        while index < len(grouped):
+            nxt = index + 1
+            while nxt < len(grouped) and (grouped[nxt][0].get(field) or "") == (grouped[index][0].get(field) or ""):
+                nxt += 1
+            spans[field][index] = nxt - index
+            for skip in range(index + 1, nxt):
+                spans[field][skip] = 0
+            index = nxt
+
     body = []
-    for row, val in pairs:
+    for position, (row, val) in enumerate(pairs):
         cells = []
         for _label, field in columns:
             raw = row.get(field)
-            if isinstance(raw, (int, float)):
+            if field in span_keys:
+                span = spans[field][position]
+                if span == 0:
+                    continue
+                attr = f' rowspan="{span}"' if span > 1 else ""
+                cells.append(f'<td{attr} style="{STYLE["td"]}">{esc(raw or "")}</td>')
+            elif isinstance(raw, (int, float)):
                 style = STYLE["td"] + STYLE["num"] + (STYLE["best"] if row is best and field == key else "")
                 cells.append(f'<td style="{style}">{fmt(raw, 0 if field == "loadMs" else 1)}</td>')
             else:
@@ -174,7 +199,7 @@ def static_specs():
     head = "".join(f'<th style="{STYLE["th"]}">{label}</th>'
                    for label in ("Device", "Model code", "SoC", "RAM", "OS"))
     body = "".join("<tr>" + "".join(f'<td style="{STYLE["td"]}">{esc(cell)}</td>' for cell in row) + "</tr>"
-                   for row in SPECS)
+                   for row in SPECS if row[0] not in EXCLUDED_DEVICES)
     return (f'<h2 style="{STYLE["h2"]}">Device specs — SoC, RAM, OS</h2>'
             f'<table style="{STYLE["table"]}"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>'
             f'<p style="{STYLE["note"]}">RAM is nominal; kernels report less (11.4 GB usable on the '
@@ -191,6 +216,24 @@ def static_fallback(rows):
             f"{static_summary(rows)}{sections}{static_specs()}"
             f'<p style="{STYLE["note"]}">Generated from docs/benchmarks.html. Energy figures are '
             f'estimates. Compare lanes on the same device, not across devices.</p></div>')
+
+
+def strip_cards(markup):
+    """Drop the standalone page's summary cards so they can be rebuilt from the filtered rows."""
+    start = markup.find('<div class="cards">')
+    if start < 0:
+        return markup
+    depth = 0
+    index = start
+    while index < len(markup):
+        if markup.startswith("<div", index):
+            depth += 1
+        elif markup.startswith("</div>", index):
+            depth -= 1
+            if depth == 0:
+                return markup[:start] + markup[index + 6:]
+        index += 1
+    return markup
 
 
 def extract_standalone():
@@ -234,8 +277,18 @@ def adapt_app(app, rows):
 
 
 def build():
-    rows = load_rows()
+    rows = [row for row in load_rows() if row.get("device") not in EXCLUDED_DEVICES]
     css, markup, app = extract_standalone()
+
+    # The standalone markup carries cards and specs built from every row; rebuild
+    # the cards for the filtered set and drop excluded specs rows.
+    import standalone_benchmarks as standalone
+    markup = strip_cards(markup)
+    cards = standalone.summary_cards(rows)
+    markup = markup.replace('<div class="tabs"', cards + '\n  <div class="tabs"', 1)
+    for device in EXCLUDED_DEVICES:
+        markup = re.sub(r"<tr><td>" + re.escape(device) + r"</td>.*?</tr>", "", markup, flags=re.S)
+    # Keep the fragment free of excluded device names, including in notes.
     css = adapt_css(css)
     app = adapt_app(app, rows)
     fallback = static_fallback(rows)
