@@ -113,16 +113,25 @@ def static_summary(rows):
     for area, _title, unit, order, key, _cols in AREAS:
         for platform in ("iOS", "Android"):
             subset = [r for r in rows if r["area"] == area and r["platform"] == platform]
-            winner = best_row(subset, key, order)
-            if not winner:
+            pairs = [(row, value(row, key)) for row in subset]
+            pairs = [(row, val) for row, val in pairs if val is not None]
+            if not pairs:
                 continue
-            row, val = winner
+            pick_best = min if order == "asc" else max
+            pick_worst = max if order == "asc" else min
+            best_row, best = pick_best(pairs, key=lambda pair: pair[1])
+            worst_row, worst = pick_worst(pairs, key=lambda pair: pair[1])
+            if best_row is worst_row:
+                range_html = f"<strong>{fmt(best)}</strong>"
+            else:
+                range_html = f"{fmt(worst)} – <strong>{fmt(best)}</strong>"
             cards.append(
                 f'<div style="{STYLE["card"]}">'
                 f'<div style="{STYLE["card-label"]}">{esc(platform)} · {esc(area)}</div>'
-                f'<div style="{STYLE["card-value"]}">{fmt(val)} <span style="font-size:13px;font-weight:500;'
-                f'color:#5b6673">{esc(unit)}</span></div>'
-                f'<div style="{STYLE["card-sub"]}">{esc(row["device"])} · {esc(row["runtime"])}</div>'
+                f'<div style="{STYLE["card-value"]};font-weight:400;font-size:20px;white-space:nowrap">{range_html} '
+                f'<span style="font-size:13px;font-weight:500;color:#5b6673">{esc(unit)}</span></div>'
+                f'<div style="{STYLE["card-sub"]}">worst: {esc(worst_row["device"])} · {esc(worst_row["runtime"])}</div>'
+                f'<div style="{STYLE["card-sub"]}">best: {esc(best_row["device"])} · {esc(best_row["runtime"])}</div>'
                 f"</div>"
             )
     return "".join(cards)
