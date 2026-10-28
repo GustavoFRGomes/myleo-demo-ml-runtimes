@@ -54,8 +54,12 @@ Everything works from `file://` — no server needed.
 inline JS, so it needs no images, no CSV/PNG siblings and no network. It is interactive —
 area tabs, platform/device filters, free-text search, chart-metric switch, sortable table
 headers, a `<dialog>` with the full row, and a client-side CSV export — and falls back to
-static tables under `<noscript>` (or when a host strips scripts). Regenerate it after
-editing the dashboard data:
+static tables under `<noscript>` (or when a host strips scripts). It currently mirrors
+**44 rows** (16 LLM, 18 vector, 10 decision).
+
+Full description, interaction list and verification steps:
+[`standalone-benchmarks.md`](standalone-benchmarks.md). Regenerate it after editing the
+dashboard data:
 
 ```bash
 python3 docs/tools/standalone_benchmarks.py   # reads bench-data, writes the snapshot

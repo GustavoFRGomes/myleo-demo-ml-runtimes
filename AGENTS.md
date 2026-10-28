@@ -214,7 +214,7 @@ corrected number — update the dashboard in the **same change**:
 4. regenerate `docs/standalone-benchmarks.html` with
    `python3 docs/tools/standalone_benchmarks.py` (single-file snapshot of the same rows with
    inline filters, dialog and a `<noscript>` fallback, used when the page must travel without
-   its CSV/PNG siblings).
+   its CSV/PNG siblings; see `docs/standalone-benchmarks.md`).
 
 Commands and the CSV snippet live in `docs/benchmarks-dashboard.md` → *Update the numbers*.
 A benchmark change that leaves the dashboard stale is incomplete.
