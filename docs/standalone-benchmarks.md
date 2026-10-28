@@ -72,9 +72,10 @@ total). With scripts disabled it should show 44 data rows in three tables.
 ## Confluence
 
 Paste **`docs/confluence-benchmarks.html`** into the HTML macro, not this page: it is a body
-fragment with every rule inlined, no scripts and no `<style>` block, which is what macros that
-re-render content into an existing document need. It is static by design (tables, relative bars,
-specs) and is generated from the same `bench-data`:
+fragment (no doctype/head/body) that mounts this page's UI in a shadow root when scripts are
+allowed — same tabs, filters, dialog and CSV export, with the CSS isolated from the Confluence
+page. If the macro strips scripts, the host div falls back to inline-styled static tables, so
+the numbers still render. Generated from the same `bench-data`:
 
 ```bash
 python3 docs/tools/confluence_benchmarks.py

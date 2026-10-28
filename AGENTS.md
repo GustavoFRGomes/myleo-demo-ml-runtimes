@@ -216,8 +216,8 @@ corrected number — update the dashboard in the **same change**:
    inline filters, dialog and a `<noscript>` fallback, used when the page must travel without
    its CSV/PNG siblings; see `docs/standalone-benchmarks.md`);
 5. regenerate `docs/confluence-benchmarks.html` with
-   `python3 docs/tools/confluence_benchmarks.py` when the Confluence macro needs the static
-   fragment (inline styles, no scripts, no `<style>` block).
+   `python3 docs/tools/confluence_benchmarks.py` when the Confluence macro needs the fragment
+   (mounts the interactive UI in a shadow root, with inline-styled static tables as fallback).
 
 Commands and the CSV snippet live in `docs/benchmarks-dashboard.md` → *Update the numbers*.
 A benchmark change that leaves the dashboard stale is incomplete.

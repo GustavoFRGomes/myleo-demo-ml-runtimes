@@ -112,8 +112,14 @@ so it survives macros that insert the content into the page's own document (a fu
 its `<head>` — and with it the styles and scripts — which is why the interactive files can
 arrive blank or unstyled).
 
-The fragment is static: summary cards, the three area tables with relative bars, device specs
-and the source link. For the interactive version use option 2 or 3 below. Downloads may be
+When scripts survive the macro, the fragment mounts the **same interactive UI** as the
+standalone page — tabs, filters, search, sortable tables, dialog, CSV export — inside a shadow
+root, so its CSS cannot leak into or inherit from the Confluence page. If scripts are stripped,
+the host div already contains inline-styled static tables (summary cards, the three area tables
+with relative bars, specs, source link), so the macro still shows the numbers.
+
+Only the shadow root's `<style>`/constructed sheet is used; the fragment itself has no
+`<style>` block, `<link>` or image, and remains one pasted blob (~110 KB). Downloads may be
 blocked inside the macro's sandbox regardless.
 
 ### 2. Cloud or DC — **HTML Include / HTML for Confluence** (Marketplace app)

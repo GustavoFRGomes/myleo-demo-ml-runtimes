@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
-"""Generate docs/confluence-benchmarks.html — a fragment for Confluence's HTML macro.
+"""Generate docs/confluence-benchmarks.html — a Confluence HTML-macro fragment.
 
-Differences from docs/standalone-benchmarks.html, and why:
+The fragment keeps the full standalone UI by mounting it in a shadow root:
 
-* no doctype/html/head/body — macros insert the fragment into the page's own document;
-* no <script> — Cloud strips it, DC may sandbox it;
-* no <style> block — many macros drop it, so every rule is an inline style attribute;
-* no <dialog>/<progress>/<details> — macros may unwrap them, so the layout is plain
-  div/table with headings;
-* no external assets — the only URL is the source-repo anchor in the footer.
+* the host <div> carries a static, inline-styled fallback (visible if scripts are stripped);
+* a script clears the host, attaches a shadow root and copies the standalone page's
+  markup, styles and app logic into it. Shadow DOM isolates the CSS from the
+  Confluence page and the page's CSS from the widget.
 
-The data still comes from the bench-data block in docs/benchmarks.html.
+It is a fragment (no doctype/html/head/body), so macros can insert it into an existing
+document. Data comes from docs/benchmarks.html via docs/standalone-benchmarks.html.
 """
 import html
 import json
 import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "benchmarks.html"
+STANDALONE = ROOT / "standalone-benchmarks.html"
 TARGET = ROOT / "confluence-benchmarks.html"
 
 REPO = "https://github.com/GustavoFRGomes/myleo-demo-ml-runtimes"
@@ -50,7 +51,6 @@ STYLE = {
     "wrap": "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"
             "color:#1b1f24;line-height:1.45;font-size:14px;",
     "h2": "font-size:18px;margin:26px 0 8px;",
-    "h3": "font-size:14px;margin:20px 0 6px;",
     "note": "color:#5b6673;font-size:12px;margin:0 0 10px;",
     "table": "width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0 14px;",
     "th": "text-align:left;padding:6px 8px;border-bottom:1px solid #d8dee4;color:#5b6673;"
@@ -108,7 +108,7 @@ def best_row(rows, key, order):
     return (min if order == "asc" else max)(pairs, key=lambda pair: pair[1])
 
 
-def summary(rows):
+def static_summary(rows):
     cards = []
     for area, _title, unit, order, key, _cols in AREAS:
         for platform in ("iOS", "Android"):
@@ -125,17 +125,10 @@ def summary(rows):
                 f'<div style="{STYLE["card-sub"]}">{esc(row["device"])} · {esc(row["runtime"])}</div>'
                 f"</div>"
             )
-    return f'<div>{announce(rows)}</div>' + "".join(cards)
+    return "".join(cards)
 
 
-def announce(rows):
-    areas = {area: sum(r["area"] == area for r in rows) for area, *_ in AREAS}
-    counts = " · ".join(f"{name}: {count}" for name, count in areas.items())
-    return (f'<div style="{STYLE["note"]}">Static snapshot of {len(rows)} measured rows '
-            f'({counts}). Interactive version and raw tables: <a href="{REPO}">{esc(REPO.replace("https://", ""))}</a>.</div>')
-
-
-def area_section(rows, area, title, unit, order, key, columns):
+def static_area(rows, area, title, unit, order, key, columns):
     subset = [r for r in rows if r["area"] == area]
     if not subset:
         return ""
@@ -147,11 +140,10 @@ def area_section(rows, area, title, unit, order, key, columns):
 
     head = "".join(f'<th style="{STYLE["th"]}">{esc(label)}</th>' for label, _ in columns)
     head += f'<th style="{STYLE["th"]}">Relative</th><th style="{STYLE["th"]}">Note</th>'
-
     body = []
     for row, val in pairs:
         cells = []
-        for index, (label, field) in enumerate(columns):
+        for _label, field in columns:
             raw = row.get(field)
             if isinstance(raw, (int, float)):
                 style = STYLE["td"] + STYLE["num"] + (STYLE["best"] if row is best and field == key else "")
@@ -159,47 +151,116 @@ def area_section(rows, area, title, unit, order, key, columns):
             else:
                 cells.append(f'<td style="{STYLE["td"]}">{esc(raw or "")}</td>')
         width = max(1.0, val / peak * 100)
-        bar = (f'<div style="{STYLE["bar-track"]}"><div style="{STYLE["bar"]};width:{width:.1f}%"></div></div>')
-        cells.append(f'<td style="{STYLE["td"]}">{bar}</td>')
+        cells.append(f'<td style="{STYLE["td"]}"><div style="{STYLE["bar-track"]}">'
+                     f'<div style="{STYLE["bar"]};width:{width:.1f}%"></div></div></td>')
         cells.append(f'<td style="{STYLE["td"] + STYLE["note-cell"]}">{esc(row.get("note", ""))}</td>')
         body.append("<tr>" + "".join(cells) + "</tr>")
-
     return (f'<h2 style="{STYLE["h2"]}">{esc(area)} — {esc(title)} ({esc(unit)}, '
             f'{"higher" if order == "desc" else "lower"} is better)</h2>'
             f'<table style="{STYLE["table"]}"><thead><tr>{head}</tr></thead>'
             f'<tbody>{"".join(body)}</tbody></table>')
 
 
-def specs_section():
+def static_specs():
     head = "".join(f'<th style="{STYLE["th"]}">{label}</th>'
                    for label in ("Device", "Model code", "SoC", "RAM", "OS"))
-    body = "".join(
-        "<tr>" + "".join(f'<td style="{STYLE["td"]}">{esc(cell)}</td>' for cell in row) + "</tr>"
-        for row in SPECS
-    )
+    body = "".join("<tr>" + "".join(f'<td style="{STYLE["td"]}">{esc(cell)}</td>' for cell in row) + "</tr>"
+                   for row in SPECS)
     return (f'<h2 style="{STYLE["h2"]}">Device specs — SoC, RAM, OS</h2>'
             f'<table style="{STYLE["table"]}"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>'
             f'<p style="{STYLE["note"]}">RAM is nominal; kernels report less (11.4 GB usable on the '
             f'S25 Ultra, 7.3 GB on the TCL).</p>')
 
 
+def static_fallback(rows):
+    sections = "".join(static_area(rows, *area) for area in AREAS)
+    return (f'<div style="{STYLE["wrap"]}">'
+            f'<h2 style="{STYLE["h2"]}">MyLEO benchmarks — Confluence snapshot</h2>'
+            f'<p style="{STYLE["note"]}">Static view — scripts are disabled or stripped. '
+            f'{len(rows)} measured rows. Interactive version: '
+            f'<a href="{REPO}">{esc(REPO.replace("https://", ""))}</a>.</p>'
+            f"{static_summary(rows)}{sections}{static_specs()}"
+            f'<p style="{STYLE["note"]}">Generated from docs/benchmarks.html. Energy figures are '
+            f'estimates. Compare lanes on the same device, not across devices.</p></div>')
+
+
+def extract_standalone():
+    text = STANDALONE.read_text()
+    css = re.search(r"<style>(.*?)</style>", text, re.S)
+    body = re.search(r"<body>(.*?)</body>", text, re.S)
+    app = None
+    for match in re.finditer(r"<script>(.*?)</script>", text, re.S):
+        if "const DATA" in match.group(1):
+            app = match.group(1)
+            break
+    if not (css and body and app):
+        raise SystemExit("standalone page is missing its style, body or app script")
+    markup = re.sub(r"<noscript>.*?</noscript>", "", body.group(1), flags=re.S)
+    markup = re.sub(r"<script.*?</script>", "", markup, flags=re.S)
+    return css.group(1), markup.strip(), app
+
+
+def adapt_css(css):
+    css = css.replace(":root {", ":host {")
+    css = css.replace("\n  body {", "\n  :host {")
+    return css
+
+
+def adapt_app(app, rows):
+    if 'const DATA = JSON.parse(document.getElementById("bench-data-LOCAL").textContent);' not in app:
+        raise SystemExit("data line changed; update adapt_app")
+    app = app.replace(
+        'const DATA = JSON.parse(document.getElementById("bench-data-LOCAL").textContent);',
+        f"const DATA = {json.dumps(rows)};",
+    )
+    # The app and its styles live in a shadow root: everything DOM-facing must be scoped.
+    app = app.replace("document.getElementById(", "root.getElementById(")
+    app = app.replace("document.querySelectorAll(", "root.querySelectorAll(")
+    app = app.replace("document.addEventListener(", "root.addEventListener(")
+    app = app.replace('document.body.dataset.ready = "1";', 'root.host.setAttribute("data-ready", "1");')
+    # The hash belongs to the host page, not us.
+    app = re.sub(r"\n\s*if \(location\.hash\.slice\(1\) !== state\.area\).*?;", "", app, flags=re.S)
+    app = re.sub(r"\n\s*const initial = decodeURIComponent\(location\.hash\.slice\(1\)\);.*?\n  }}", "", app, flags=re.S)
+    return app
+
+
 def build():
     rows = load_rows()
-    sections = "".join(area_section(rows, *area) for area in AREAS)
+    css, markup, app = extract_standalone()
+    css = adapt_css(css)
+    app = adapt_app(app, rows)
+    fallback = static_fallback(rows)
+
     document = (
-        f'<div style="{STYLE["wrap"]}">'
-        f'<h2 style="{STYLE["h2"]}">MyLEO benchmarks — Confluence snapshot</h2>'
-        f"{summary(rows)}"
-        f"{sections}"
-        f"{specs_section()}"
-        f'<p style="{STYLE["note"]}">Generated from docs/benchmarks.html. Energy figures are '
-        f'estimates (iOS gauge/Power Profiler; Android integrated current or charge-counter steps). '
-        f'Compare lanes on the same device, not across devices. '
-        f'<a href="{REPO}">Source repository</a>.</p>'
-        "</div>"
+        '<div id="myleo-bench-host">' + fallback + "</div>\n"
+        "<script>\n"
+        "(function () {\n"
+        '  var host = document.getElementById("myleo-bench-host");\n'
+        "  if (!host || !host.attachShadow) return;\n"
+        '  host.innerHTML = "";\n'
+        '  var root = host.attachShadow({ mode: "open" });\n'
+        f"  var css = {json.dumps(css)};\n"
+        f"  var markup = {json.dumps(markup)};\n"
+        '  try {\n'
+        "    if (window.CSSStyleSheet) {\n"
+        "      var sheet = new CSSStyleSheet();\n"
+        "      sheet.replaceSync(css);\n"
+        "      root.adoptedStyleSheets = [sheet];\n"
+        "      root.innerHTML = markup;\n"
+        "    } else {\n"
+        '      root.innerHTML = "<style>" + css + "</style>" + markup;\n'
+        "    }\n"
+        "  } catch (e) {\n"
+        '    root.innerHTML = "<style>" + css + "</style>" + markup;\n'
+        "  }\n"
+        f"  {app}\n"
+        "})();\n"
+        "</script>\n"
     )
     TARGET.write_text(document)
     print(f"wrote {TARGET} ({len(rows)} rows, {TARGET.stat().st_size} bytes)")
+    if "</script>" in css or "</script>" in markup:
+        print("warning: embedded markup contains a closing script tag", file=sys.stderr)
 
 
 if __name__ == "__main__":
